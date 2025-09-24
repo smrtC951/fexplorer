@@ -9,6 +9,12 @@ const HOME_URL = 'fexplorer:home';
 const GOOG_COOLDOWN = 10000;
 const DAILY_BONUS_COOLDOWN = 5 * 60 * 1000;
 const BASE_DAILY_BONUS = 70;
+const STOCK_UPDATE_INTERVAL = 10 * 1000;
+const INITIAL_STOCK_PRICE = 100;
+const FPOINTS_PER_POST = 15;
+const FPOINTS_PER_LIKE = 1;
+const FPOINTS_PER_INSTAGRAMS_POST = 20;
+const FPOINTS_PER_INSTAGRAMS_LIKE = 2;
 
 // Headbook AI Post Timing
 let lastAIHeadbookPostTime = parseInt(localStorage.getItem('lastAIHeadbookPostTime') || '0', 10);
@@ -19,8 +25,133 @@ let aiPostTimer = null; // To hold the timeout ID for AI posts
 let historyStack = [];
 let currentUrl = '';
 
+const uploadableVideosPool = [
+    {
+        id: 'user_game_review',
+        title: 'My First Game Review (Simulated)',
+        views: '0',
+        date: 'just now',
+        thumbnail: 'mytube_thumbnail_minceraft.png',
+        description: 'Reviewing a classic simulated game. Hope you enjoy!',
+        comments: [
+            { author: 'Viewer1', text: 'Nice review!' },
+            { author: 'GamerX', text: 'What game is that? Looks fun.' }
+        ]
+    },
+    {
+        id: 'user_day_in_life',
+        title: 'A Day In The Life (Simulated Vlog)',
+        views: '0',
+        date: 'just now',
+        thumbnail: 'mytube_thumbnail_welcome.png',
+        description: 'Come along for a simulated day in my life! Just exploring the simulated web.',
+        comments: [
+            { author: 'FollowerFan', text: 'Great content!' }
+        ]
+    },
+    {
+        id: 'user_tutorial',
+        title: 'FExplorer Basic Tutorial (Simulated)',
+        views: '0',
+        date: 'just now',
+        thumbnail: 'mytube_thumbnail_explore.png',
+        description: 'A quick guide to navigating FExplorer. Hope it helps!',
+        comments: [
+            { author: 'Newbie', text: 'Thanks, this helped a lot!' }
+        ]
+    },
+    {
+        id: 'user_q_and_a',
+        title: 'Simulated Q&A Session!',
+        views: '0',
+        date: 'just now',
+        thumbnail: 'mytube_thumbnail_fun_facts.png',
+        description: 'Answering your simulated questions about the simulated web!',
+        comments: [
+            { author: 'Questioner', text: 'Got my answer, thanks!' }
+        ]
+    }
+];
 
 const DEFAULT_MY_TUBE_VIDEOS_INITIAL = {
+    'welcome': {
+        id: 'welcome',
+        title: 'Welcome to MyTube! (Official Intro)',
+        channel: 'MyTube Official',
+        views: '1.2M',
+        date: '3 years ago',
+        thumbnail: 'mytube_thumbnail_welcome.png',
+        description: 'Get a quick introduction to MyTube, your go-to platform for simulated videos! Discover new content and enjoy seamless streaming (simulated).',
+        comments: [
+            { author: 'User123', text: 'Looks great!' },
+            { author: 'WebExplorer', text: 'So realistic! Love the concept.' }
+        ]
+    },
+    'explore': {
+        id: 'explore',
+        title: 'Exploring FExplorer: A Deep Dive into the Simulated Browser',
+        channel: 'TechVids',
+        views: '500K',
+        date: '1 year ago',
+        thumbnail: 'mytube_thumbnail_explore.png',
+        description: 'Join us as we explore the features of FExplorer, the innovative simulated web browser. Learn how to navigate, search, and discover new "sites" within this virtual environment.',
+        comments: [
+            { author: 'BrowserBuddy', text: 'This video helped me understand FExplorer better.' },
+            { author: 'SimulatedGuy', text: 'Cool browser, thanks for the guide!' }
+        ]
+    },
+    'minceraft_trailer': {
+        id: 'minceraft_trailer',
+        title: 'Minceraft Official Game Trailer 2024 (Simulated)',
+        channel: 'BlockyGames',
+        views: '2.5M',
+        date: '2 months ago',
+        thumbnail: 'mytube_thumbnail_minceraft.png',
+        description: 'Witness the epic world of Minceraft! Build, mine, and explore in this simulated adventure game. Get ready for endless possibilities!',
+        comments: [
+            { author: 'PixelPlayer', text: "Can't wait to play this simulated game!" },
+            { author: 'GameOn', text: 'The graphics are... blocky. I like it!' }
+        ]
+    },
+    'headbook_moments': {
+        id: 'headbook_moments',
+        title: 'Headbook: Best Social Moments Compilation',
+        channel: 'SocialBytes',
+        views: '750K',
+        date: '6 months ago',
+        thumbnail: 'mytube_thumbnail_headbook.png',
+        description: 'Relive the funniest, most heartwarming, and memorable moments from the simulated social network, Headbook! Connect with your virtual friends.',
+        comments: [
+            { author: 'ConnectPro', text: 'Headbook forever!' },
+            { author: 'MemeLord', text: 'Classic Headbook vibes.' }
+        ]
+    },
+    'instantgrams_tips': {
+        id: 'instantgrams_tips',
+        title: 'Instant Grams: Top 5 Photo Sharing Tips!',
+        channel: 'InstaGurus',
+        views: '300K',
+        date: '4 months ago',
+        thumbnail: 'mytube_thumbnail_instantgrams.png',
+        description: 'Elevate your photo game with these top 5 tips for Instant Grams! Learn how to capture and share stunning simulated pictures with your followers.',
+        comments: [
+            { author: 'PhotoPhan', text: 'My photos will be legendary now!' },
+            { author: 'FilterQueen', text: 'Needed these tips!' }
+        ]
+    },
+    'fun_facts_web': {
+        id: 'fun_facts_web',
+        title: '10 Fun Facts About the Simulated Web!',
+        channel: 'WebWonders',
+        views: '150K',
+        date: '1 month ago',
+        thumbnail: 'mytube_thumbnail_fun_facts.png',
+        description: 'Dive into the fascinating world of the simulated web with these 10 amazing fun facts! You won\'t believe what goes on behind the scenes.',
+        comments: [
+            { author: 'CuriousMind', text: 'Mind blown by fact #7!' },
+            { author: 'DevGuy', text: 'Pretty accurate for a simulation!' }
+        ]
+    },
 };
 
 let myTubeVideos;
@@ -66,6 +197,8 @@ let userLuck = parseFloat(localStorage.getItem('userLuck') || '1.0');
 let lastFinancialVisit = parseInt(localStorage.getItem('lastFinancialVisit') || '0', 10);
 let lastGoogSearchTime = parseInt(localStorage.getItem('lastGoogSearchTime') || '0', 10);
 
+let stockPrice = parseFloat(localStorage.getItem('stockPrice') || INITIAL_STOCK_PRICE.toString());
+let lastStockUpdate = parseInt(localStorage.getItem('lastStockUpdate') || Date.now().toString(), 10);
 
 let headbookPosts;
 try {
@@ -1594,20 +1727,22 @@ const fakeContent = {
         <p><a href="#" data-url="https://www.iana.org/domains/example">More information...</a></p>
         <hr>
         <p>This is a simulated page for <strong>example.com</strong>.</p>
+        <p>Try typing "about:blank" or "${HOME_URL}"</p>
     `,
     'about:blank': `
         <h1>About Blank</h1>
         <p>This is a blank page, often used as a placeholder.</p>
         <p>In a real browser, this page is usually completely empty.</p>
         <p>Here, we just show this text to demonstrate the "about:blank" functionality.</p>
+        <p>Try typing "example.com" or "${HOME_URL}"</p>
     `,
     'fexplorer:home': `
         <div class="home-page-content">
-            <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <img src="fakebrowser_logo.png" alt="FExplorer Logo" class="app-logo">
             <h1>Welcome to FExplorer!</h1>
-            <p class="tagline">The browser inside your broswer.</p>
+            <p class="tagline">Your window to the simulated web.</p>
             <div class="home-page-search-container">
-                <input type="search" class="home-page-search-input" placeholder="Search the web or type a URL...">
+                <input type="search" class="home-page-search-input" placeholder="Search the simulated web or type a URL...">
                 <button class="home-page-search-button">Search</button>
             </div>
             <div class="quick-links-section">
@@ -1618,7 +1753,7 @@ const fakeContent = {
                     <button class="home-page-button" data-url="fexplorer:updates">Updates</button>
                 </div>
             </div>
-            <p class="footer-note">Created by smrtC951!</p>
+            <p class="footer-note">This is a simulated browser. Only pre-defined URLs are available.</p>
         </div>
     `,
     'fexplorer:quick-links': `
@@ -1632,18 +1767,160 @@ const fakeContent = {
                         <a href="#" data-url="example.com">Example Site</a>
                         <p class="link-description">A generic example domain page.</p>
                     </li>
+                    <li>
+                        <a href="#" data-url="about:blank">Blank Page</a>
+                        <p class="link-description">A placeholder for an empty page.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:home">FExplorer Home</a>
+                        <p class="link-description">Return to the FExplorer welcome page.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="goog.com">Goog!</a>
+                        <p class="link-description">Visit the simulated Goog! search engine.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="headbook.com">Headbook</a>
+                        <p class="link-description">Connect with friends on this social network.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="instantgrams.com">Instant Grams</a>
+                        <p class="link-description">Share photos and videos instantly.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="mytube.com">MyTube</a>
+                        <p class="link-description">Watch and share videos.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="minceraft.com">Minceraft</a>
+                        <p class="link-description">Explore a blocky world of adventure.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:financial">FExplorer Financials</a>
+                        <p class="link-description">Manage your FPoints and claim daily bonuses.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:shop">FExplorer Shop</a>
+                        <p class="link-description">Spend your FPoints on cool stuff and luck boosts.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:updates">FExplorer Updates</a>
+                        <p class="link-description">See what's new and what's coming next!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:create">Page Creator</a>
+                        <p class="link-description">Create your own custom web pages!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:create.hub">Creator Hub</a>
+                        <p class="link-description">View and manage all your published pages!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="unknown.site">Unknown Site</a>
+                        <p class="link-description">A page demonstrating a 'not found' error.</p>
+                    </li>
                 </ul>
+            </div>
+            <p class="footer-note">Back to <a href="#" data-url="fexplorer:home">FExplorer Home</a></p>
+        </div>
+    `,
+    'fexplorer:financial': `
+        <div class="home-page-content">
+            <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+            <h1>FExplorer Financials</h1>
+            <p class="tagline">Manage your FPoints and explore simulated investments.</p>
+            <div style="background-color: #f0f8ff; border: 1px solid #add8e6; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; margin-bottom: 20px;">
+                <p style="font-size: 1.2em; font-weight: bold; color: #333;">Your FPoints: <span id="currentFPoints">${userFPoints.toLocaleString()}</span></p>
+                <p style="font-size: 0.9em; color: #555;">Your Luck Multiplier: <span id="currentLuck">${userLuck.toFixed(1)}x</span></p>
+            </div>
+
+            <div style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
+                <h2>FPoint Daily Bonus</h2>
+                <p>Claim a bonus of FPoints! (Available every 5 minutes)</p>
+                <button id="claimDailyBonusButton" class="home-page-button" style="margin-top: 10px;">Claim Daily Bonus</button>
+                <p id="dailyBonusMessage" style="font-size: 0.9em; margin-top: 10px;"></p>
+            </div>
+
+            <div class="stock-market-card" style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
+                <h2>Simulated WebTech Stock</h2>
+                <p style="font-size: 1.1em;">Current Price: <span id="stockPriceDisplay" style="font-weight: bold; color: #007bff;">${stockPrice.toFixed(2)}</span> FPoints per share</p>
+                <p style="font-size: 0.9em;">Shares Owned: <span id="userOwnedStock" style="font-weight: bold;">${userChannel.stockOwned}</span></p>
+
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 150px;">
+                        <input type="number" id="stockBuyInput" class="mytube-input" placeholder="Quantity to Buy" min="1" value="1" style="width: calc(100% - 20px); margin-bottom: 5px;">
+                        <button id="buyStockButton" class="mytube-button" style="background-color: #28a745; width: 100%;">Buy Stock</button>
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <input type="number" id="stockSellInput" class="mytube-input" placeholder="Quantity to Sell" min="1" value="1" style="width: calc(100% - 20px); margin-bottom: 5px;">
+                        <button id="sellStockButton" class="mytube-button" style="background-color: #dc3545; width: 100%;">Sell Stock</button>
+                    </div>
+                </div>
+                <p style="font-size: 0.8em; color: #666; margin-top: 15px;">Stock price fluctuates over time. Buy low, sell high!</p>
+            </div>
+
+            <div class="quick-links-section" style="margin-top: 30px;">
+                <h2>Explore FPoint Opportunities</h2>
+                <div class="home-page-buttons-container">
+                    <button class="home-page-button" data-url="fexplorer:shop">Visit the FPoints Shop</button>
+                    <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
+                </div>
+            </div>
+            <p class="footer-note">Simulated financial page. Not real money!</p>
+        </div>
+    `,
+    'fexplorer:shop': `
+        <div class="shop-page-layout">
+            <div class="app-header">
+                <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                <span class="app-title">FExplorer Shop</span>
+                <div class="app-search-container">
+                    <input type="search" id="shopSearchInput" class="app-search-input" placeholder="Search the shop...">
+                    <button id="shopSearchButton" class="app-search-button">Search</button>
+                </div>
+                <a href="#" data-url="fexplorer:financial" class="app-header-button">Financials</a>
+            </div>
+            <div class="shop-main-content">
+                <div class="shop-sidebar">
+                    <div class="shop-account-info">
+                        <h3>Your Account</h3>
+                        <p>FPoints: <strong id="shopFPoints">${userFPoints.toLocaleString()}</strong></p>
+                        <p>Luck: <strong id="shopLuck">${userLuck.toFixed(1)}x</strong></p>
+                        <p>Owned Items: <strong id="ownedItems">None</strong></p>
+                    </div>
+                    <div class="shop-category-list">
+                        <h3>Categories</h3>
+                        <ul>
+                            <li><a href="#" data-url="fexplorer:shop">All Items</a></li>
+                            <li><a href="#" data-url="fexplorer:shop?category=boosts">Luck Boosts</a></li>
+                            <li><a href="#" data-url="fexplorer:shop?category=cosmetics">Cosmetics</a></li>
+                            <li><a href="#" data-url="fexplorer:shop?category=mystery">Mystery</a></li>
+                        </ul>
+                    </div>
+                    <div class="shop-category-list">
+                        <h3>Quick Navigation</h3>
+                        <ul>
+                            <li><a href="#" data-url="fexplorer:home">FExplorer Home</a></li>
+                            <li><a href="#" data-url="fexplorer:quick-links">Quick Links</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="shop-listing">
+                    <h1>Featured Items</h1>
+                    <div class="shop-item-grid" id="shopItemsGrid">
+                        <!-- Shop items will be dynamically inserted here by JavaScript -->
+                    </div>
+                    <p class="footer-note" style="text-align: center; margin-top: 30px;">Simulated shop. Items provide simulated benefits.</p>
+                </div>
             </div>
         </div>
     `,
     'fexplorer:updates': `
         <div class="updates-page-content">
-            <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			
-                <h2>Update Name: Demo 1</h2>
-			
+
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
@@ -1669,8 +1946,8 @@ const fakeContent = {
             </div>
 
             <div class="home-page-buttons-container">
-                <button class="home-page-button" data-url="fexplorer:home">Home</button>
-                <button class="home-page-button" data-url="fexplorer:quick-links">Quick Links</button>
+                <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
+                <button class="home-page-button" data-url="fexplorer:quick-links">More Quick Links</button>
             </div>
             <p class="footer-note" style="margin-top: 20px;">FExplorer is constantly evolving!</p>
         </div>
@@ -1700,6 +1977,80 @@ const fakeContent = {
             <p class="footer-note">This is a simulated search engine. Results are pre-defined.</p>
         </div>
     `,
+    'headbook.com': `
+        <div class="home-page-content">
+            <img src="fakebook_logo.png" alt="Headbook Logo" class="app-logo" style="width: 80px;">
+            <h1>Welcome to Headbook!</h1>
+            <p class="tagline">Connect with friends and the world around you.</p>
+            <div style="max-width: 400px; width: 100%; text-align: left; background-color: #f2f2f2; padding: 20px; border-radius: 8px;">
+                <p><strong>John Doe</strong> posted a new update: "Enjoying the simulated web on FExplorer! #fakebrowser #webdev"</p>
+                <hr>
+                <p><strong>Jane Smith</strong> liked your post.</p>
+                <p><strong>Admin</strong>: This is a placeholder for your social feed. In a real browser, this would be dynamic.</p>
+                <p style="text-align: center; margin-top: 20px;"><a href="#" data-url="fexplorer:quick-links">Explore more apps</a></p>
+            </div>
+            <p class="footer-note">Your simulated social network.</p>
+        </div>
+    `,
+    'instantgrams.com': `
+        <div class="home-page-content">
+            <img src="instantgrams_logo.png" alt="Instant Grams Logo" class="app-logo" style="width: 80px;">
+            <h1>Instant Grams</h1>
+            <p class="tagline">Capture and Share the World's Moments.</p>
+            <div style="max-width: 500px; width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 20px;">
+                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 1</div>
+                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 2</div>
+                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 3</div>
+                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 4</div>
+            </div>
+            <p style="margin-top: 20px;">Browse photos from friends and discover new accounts.</p>
+            <p style="text-align: center; margin-top: 20px;"><a href="#" data-url="fexplorer:quick-links">Back to Quick Links</a></p>
+            <p class="footer-note">Simulated photo sharing.</p>
+        </div>
+    `,
+    'minceraft.com': `
+        <div class="minceraft-page-layout">
+            <div class="app-header">
+                <img src="minceraft_logo.png" alt="Minceraft Logo" class="app-logo">
+                <span class="app-title">Minceraft</span>
+                <div class="app-search-container" style="max-width: 300px;">
+                    <input type="search" id="minceraftSearchInput" class="app-search-input" placeholder="Search Minceraft...">
+                    <button id="minceraftSearchButton" class="app-search-button">Search</button>
+                </div>
+                <a href="#" data-url="fexplorer:quick-links" class="app-header-button">Quick Links</a>
+            </div>
+            <div class="minceraft-hero-section">
+                <img src="mytube_thumbnail_minceraft.png" alt="Minceraft World" class="minceraft-hero-background">
+                <div class="minceraft-hero-overlay">
+                    <h1>Minceraft</h1>
+                    <p class="tagline">Explore infinite worlds and build anything from the simplest of homes to the grandest of castles.</p>
+                    <button class="minceraft-main-button">Get Minceraft</button>
+                </div>
+            </div>
+            <div class="minceraft-content-section">
+                <h2>What will you create?</h2>
+                <div class="minceraft-features-grid">
+                    <div class="minceraft-feature-card">
+                        <h3>Explore</h3>
+                        <p>Discover vast landscapes, mysterious caves, and unique biomes.</p>
+                    </div>
+                    <div class="minceraft-feature-card">
+                        <h3>Build</h3>
+                        <p>Craft tools, construct structures, and shape your world block by block.</p>
+                    </div>
+                    <div class="minceraft-feature-card">
+                        <h3>Survive</h3>
+                        <p>Face challenges and creatures in a world that changes with the day and night.</p>
+                    </div>
+                    <div class="minceraft-feature-card">
+                        <h3>Create</h3>
+                        <p>Unleash your imagination in creative mode with unlimited resources.</p>
+                    </div>
+                </div>
+            </div>
+            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated game website.</p>
+        </div>
+    `
 };
 
 function updateBackButtonState() {
@@ -2794,7 +3145,8 @@ function navigate(urlToLoad, isBackNavigation = false) {
                 <div style="text-align: center; padding: 20px;">
                     <h1>404 - Page Not Found</h1>
                     <p>The requested URL <strong>${sanitizedUrl}</strong> could not be found.</p>
-                    <p>There isn't a site that is named like the URL.</p>
+                    <p>This is a fake browser, so only pre-defined URLs work.</p>
+                    <p>Try <code>example.com</code>, <code>about:blank</code>, <code>fexplorer:home</code>, <code>fexplorer:quick-links</code>, <code>goog.com</code>, <code>headbook.com</code>, <code>instantgrams.com</code>, <code>mytube.com</code>, <code>minceraft.com</code>, <code>fexplorer:financial</code>, <code>fexplorer:shop</code>, <code>fexplorer:updates</code>, <code>fexplorer:create</code>, or <code>fexplorer:create.hub</code></p>
                     ${Object.keys(userCreatedPages).length > 0 ? `<p>You also have your own created pages! Like: <a href="#" data-url="fexplorer:user-page-${Object.keys(userCreatedPages)[0]}">Your First Page</a></p>` : ''}
                 </div>
             `;
