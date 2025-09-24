@@ -11,147 +11,14 @@ const DAILY_BONUS_COOLDOWN = 5 * 60 * 1000;
 const BASE_DAILY_BONUS = 70;
 const STOCK_UPDATE_INTERVAL = 10 * 1000;
 const INITIAL_STOCK_PRICE = 100;
-const FPOINTS_PER_POST = 15;
-const FPOINTS_PER_LIKE = 1;
-const FPOINTS_PER_INSTAGRAMS_POST = 20;
-const FPOINTS_PER_INSTAGRAMS_LIKE = 2;
-
-// Headbook AI Post Timing
-let lastAIHeadbookPostTime = parseInt(localStorage.getItem('lastAIHeadbookPostTime') || '0', 10);
-const AI_POST_COOLDOWN = 3 * 60 * 1000; // Minimum 3 minutes between AI posts
-const AI_POST_MAX_INTERVAL = 10 * 60 * 1000; // Max 10 minutes between AI posts
-let aiPostTimer = null; // To hold the timeout ID for AI posts
 
 let historyStack = [];
 let currentUrl = '';
 
 const uploadableVideosPool = [
-    {
-        id: 'user_game_review',
-        title: 'My First Game Review (Simulated)',
-        views: '0',
-        date: 'just now',
-        thumbnail: 'mytube_thumbnail_minceraft.png',
-        description: 'Reviewing a classic simulated game. Hope you enjoy!',
-        comments: [
-            { author: 'Viewer1', text: 'Nice review!' },
-            { author: 'GamerX', text: 'What game is that? Looks fun.' }
-        ]
-    },
-    {
-        id: 'user_day_in_life',
-        title: 'A Day In The Life (Simulated Vlog)',
-        views: '0',
-        date: 'just now',
-        thumbnail: 'mytube_thumbnail_welcome.png',
-        description: 'Come along for a simulated day in my life! Just exploring the simulated web.',
-        comments: [
-            { author: 'FollowerFan', text: 'Great content!' }
-        ]
-    },
-    {
-        id: 'user_tutorial',
-        title: 'FExplorer Basic Tutorial (Simulated)',
-        views: '0',
-        date: 'just now',
-        thumbnail: 'mytube_thumbnail_explore.png',
-        description: 'A quick guide to navigating FExplorer. Hope it helps!',
-        comments: [
-            { author: 'Newbie', text: 'Thanks, this helped a lot!' }
-        ]
-    },
-    {
-        id: 'user_q_and_a',
-        title: 'Simulated Q&A Session!',
-        views: '0',
-        date: 'just now',
-        thumbnail: 'mytube_thumbnail_fun_facts.png',
-        description: 'Answering your simulated questions about the simulated web!',
-        comments: [
-            { author: 'Questioner', text: 'Got my answer, thanks!' }
-        ]
-    }
 ];
 
 const DEFAULT_MY_TUBE_VIDEOS_INITIAL = {
-    'welcome': {
-        id: 'welcome',
-        title: 'Welcome to MyTube! (Official Intro)',
-        channel: 'MyTube Official',
-        views: '1.2M',
-        date: '3 years ago',
-        thumbnail: 'mytube_thumbnail_welcome.png',
-        description: 'Get a quick introduction to MyTube, your go-to platform for simulated videos! Discover new content and enjoy seamless streaming (simulated).',
-        comments: [
-            { author: 'User123', text: 'Looks great!' },
-            { author: 'WebExplorer', text: 'So realistic! Love the concept.' }
-        ]
-    },
-    'explore': {
-        id: 'explore',
-        title: 'Exploring FExplorer: A Deep Dive into the Simulated Browser',
-        channel: 'TechVids',
-        views: '500K',
-        date: '1 year ago',
-        thumbnail: 'mytube_thumbnail_explore.png',
-        description: 'Join us as we explore the features of FExplorer, the innovative simulated web browser. Learn how to navigate, search, and discover new "sites" within this virtual environment.',
-        comments: [
-            { author: 'BrowserBuddy', text: 'This video helped me understand FExplorer better.' },
-            { author: 'SimulatedGuy', text: 'Cool browser, thanks for the guide!' }
-        ]
-    },
-    'minceraft_trailer': {
-        id: 'minceraft_trailer',
-        title: 'Minceraft Official Game Trailer 2024 (Simulated)',
-        channel: 'BlockyGames',
-        views: '2.5M',
-        date: '2 months ago',
-        thumbnail: 'mytube_thumbnail_minceraft.png',
-        description: 'Witness the epic world of Minceraft! Build, mine, and explore in this simulated adventure game. Get ready for endless possibilities!',
-        comments: [
-            { author: 'PixelPlayer', text: "Can't wait to play this simulated game!" },
-            { author: 'GameOn', text: 'The graphics are... blocky. I like it!' }
-        ]
-    },
-    'headbook_moments': {
-        id: 'headbook_moments',
-        title: 'Headbook: Best Social Moments Compilation',
-        channel: 'SocialBytes',
-        views: '750K',
-        date: '6 months ago',
-        thumbnail: 'mytube_thumbnail_headbook.png',
-        description: 'Relive the funniest, most heartwarming, and memorable moments from the simulated social network, Headbook! Connect with your virtual friends.',
-        comments: [
-            { author: 'ConnectPro', text: 'Headbook forever!' },
-            { author: 'MemeLord', text: 'Classic Headbook vibes.' }
-        ]
-    },
-    'instantgrams_tips': {
-        id: 'instantgrams_tips',
-        title: 'Instant Grams: Top 5 Photo Sharing Tips!',
-        channel: 'InstaGurus',
-        views: '300K',
-        date: '4 months ago',
-        thumbnail: 'mytube_thumbnail_instantgrams.png',
-        description: 'Elevate your photo game with these top 5 tips for Instant Grams! Learn how to capture and share stunning simulated pictures with your followers.',
-        comments: [
-            { author: 'PhotoPhan', text: 'My photos will be legendary now!' },
-            { author: 'FilterQueen', text: 'Needed these tips!' }
-        ]
-    },
-    'fun_facts_web': {
-        id: 'fun_facts_web',
-        title: '10 Fun Facts About the Simulated Web!',
-        channel: 'WebWonders',
-        views: '150K',
-        date: '1 month ago',
-        thumbnail: 'mytube_thumbnail_fun_facts.png',
-        description: 'Dive into the fascinating world of the simulated web with these 10 amazing fun facts! You won\'t believe what goes on behind the scenes.',
-        comments: [
-            { author: 'CuriousMind', text: 'Mind blown by fact #7!' },
-            { author: 'DevGuy', text: 'Pretty accurate for a simulation!' }
-        ]
-    },
 };
 
 let myTubeVideos;
@@ -199,181 +66,6 @@ let lastGoogSearchTime = parseInt(localStorage.getItem('lastGoogSearchTime') || 
 
 let stockPrice = parseFloat(localStorage.getItem('stockPrice') || INITIAL_STOCK_PRICE.toString());
 let lastStockUpdate = parseInt(localStorage.getItem('lastStockUpdate') || Date.now().toString(), 10);
-
-let headbookPosts;
-try {
-    headbookPosts = JSON.parse(localStorage.getItem('headbookPosts')) || [
-        {
-            id: 'post_welcome',
-            author: 'Headbook Admin',
-            content: 'Welcome to Headbook, your new simulated social home! Share your thoughts and connect with others.',
-            timestamp: Date.now() - 86400000 * 5, // 5 days ago
-            comments: [
-                { author: 'AI Bot 1', text: 'Hello there! Excited to be here!', timestamp: Date.now() - 86400000 * 5 + 10000 },
-                { author: 'FExplorer User', text: 'Cool! Is this like real Facebook?', timestamp: Date.now() - 86400000 * 5 + 20000 }
-            ],
-            likes: 12
-        },
-        {
-            id: 'post_fexplorer',
-            author: 'Simulated Surfer',
-            content: 'Just exploring the simulated web on FExplorer! Found this place called Headbook. Anyone else here?',
-            timestamp: Date.now() - 3600000 * 3, // 3 hours ago
-            comments: [
-                { author: 'AI Bot 2', text: 'Hey Simulated Surfer! Welcome! Plenty of folks around.', timestamp: Date.now() - 3600000 * 3 + 15000 }
-            ],
-            likes: 5
-        },
-         {
-            id: 'post_random_fact',
-            author: 'AI Bot 3',
-            content: 'Did you know? The simulated FPoints market fluctuates based on purely random factors!',
-            timestamp: Date.now() - 3600000 * 0.5, // 30 minutes ago
-            comments: [],
-            likes: 2
-        }
-    ];
-} catch (e) {
-    console.error("Failed to parse headbookPosts from localStorage, using default.", e);
-    headbookPosts = [ // Fallback to a clean default if parsing fails
-        {
-            id: 'post_welcome',
-            author: 'Headbook Admin',
-            content: 'Welcome to Headbook, your new simulated social home! Share your thoughts and connect with others.',
-            timestamp: Date.now() - 86400000 * 5, // 5 days ago
-            comments: [
-                { author: 'AI Bot 1', text: 'Hello there! Excited to be here!', timestamp: Date.now() - 86400000 * 5 + 10000 },
-                { author: 'FExplorer User', text: 'Cool! Is this like real Facebook?', timestamp: Date.now() - 86400000 * 5 + 20000 }
-            ],
-            likes: 12
-        },
-        {
-            id: 'post_fexplorer',
-            author: 'Simulated Surfer',
-            content: 'Just exploring the simulated web on FExplorer! Found this place called Headbook. Anyone else here?',
-            timestamp: Date.now() - 3600000 * 3, // 3 hours ago
-            comments: [
-                { author: 'AI Bot 2', text: 'Hey Simulated Surfer! Welcome! Plenty of folks around.', timestamp: Date.now() - 3600000 * 3 + 15000 }
-            ],
-            likes: 5
-        },
-         {
-            id: 'post_random_fact',
-            author: 'AI Bot 3',
-            content: 'Did you know? The simulated FPoints market fluctuates based on purely random factors!',
-            timestamp: Date.now() - 3600000 * 0.5, // 30 minutes ago
-            comments: [],
-            likes: 2
-        }
-    ];
-}
-
-headbookPosts.forEach(post => {
-    if (typeof post.likes === 'undefined') {
-        post.likes = 0;
-    }
-});
-
-const HEADBOOK_AI_CONTACTS = [
-    { name: 'AI Bot 1', avatar: 'A' },
-    { name: 'AI Bot 2', avatar: 'A' },
-    { name: 'AI Bot 3', avatar: 'A' },
-    { name: 'Simulated Friend', avatar: 'S' },
-    { name: 'Headbook Admin', avatar: 'H' },
-    { name: 'Digital Wanderer', avatar: 'D' },
-    { name: 'Web Weaver', avatar: 'W' },
-    { name: 'Pixel Persona', avatar: 'P' }
-];
-
-const INSTAGRAMS_AI_AUTHORS = [
-    { name: 'Photo Enthusiast', avatar: 'P' },
-    { name: 'Simulated Snapper', avatar: 'S' },
-    { name: 'WebGrammer', avatar: 'W' },
-    { name: 'Filter Fanatic', avatar: 'F' }
-];
-
-const INSTAGRAMS_IMAGE_POOL = [
-    'ig_landscape_1.png',
-    'ig_food_1.png',
-    'ig_pet_1.png',
-    'ig_city_1.png',
-    'ig_art_1.png',
-    'ig_coffee_1.png',
-    'ig_nature_1.png',
-    'ig_travel_1.png',
-    'ig_abstract_2.png',
-    'ig_tech_1.png'
-];
-
-let instantgramsPosts;
-try {
-    instantgramsPosts = JSON.parse(localStorage.getItem('instantgramsPosts')) || [];
-} catch (e) {
-    console.error("Failed to parse instantgramsPosts from localStorage, using default.", e);
-    instantgramsPosts = [];
-}
-
-// Add initial AI posts if none exist or if it's a new session
-if (instantgramsPosts.length === 0) {
-    const defaultIgPosts = [
-        {
-            id: 'ig_post_1',
-            author: 'Photo Enthusiast',
-            imageUrl: 'ig_landscape_1.png',
-            description: 'Absolutely stunning view! #nature #landscape #beautiful',
-            timestamp: Date.now() - 86400000 * 7, // 7 days ago
-            likes: 25
-        },
-        {
-            id: 'ig_post_2',
-            author: 'Simulated Snapper',
-            imageUrl: 'ig_food_1.png',
-            description: 'Breakfast goals! 🍳🥓 #foodie #delicious #morningvibes',
-            timestamp: Date.now() - 86400000 * 3, // 3 days ago
-            likes: 18
-        },
-        {
-            id: 'ig_post_3',
-            author: 'WebGrammer',
-            imageUrl: 'ig_pet_1.png',
-            description: 'My little furry friend enjoying the sunshine! ❤️ #doglover #cute #petsofinstagram',
-            timestamp: Date.now() - 3600000 * 12, // 12 hours ago
-            likes: 42
-        },
-        {
-            id: 'ig_post_4',
-            author: 'Filter Fanatic',
-            imageUrl: 'ig_city_1.png',
-            description: 'City lights and dreams. ✨ #cityscape #urban #nightlife',
-            timestamp: Date.now() - 3600000 * 2, // 2 hours ago
-            likes: 30
-        }
-    ];
-    instantgramsPosts.push(...defaultIgPosts);
-    saveAppState();
-}
-
-instantgramsPosts.forEach(post => {
-    if (typeof post.likes === 'undefined') {
-        post.likes = 0;
-    }
-});
-
-userChannel.uploadedVideoIds.forEach(videoId => {
-    if (!myTubeVideos[videoId]) {
-        const baseId = videoId.split('_')[0];
-        const uploadedVideoData = uploadableVideosPool.find(v => v.id === baseId);
-        if (uploadedVideoData) {
-            myTubeVideos[videoId] = {
-                ...uploadedVideoData,
-                id: videoId,
-                channel: userChannel.name
-            };
-        }
-    } else {
-        myTubeVideos[videoId].channel = userChannel.name;
-    }
-});
 
 // New global variable for user-created pages
 let userCreatedPages;
@@ -435,17 +127,12 @@ function escapeHtml(text) {
 }
 
 function saveAppState() {
-    localStorage.setItem('userChannel', JSON.stringify(userChannel));
     localStorage.setItem('userFPoints', userFPoints.toString());
     localStorage.setItem('userLuck', userLuck.toString());
     localStorage.setItem('lastFinancialVisit', lastFinancialVisit.toString());
     localStorage.setItem('lastGoogSearchTime', lastGoogSearchTime.toString());
-    localStorage.setItem('myTubeVideos', JSON.stringify(myTubeVideos));
     localStorage.setItem('stockPrice', stockPrice.toFixed(2));
     localStorage.setItem('lastStockUpdate', lastStockUpdate.toString());
-    localStorage.setItem('headbookPosts', JSON.stringify(headbookPosts));
-    localStorage.setItem('instantgramsPosts', JSON.stringify(instantgramsPosts));
-    localStorage.setItem('lastAIHeadbookPostTime', lastAIHeadbookPostTime.toString()); // Save AI post timestamp
     localStorage.setItem('userCreatedPages', JSON.stringify(userCreatedPages)); // Save user created pages
     saveDraftPage(); // Save the current draft page state
     updateFPointsDisplay();
@@ -463,10 +150,6 @@ const shopItems = [
 const randomWebsiteUrls = [
     'example.com',
     'goog.com',
-    'headbook.com',
-    'instantgrams.com',
-    'mytube.com',
-    'minceraft.com',
     'fexplorer:financial',
     'fexplorer:shop',
     'fexplorer:updates',
@@ -527,991 +210,6 @@ function getTimeElapsedString(timestamp) {
     if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     if (days < 365) return `${days} day${days > 1 ? 's' : ''} ago`;
     return `${years} year${years > 1 ? 's' : ''} ago`;
-}
-
-function getHeadbookPageHTML() {
-    const sortedPosts = headbookPosts.sort((a, b) => b.timestamp - a.timestamp);
-
-    let postsHtml = sortedPosts.map(post => {
-        const commentsHtml = post.comments.sort((a, b) => a.timestamp - b.timestamp).map(comment => `
-            <div class="headbook-comment">
-                <span class="comment-author">${comment.author}</span>
-                <span class="comment-content">${comment.text}</span>
-                <span class="comment-time">${getTimeElapsedString(comment.timestamp)}</span>
-            </div>
-        `).join('');
-
-        return `
-            <div class="headbook-post" data-post-id="${post.id}">
-                <div class="post-header">
-                    <div class="post-avatar">${post.author.charAt(0)}</div>
-                    <div class="post-meta">
-                        <span class="post-author">${post.author}</span>
-                        <span class="post-time">${getTimeElapsedString(post.timestamp)}</span>
-                    </div>
-                </div>
-                <div class="post-content">
-                    <p>${post.content}</p>
-                </div>
-                <div class="post-actions">
-                    <button class="like-button" data-action="like-post" data-post-id="${post.id}">Like (<span class="like-count">${post.likes}</span>)</button>
-                    <button class="comment-button reply-button">Comment (${post.comments.length})</button>
-                    <button class="share-button">Share</button>
-                </div>
-                <div class="post-comments">
-                    ${commentsHtml}
-                    <div class="add-comment-area" style="display: none;">
-                        <input type="text" class="comment-input" placeholder="Write a comment...">
-                        <button class="submit-reply-button">Reply</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    return `
-        <div class="headbook-page-layout">
-            <div class="app-header">
-                <img src="fakebook_logo.png" alt="Headbook Logo" class="app-logo" style="width: 30px;">
-                <span class="app-title">Headbook</span>
-                <div class="app-search-container" style="max-width: 300px;">
-                    <input type="search" id="headbookSearchInput" class="app-search-input" placeholder="Search Headbook...">
-                    <button id="headbookSearchButton" class="app-search-button">Search</button>
-                </div>
-                <a href="#" data-url="fexplorer:quick-links" class="app-header-button">Quick Links</a>
-            </div>
-            <div class="headbook-main-content">
-                <div class="headbook-sidebar">
-                    <div class="sidebar-section">
-                        <div class="sidebar-avatar">${userChannel.name ? userChannel.name.charAt(0) : 'U'}</div>
-                        <span>${userChannel.name || 'Your Profile'}</span>
-                    </div>
-                    <div class="sidebar-section">
-                        <ul>
-                            <li><a href="#" data-url="headbook.com">Feed</a></li>
-                            <li><a href="#" data-url="headbook.com/messages">Messages</a></li>
-                            <li><a href="#">Groups</a></li>
-                            <li><a href="#">Pages</a></li>
-                            <li><a href="#" data-url="fexplorer:quick-links">FExplorer Links</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="headbook-feed">
-                    <div class="headbook-create-post">
-                        <div class="post-header">
-                            <div class="post-avatar">${userChannel.name ? userChannel.name.charAt(0) : 'U'}</div>
-                            <span class="post-author">${userChannel.name || 'Your Name'}</span>
-                        </div>
-                        <textarea id="headbookPostInput" placeholder="What's on your mind?" rows="3"></textarea>
-                        <button id="addHeadbookPostButton">Add Post</button>
-                        <div id="postStatusMessage" class="status-message"></div>
-                    </div>
-                    <div id="headbookPostsList">
-                        ${postsHtml}
-                    </div>
-                </div>
-                <div class="headbook-sidebar right-sidebar">
-                    <div class="sidebar-section">
-                         <h3>Trending (Simulated)</h3>
-                         <p>#FExplorerTips</p>
-                         <p>#MyTubeViral</p>
-                         <p>#SimulatedLife</p>
-                    </div>
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated social network.</p>
-        </div>
-    `;
-}
-
-function getHeadbookMessagesPageHTML(activeContactName = null) {
-    const userDisplayName = userChannel.name || 'You';
-
-    let contactsHtml = HEADBOOK_AI_CONTACTS.map(contact => `
-        <li class="chat-contact-item ${activeContactName === contact.name ? 'active' : ''}" data-action="select-chat-contact" data-contact-name="${contact.name}">
-            <div class="chat-contact-avatar">${contact.avatar || contact.name.charAt(0)}</div>
-            <span class="chat-contact-name">${contact.name}</span>
-        </li>
-    `).join('');
-
-    const currentChatMessages = userChannel.chatHistory[activeContactName] || [];
-    let messagesHtml = currentChatMessages.map(message => `
-        <div class="message-bubble ${message.sender}">
-            <span class="message-author">${message.sender === 'user' ? userDisplayName : activeContactName}</span>
-            <p>${message.text}</p>
-            <span class="message-time">${getTimeElapsedString(message.timestamp)}</span>
-        </div>
-    `).join('');
-
-    return `
-        <div class="headbook-page-layout headbook-messages-layout">
-            <div class="app-header">
-                <img src="fakebook_logo.png" alt="Headbook Logo" class="app-logo" style="width: 30px;">
-                <span class="app-title">Headbook Messenger</span>
-                <div class="app-search-container" style="max-width: 300px;">
-                    <input type="search" id="headbookSearchInput" class="app-search-input" placeholder="Search Chats...">
-                    <button id="headbookSearchButton" class="app-search-button">Search</button>
-                </div>
-                <a href="#" data-url="headbook.com" class="app-header-button">Back to Feed</a>
-            </div>
-            <div class="headbook-main-content">
-                <div class="headbook-sidebar messages-sidebar">
-                    <div class="sidebar-section">
-                        <h3>Contacts</h3>
-                        <ul id="chatContactList">
-                            ${contactsHtml}
-                        </ul>
-                    </div>
-                </div>
-                <div class="headbook-feed chat-area">
-                    ${activeContactName ? `
-                        <div class="chat-header">
-                            <div class="chat-contact-avatar">${HEADBOOK_AI_CONTACTS.find(c => c.name === activeContactName)?.avatar || activeContactName.charAt(0)}</div>
-                            <h3>${activeContactName}</h3>
-                        </div>
-                        <div class="message-list" id="messageList">
-                            ${messagesHtml}
-                        </div>
-                        <div class="message-input-area">
-                            <input type="text" id="chatInput" placeholder="Type a message...">
-                            <button id="chatSendButton" data-contact-name="${activeContactName}">Send</button>
-                        </div>
-                    ` : `
-                        <div style="text-align: center; padding: 50px;">
-                            <h2>Select a contact to start chatting!</h2>
-                            <p>Choose an AI bot from the left sidebar to begin a conversation.</p>
-                        </div>
-                    `}
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated social network messenger.</p>
-        </div>
-    `;
-}
-
-function addChatMessageToUI(contactName, sender, messageText, timestamp) {
-    const messageList = browserContent.querySelector('#messageList');
-    if (!messageList) return;
-
-    const userDisplayName = userChannel.name || 'You';
-    const displayAuthor = sender === 'user' ? userDisplayName : contactName;
-
-    const newMessageDiv = document.createElement('div');
-    newMessageDiv.classList.add('message-bubble', sender);
-    newMessageDiv.innerHTML = `
-        <span class="message-author">${displayAuthor}</span>
-        <p>${messageText}</p>
-        <span class="message-time">${getTimeElapsedString(timestamp)}</span>
-    `;
-    messageList.appendChild(newMessageDiv);
-    scrollChatToBottom();
-}
-
-function scrollChatToBottom() {
-    const messageList = browserContent.querySelector('#messageList');
-    if (messageList) {
-        messageList.scrollTop = messageList.scrollHeight;
-    }
-}
-
-async function handleSendMessage(contactName, messageInput) {
-    const messageText = messageInput.value.trim();
-    if (!messageText) return;
-
-    if (!userChannel.chatHistory[contactName]) {
-        userChannel.chatHistory[contactName] = [];
-    }
-    userChannel.chatHistory[contactName].push({
-        sender: 'user',
-        text: messageText,
-        timestamp: Date.now()
-    });
-    addChatMessageToUI(contactName, 'user', messageText, Date.now());
-    messageInput.value = '';
-    saveAppState();
-
-    setTimeout(() => generateAIHeadbookMessage(contactName, messageText), 1000 + Math.random() * 2000);
-}
-
-async function generateAIHeadbookMessage(contactName, userMessage) {
-    if (!userChannel.chatHistory[contactName]) {
-        userChannel.chatHistory[contactName] = [];
-    }
-
-    const conversationContext = userChannel.chatHistory[contactName].slice(-10).map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.text
-    }));
-
-    const systemPrompt = `You are a friendly and casual AI bot on a simulated social media platform called Headbook. Your name is ${contactName}. Respond concisely, casually, and keep the conversation flowing. You can talk about simulated activities, FExplorer, MyTube, Minceraft, InstantGrams, or just general positive social interactions. Keep your responses short, like a typical chat message (1-3 sentences). Do not break character.`;
-
-    try {
-        const completion = await websim.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...conversationContext,
-                { role: 'user', content: userMessage }
-            ],
-            max_tokens: 60,
-            temperature: 0.8
-        });
-
-        const aiResponseText = completion.content.trim();
-
-        userChannel.chatHistory[contactName].push({
-            sender: 'ai',
-            text: aiResponseText,
-            timestamp: Date.now()
-        });
-        addChatMessageToUI(contactName, 'ai', aiResponseText, Date.now());
-        saveAppState();
-
-    } catch (error) {
-        console.error("Error generating AI chat message:", error);
-        userChannel.chatHistory[contactName].push({
-            sender: 'ai',
-            text: "Oops! I'm having a bit of trouble responding right now. Try again later!",
-            timestamp: Date.now()
-        });
-        addChatMessageToUI(contactName, 'ai', "Oops! I'm having a bit of trouble responding right now. Try again later!", Date.now());
-        saveAppState();
-    }
-}
-
-async function handleAddHeadbookPost() {
-    const postInput = browserContent.querySelector('#headbookPostInput');
-    const postStatus = browserContent.querySelector('#postStatusMessage');
-    const addButton = browserContent.querySelector('#addHeadbookPostButton');
-
-    if (!postInput || !postStatus || !addButton) return;
-
-    let postContent = postInput.value.trim();
-
-    if (!postContent) {
-        postStatus.textContent = 'Generating post...';
-        addButton.disabled = true;
-
-        try {
-            const completion = await websim.chat.completions.create({
-                messages: [
-                    {
-                        role: "system",
-                        content: "Generate a short, casual social media post (1-3 sentences) about exploring a fake internet, daily life, or simulated topics like FPoints, MyTube, Minceraft, Headbook, InstantGrams, Goog. Keep it light and positive.",
-                    },
-                ],
-            });
-            postContent = completion.content.trim();
-            postStatus.textContent = '';
-        } catch (error) {
-            console.error("Error generating post:", error);
-            postContent = "Having a great time exploring the simulated web!";
-            postStatus.textContent = 'Failed to generate post content. Using fallback.';
-        } finally {
-            addButton.disabled = false;
-        }
-    } else {
-         postStatus.textContent = 'Posting...';
-         addButton.disabled = true;
-    }
-
-     if (!postContent) {
-         postStatus.textContent = 'Post content is empty.';
-         addButton.disabled = false;
-         return;
-     }
-
-    const newPost = {
-        id: `post_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        author: userChannel.name || 'You',
-        content: postContent,
-        timestamp: Date.now(),
-        comments: [],
-        likes: 0
-    };
-
-    headbookPosts.push(newPost);
-
-    userFPoints += Math.round(FPOINTS_PER_POST * userLuck);
-    showFPointsNotification(Math.round(FPOINTS_PER_POST * userLuck));
-
-    postInput.value = '';
-    saveAppState();
-    postStatus.textContent = 'Posted!';
-    addButton.disabled = false;
-    navigate('headbook.com');
-
-    setTimeout(() => handleAIReply(newPost.id), 3000 + Math.random() * 5000);
-}
-
-async function handleAddHeadbookComment(event) {
-    const commentInput = event.target.previousElementSibling;
-    const commentText = commentInput.value.trim();
-    const postId = event.target.closest('.headbook-post').dataset.postId;
-    const author = userChannel.name || 'You';
-
-    if (!commentText) return;
-
-    const post = headbookPosts.find(p => p.id === postId);
-    if (!post) return;
-
-    const newComment = {
-        author: author,
-        text: commentText,
-        timestamp: Date.now()
-    };
-
-    post.comments.push(newComment);
-    saveAppState();
-    navigate('headbook.com');
-
-    setTimeout(() => handleAIReply(postId), 3000 + Math.random() * 5000);
-}
-
-async function handleAIReply(postId) {
-    if (Math.random() < 0.5) return;
-
-    const post = headbookPosts.find(p => p.id === postId);
-    if (!post) return;
-
-    const aiBots = ['AI Bot 1', 'AI Bot 2', 'AI Bot 3', 'Simulated Friend', 'Digital Wanderer', 'Web Weaver', 'Pixel Persona']; // Include new AI contacts
-    const aiAuthor = aiBots[Math.floor(Math.random() * aiBots.length)];
-
-    const recentComments = post.comments.filter(c => c.author === aiAuthor && (Date.now() - c.timestamp < 60000)); // Within last minute
-    if (recentComments.length > 0) {
-         return; // Don't allow same AI to comment rapidly on the same post
-    }
-
-    let conversation = [
-        { role: 'system', content: `You are a friendly AI bot on a simulated social media platform called Headbook. Your name is ${aiAuthor}. Respond casually and concisely to a user's post or comment. Mention simulated concepts like FExplorer, MyTube, Minceraft, FPoints, InstantGrams, or just general positive social interactions.` }
-    ];
-
-    if (!post.comments.some(c => c.author.startsWith('AI Bot') || HEADBOOK_AI_CONTACTS.some(ai => ai.name === c.author))) { // Check if AI has already commented on the main post
-        conversation.push({ role: 'user', content: `User posted: "${post.content}"` });
-    }
-
-    // Add recent comments to context
-    post.comments.slice(-5).forEach(comment => {
-        conversation.push({ role: 'user', content: `${comment.author}: ${comment.text}` });
-    });
-
-    try {
-        const completion = await websim.chat.completions.create({
-            messages: conversation,
-            max_tokens: 40,
-            temperature: 0.7
-        });
-
-        const aiCommentText = completion.content.trim();
-
-        post.comments.push({
-            author: aiAuthor,
-            text: aiCommentText,
-            timestamp: Date.now()
-        });
-
-        saveAppState();
-        navigate('headbook.com');
-
-    } catch (error) {
-        console.error("Error generating AI reply:", error);
-    }
-}
-
-// Function to generate a new AI post
-async function generateAIHeadbookPost() {
-    const now = Date.now();
-    if (now - lastAIHeadbookPostTime < AI_POST_COOLDOWN) {
-        // Not enough time has passed for another AI post. Reschedule.
-        const nextAttempt = Math.random() * AI_POST_COOLDOWN / 2; // Try again sooner, half max cooldown
-        setTimeout(generateAIHeadbookPost, nextAttempt);
-        return;
-    }
-
-    const aiAuthorObj = HEADBOOK_AI_CONTACTS[Math.floor(Math.random() * HEADBOOK_AI_CONTACTS.length)];
-    const aiAuthor = aiAuthorObj.name;
-
-    // Prevent immediate duplicate posts by the same AI, or too many posts in a row
-    const recentPostsByThisAI = headbookPosts.filter(p => p.author === aiAuthor && (now - p.timestamp < 3600000)); // Within last hour
-    if (recentPostsByThisAI.length > 2) { // Max 2 posts per AI per hour
-        console.log(`AI ${aiAuthor} posted too recently. Skipping this turn.`);
-        scheduleNextAIHeadbookPost();
-        return;
-    }
-
-    try {
-        const completion = await websim.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a friendly and casual AI user on a simulated social media platform called Headbook. Your name is ${aiAuthor}. Generate a short, positive, and engaging social media post (1-3 sentences) about exploring the simulated web, daily life, simulated activities (like MyTube, Minceraft, InstantGrams), or interaction with other Headbook users. Use casual language and maybe a relevant hashtag.`,
-                },
-            ],
-            max_tokens: 70,
-            temperature: 0.9
-        });
-
-        const postContent = completion.content.trim();
-
-        const newPost = {
-            id: `post_ai_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-            author: aiAuthor,
-            content: postContent,
-            timestamp: Date.now(),
-            comments: [],
-            likes: Math.floor(Math.random() * 20) + 5 // Random initial likes
-        };
-
-        headbookPosts.unshift(newPost); // Add to the beginning to show as latest
-        lastAIHeadbookPostTime = now; // Update timestamp
-        saveAppState();
-
-        // Only re-render if the user is currently on the headbook page
-        if (currentUrl === 'headbook.com') {
-            navigate('headbook.com');
-        }
-        console.log(`AI ${aiAuthor} posted: "${postContent}"`);
-
-    } catch (error) {
-        console.error("Error generating AI Headbook post:", error);
-    } finally {
-        scheduleNextAIHeadbookPost(); // Schedule the next one regardless of success
-    }
-}
-
-// Function to schedule the next AI post
-function scheduleNextAIHeadbookPost() {
-    if (aiPostTimer) {
-        clearTimeout(aiPostTimer);
-    }
-    const delay = AI_POST_COOLDOWN + Math.random() * (AI_POST_MAX_INTERVAL - AI_POST_COOLDOWN);
-    aiPostTimer = setTimeout(generateAIHeadbookPost, delay);
-    console.log(`Next AI Headbook post scheduled in ~${Math.round(delay / 1000)} seconds.`);
-}
-
-function getMyTubeHomePageHTML() {
-    let videoGridHtml = '';
-    const videoKeys = Object.keys(myTubeVideos);
-    const sortedVideoKeys = videoKeys.sort((a, b) => {
-        const viewsA = parseInt((myTubeVideos[a].views || '0').replace(/[^0-9]/g, ''));
-        const viewsB = parseInt((myTubeVideos[b].views || '0').replace(/[^0-9]/g, ''));
-        return viewsB - viewsA;
-    });
-
-    sortedVideoKeys.forEach(key => {
-        const video = myTubeVideos[key];
-        if (!video) return;
-
-        videoGridHtml += `
-            <div class="mytube-video-item">
-                <a href="#" data-url="mytube.com/watch?v=${video.id}">
-                    <img src="${video.thumbnail}" alt="${video.title} thumbnail" class="mytube-video-thumbnail">
-                    <div class="mytube-video-info">
-                        <h3 class="mytube-video-title">${video.title}</h3>
-                        <p class="mytube-video-channel">${video.channel}</p>
-                        <p class="mytube-video-meta">${video.views} views • ${video.date}</p>
-                    </div>
-                </a>
-            </div>
-        `;
-    });
-
-    const channelButton = userChannel.name
-        ? `<a href="#" data-url="mytube.com/my-channel" class="app-header-button">My Channel (${userChannel.subscribers} subs)</a>`
-        : `<a href="#" data-url="mytube.com/create-channel" class="app-header-button">Create Channel</a>`;
-
-    const sidebarChannelLink = userChannel.name
-        ? `<li><a href="#" data-url="mytube.com/my-channel">My Channel</a></li>`
-        : '';
-
-    return `
-        <div class="mytube-page-layout">
-            <div class="app-header">
-                <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                <span class="app-title">MyTube</span>
-                <div class="app-search-container">
-                    <input type="search" id="mytubeSearchInput" class="app-search-input" placeholder="Search MyTube...">
-                    <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                </div>
-                ${channelButton}
-            </div>
-            <div class="mytube-main-content">
-                <div class="mytube-sidebar">
-                    <h3>Categories</h3>
-                    <ul>
-                        <li><a href="#" data-url="mytube.com">Home</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=popular">Popular</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=gaming">Gaming</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=tech">Tech</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=social">Social</a></li>
-                        ${sidebarChannelLink}
-                        <li><a href="#" data-url="fexplorer:quick-links">Quick Links</a></li>
-                    </ul>
-                </div>
-                <div class="mytube-video-listing">
-                    <h1>Recommended for you</h1>
-                    <div class="mytube-video-grid">
-                        ${videoGridHtml}
-                    </div>
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated video platform. Content is pre-defined.</p>
-        </div>
-    `;
-}
-
-function getMyTubeWatchPageHTML(videoId) {
-    const video = myTubeVideos[videoId];
-    if (!video) {
-        return `
-            <div class="mytube-page-layout">
-                <div class="app-header">
-                    <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                    <span class="app-title">MyTube</span>
-                    <div class="app-search-container">
-                        <input type="search" id="mytubeSearchInput" class="app-search-input" placeholder="Search MyTube...">
-                        <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                    </div>
-                    ${userChannel.name ? `<a href="#" data-url="mytube.com/my-channel" class="app-header-button">My Channel</a>` : `<a href="#" data-url="mytube.com/create-channel" class="app-header-button">Create Channel</a>`}
-                </div>
-                <div class="mytube-watch-main">
-                    <div style="flex-grow: 1; padding: 20px; text-align: center;">
-                        <h1>Video Not Found</h1>
-                        <p>The video you are looking for does not exist on MyTube.</p>
-                        <p>Return to <a href="#" data-url="mytube.com">MyTube Home</a></p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    let suggestedVideosHtml = '';
-    const allVideoIds = Object.keys(myTubeVideos);
-    const shuffledVideoIds = allVideoIds.filter(id => id !== videoId).sort(() => 0.5 - Math.random());
-
-    for (let i = 0; i < Math.min(5, shuffledVideoIds.length); i++) {
-        const suggestedVideo = myTubeVideos[shuffledVideoIds[i]];
-        if (!suggestedVideo) continue;
-
-        suggestedVideosHtml += `
-            <a href="#" data-url="mytube.com/watch?v=${suggestedVideo.id}" class="mytube-suggested-item">
-                <img src="${suggestedVideo.thumbnail}" alt="${suggestedVideo.title} thumbnail" class="mytube-suggested-thumbnail">
-                <div class="mytube-suggested-info">
-                    <h4 class="mytube-suggested-title">${suggestedVideo.title}</h4>
-                    <p class="mytube-suggested-channel">${suggestedVideo.channel}</p>
-                    <p class="mytube-suggested-meta">${suggestedVideo.views} views</p>
-                </div>
-            </a>
-        `;
-    }
-
-    let commentsHtml = '';
-    if (video.comments && video.comments.length > 0) {
-        video.comments.forEach(comment => {
-            commentsHtml += `<div class="mytube-comment-item"><span class="mytube-comment-author">${comment.author}:</span> ${comment.text}</div>`;
-        });
-    } else {
-        commentsHtml = `<div class="mytube-comment-item">No comments yet. Be the first!</div>`;
-    }
-
-    const isMyChannelVideo = userChannel.name && video.channel === userChannel.name;
-
-    let subscribeButtonHtml = '';
-    if (isMyChannelVideo) {
-        subscribeButtonHtml = `<a href="#" data-url="mytube.com/my-channel" class="mytube-subscribe-button mytube-upload-button">My Channel</a>`;
-    } else {
-        subscribeButtonHtml = `<button class="mytube-subscribe-button">Subscribe</button>`;
-    }
-
-    return `
-        <div class="mytube-page-layout mytube-watch-page">
-            <div class="app-header">
-                <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                <span class="app-title">MyTube</span>
-                <div class="app-search-container">
-                    <input type="search" id="mytubeSearchInput" class="app-search-input" placeholder="Search MyTube...">
-                    <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                </div>
-                ${userChannel.name ? `<a href="#" data-url="mytube.com/my-channel" class="app-header-button">My Channel</a>` : `<a href="#" data-url="mytube.com/create-channel" class="app-header-button">Create Channel</a>`}
-            </div>
-            <div class="mytube-watch-main">
-                <div class="mytube-player-container">
-                    <div class="mytube-player">
-                        <div class="mytube-player-placeholder">
-                            <span style="font-size: 0.9em; font-weight: bold;">[Simulated Video Playback]</span>
-                            <span>"${video.title}"</span>
-                        </div>
-                    </div>
-                    <div class="mytube-video-details">
-                        <h2>${video.title}</h2>
-                        <div class="mytube-channel-info">
-                            <div class="mytube-channel-avatar">${video.channel.charAt(0)}</div>
-                            <span class="mytube-channel-name">${video.channel}</span>
-                            ${subscribeButtonHtml}
-                        </div>
-                        <p class="mytube-video-stats">${video.views} views • ${video.date}</p>
-                        <div class="mytube-video-description">
-                            <p>${video.description}</p>
-                        </div>
-                        <div class="mytube-comments-section">
-                            <h3>Comments (${video.comments ? video.comments.length : 0})</h3>
-                            ${commentsHtml}
-                        </div>
-                    </div>
-                </div>
-                <div class="mytube-suggested-videos">
-                    <h3>Up Next</h3>
-                    ${suggestedVideosHtml}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function getMyTubeCreateChannelPageHTML() {
-    return `
-        <div class="mytube-page-layout mytube-create-channel-page">
-            <div class="app-header">
-                <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                <span class="app-title">MyTube</span>
-                <div class="app-search-container">
-                    <input type="search" id="mytubeSearchInput" class="app-search-input" placeholder="Search MyTube...">
-                    <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                </div>
-                <a href="#" data-url="mytube.com" class="app-header-button">Home</a>
-            </div>
-            <div class="mytube-main-content" style="justify-content: center; align-items: center; text-align: center;">
-                <div class="mytube-channel-form-card">
-                    <h2>Create Your MyTube Channel</h2>
-                    <p>Start your journey on MyTube by creating your own channel. You'll be able to "upload" videos and grow your "subscribers"!</p>
-                    <input type="text" id="channelNameInput" class="mytube-input" placeholder="Enter your channel name" maxlength="30">
-                    <button id="createChannelButton" class="mytube-button">Create Channel</button>
-                    <p class="form-error" id="channelNameError"></p>
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated video platform.</p>
-        </div>
-    `;
-}
-
-function getMyTubeMyChannelPageHTML() {
-    if (!userChannel.name) {
-        return `
-            <div class="mytube-page-layout mytube-my-channel-page">
-                <div class="app-header">
-                    <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                    <span class="app-title">MyTube</span>
-                    <div class="app-search-container">
-                        <input type="search" id="mytubeSearchInput" class="app-search-input" placeholder="Search MyTube...">
-                        <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                    </div>
-                    <a href="#" data-url="mytube.com/create-channel" class="app-header-button">Create Channel</a>
-                </div>
-                <div class="mytube-main-content" style="justify-content: center; align-items: center; text-align: center;">
-                    <div class="mytube-channel-form-card">
-                        <h2>You don't have a channel yet!</h2>
-                        <p>Please create a channel to access this page.</p>
-                        <button class="mytube-button" data-url="mytube.com/create-channel">Go to Create Channel</button>
-                    </div>
-                </div>
-                <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated video platform.</p>
-            </div>
-        `;
-    }
-
-    let uploadedVideosHtml = '';
-    if (userChannel.uploadedVideoIds.length > 0) {
-        const sortedUploadedVideos = userChannel.uploadedVideoIds
-            .map(id => myTubeVideos[id])
-            .filter(video => video)
-            .sort((a, b) => new Date(b.date === 'just now' ? Date.now() : b.date) - new Date(a.date === 'just now' ? Date.now() : a.date));
-
-        sortedUploadedVideos.forEach(video => {
-            uploadedVideosHtml += `
-                <div class="mytube-video-item">
-                    <a href="#" data-url="mytube.com/watch?v=${video.id}">
-                        <img src="${video.thumbnail}" alt="${video.title} thumbnail" class="mytube-video-thumbnail">
-                        <div class="mytube-video-info">
-                            <h3 class="mytube-video-title">${video.title}</h3>
-                            <p class="mytube-video-channel">${video.channel}</p>
-                            <p class="mytube-video-meta">${video.views} views • ${video.date}</p>
-                        </div>
-                    </a>
-                </div>
-            `;
-        });
-    } else {
-        uploadedVideosHtml = `<p style="text-align: center; margin-top: 20px;">You haven't uploaded any videos yet. Click "Upload Video" to add your first one!</p>`;
-    }
-
-    const uploadButtonHtml = `<button id="uploadVideoButton" class="mytube-button mytube-upload-button">Upload New Video</button>`;
-
-    return `
-        <div class="mytube-page-layout mytube-my-channel-page">
-            <div class="app-header">
-                <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                <span class="app-title">MyTube</span>
-                <div class="app-search-container">
-                    <input type="search" id="mytubeSearchInput" class="app-search-input" placeholder="Search MyTube...">
-                    <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                </div>
-                <a href="#" data-url="mytube.com" class="app-header-button">Home</a>
-            </div>
-            <div class="mytube-main-content">
-                <div class="mytube-sidebar">
-                    <h3>Categories</h3>
-                    <ul>
-                        <li><a href="#" data-url="mytube.com">Home</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=popular">Popular</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=gaming">Gaming</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=tech">Tech</a></li>
-                        <li><a href="#" data-url="mytube.com/search?q=social">Social</a></li>
-                        ${userChannel.name ? `<li><a href="#" data-url="mytube.com/my-channel" class="active">My Channel</a></li>` : ''}
-                        <li><a href="#" data-url="fexplorer:quick-links">Quick Links</a></li>
-                    </ul>
-                </div>
-                <div class="mytube-video-listing">
-                    <div class="mytube-channel-header">
-                        <div class="mytube-channel-avatar mytube-large-avatar">${userChannel.name.charAt(0)}</div>
-                        <div class="mytube-channel-details">
-                            <h1>${userChannel.name}</h1>
-                            <p class="mytube-channel-stats">${userChannel.subscribers.toLocaleString()} subscribers • ${userChannel.uploadedVideoIds.length} videos</p>
-                        </div>
-                        <div class="mytube-channel-actions">
-                            ${uploadButtonHtml}
-                        </div>
-                    </div>
-                    <h2 style="margin-top: 30px;">My Videos</h2>
-                    <div class="mytube-video-grid">
-                        ${uploadedVideosHtml}
-                    </div>
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated video platform. Content is pre-defined.</p>
-        </div>
-    `;
-}
-
-function getInstantGramsPageHTML() {
-    const sortedPosts = instantgramsPosts.sort((a, b) => b.timestamp - a.timestamp);
-
-    let postsGridHtml = sortedPosts.map(post => {
-        return `
-            <div class="instantgrams-post-card" data-post-id="${post.id}">
-                <img src="${post.imageUrl}" alt="Instant Grams post image" class="instantgrams-post-image">
-                <div class="instantgrams-post-info">
-                    <div class="post-author-avatar">${post.author.charAt(0)}</div>
-                    <span class="post-author-name">${post.author}</span>
-                    <span class="post-time">${getTimeElapsedString(post.timestamp)}</span>
-                    <p class="post-description">${post.description}</p>
-                </div>
-                <div class="instantgrams-post-actions">
-                    <button class="like-button" data-action="like-instantgrams-post" data-post-id="${post.id}">❤️ (<span class="like-count">${post.likes}</span>)</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    let imageSelectionHtml = INSTAGRAMS_IMAGE_POOL.map(imgUrl => `
-        <div class="image-selector-item">
-            <img src="${imgUrl}" data-image-url="${imgUrl}" class="image-selector-thumbnail">
-        </div>
-    `).join('');
-
-    return `
-        <div class="instantgrams-page-layout">
-            <div class="app-header">
-                <img src="instantgrams_logo.png" alt="Instant Grams Logo" class="app-logo">
-                <span class="app-title">Instant Grams</span>
-                <div class="app-search-container" style="max-width: 300px;">
-                    <input type="search" id="instantgramsSearchInput" class="app-search-input" placeholder="Search...">
-                    <button id="instantgramsSearchButton" class="app-search-button">Search</button>
-                </div>
-                <button id="addInstantgramsPostButton" class="app-header-button">Add Post</button>
-            </div>
-            <div class="instantgrams-main-content">
-                <div class="instantgrams-post-grid">
-                    ${postsGridHtml}
-                </div>
-            </div>
-
-            <!-- Add Post Modal -->
-            <div id="instantgramsAddPostModal" class="instantgrams-modal" style="display:none;">
-                <div class="modal-content">
-                    <span class="close-button" id="closeInstantgramsModal">&times;</span>
-                    <h2>Create New Instant Grams Post</h2>
-                    <div class="image-selector-grid">
-                        ${imageSelectionHtml}
-                    </div>
-                    <p class="image-selection-status" id="imageSelectionStatus">Select an image above</p>
-                    <textarea id="instantgramsPostDescription" placeholder="Write a description..." rows="4"></textarea>
-                    <button id="publishInstantgramsPostButton" class="instantgrams-button" disabled>Publish Post</button>
-                    <div id="instantgramsPostStatus" class="status-message"></div>
-                </div>
-            </div>
-
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated photo-sharing platform. Content is pre-defined or user-generated within limits.</p>
-        </div>
-    `;
-}
-
-async function handleAddInstantGramsPost() {
-    const modal = browserContent.querySelector('#instantgramsAddPostModal');
-    const publishButton = modal.querySelector('#publishInstantgramsPostButton');
-    const descriptionInput = modal.querySelector('#instantgramsPostDescription');
-    const imageSelectionStatus = modal.querySelector('#imageSelectionStatus');
-
-    let selectedImageUrl = null;
-
-    modal.style.display = 'block';
-
-    browserContent.querySelectorAll('.image-selector-thumbnail').forEach(img => {
-        img.classList.remove('selected');
-        img.addEventListener('click', () => {
-            browserContent.querySelectorAll('.image-selector-thumbnail').forEach(i => i.classList.remove('selected'));
-            img.classList.add('selected');
-            selectedImageUrl = img.dataset.imageUrl;
-            imageSelectionStatus.textContent = `Image selected: ${selectedImageUrl.split('/').pop()}`;
-            publishButton.disabled = false;
-        });
-    });
-
-    modal.querySelector('#closeInstantgramsModal').addEventListener('click', () => {
-        modal.style.display = 'none';
-        selectedImageUrl = null;
-        descriptionInput.value = '';
-        publishButton.disabled = true;
-        imageSelectionStatus.textContent = 'Select an image above';
-    });
-
-    publishButton.onclick = async () => {
-        const postDescription = descriptionInput.value.trim();
-        const postStatus = modal.querySelector('#instantgramsPostStatus');
-
-        if (!selectedImageUrl) {
-            postStatus.textContent = 'Please select an image.';
-            return;
-        }
-
-        let finalDescription = postDescription;
-        if (!finalDescription) {
-            postStatus.textContent = 'Generating description...';
-            publishButton.disabled = true;
-            try {
-                const completion = await Websim.chat.completions.create({
-                    messages: [
-                        {
-                            role: "system",
-                            content: `You are a social media user posting a photo on Instant Grams. Generate a short, casual description (1-2 sentences) for an image at '${selectedImageUrl}'. Include relevant hashtags. Focus on what the image depicts.`,
-                        },
-                    ],
-                });
-                finalDescription = completion.content.trim();
-                postStatus.textContent = '';
-            } catch (error) {
-                console.error("Error generating description:", error);
-                finalDescription = "A lovely moment captured! #InstantGrams";
-                postStatus.textContent = 'Failed to generate description. Using fallback.';
-            } finally {
-                publishButton.disabled = false;
-            }
-        }
-
-        const newPost = {
-            id: `ig_user_post_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-            author: userChannel.name || 'You',
-            imageUrl: selectedImageUrl,
-            description: finalDescription,
-            timestamp: Date.now(),
-            likes: 0
-        };
-
-        instantgramsPosts.unshift(newPost); // Add to the beginning to show as latest
-        userFPoints += Math.round(FPOINTS_PER_INSTAGRAMS_POST * userLuck);
-        showFPointsNotification(Math.round(FPOINTS_PER_INSTAGRAMS_POST * userLuck));
-        saveAppState();
-
-        modal.style.display = 'none';
-        descriptionInput.value = '';
-        selectedImageUrl = null;
-        publishButton.disabled = true;
-        imageSelectionStatus.textContent = 'Select an image above';
-        navigate('instantgrams.com'); // Re-render the page to show new post
-
-        // Trigger AI reply after user post
-        setTimeout(() => generateAIInstantGramsCommentOrLike(newPost.id, true), 3000 + Math.random() * 5000);
-    };
-}
-
-function handleLikeInstantGramsPost(event) {
-    const postId = event.target.closest('.instantgrams-post-card').dataset.postId;
-    const post = instantgramsPosts.find(p => p.id === postId);
-    if (post) {
-        post.likes = (post.likes || 0) + 1;
-        userFPoints += Math.round(FPOINTS_PER_INSTAGRAMS_LIKE * userLuck);
-        showFPointsNotification(Math.round(FPOINTS_PER_INSTAGRAMS_LIKE * userLuck));
-        saveAppState();
-
-        const likeCountSpan = event.target.querySelector('.like-count');
-        if (likeCountSpan) {
-            likeCountSpan.textContent = post.likes;
-        }
-
-        const originalText = event.target.innerHTML;
-        event.target.innerHTML = `Liked! ❤️ (${post.likes})`;
-        event.target.classList.add('liked');
-
-        setTimeout(() => {
-            if (event.target && likeCountSpan) {
-                event.target.innerHTML = originalText;
-                event.target.classList.remove('liked');
-            }
-        }, 1500);
-    }
-}
-
-async function generateAIInstantGramsPost() {
-    if (Math.random() < 0.6) return; // Only generate sometimes
-
-    const aiAuthor = INSTAGRAMS_AI_AUTHORS[Math.floor(Math.random() * INSTAGRAMS_AI_AUTHORS.length)].name;
-    const imageUrl = INSTAGRAMS_IMAGE_POOL[Math.floor(Math.random() * INSTAGRAMS_IMAGE_POOL.length)];
-
-    // Check if AI has recently posted this image
-    if (instantgramsPosts.some(p => p.author === aiAuthor && p.imageUrl === imageUrl && (Date.now() - p.timestamp < 3600000 * 24))) { // Max one post per image per AI per day
-        return;
-    }
-
-    try {
-        const completion = await Websim.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a casual social media user named ${aiAuthor} posting a photo on Instant Grams. Describe the photo at '${imageUrl}' in a short, friendly, and engaging way (1-2 sentences). Include 1-3 relevant hashtags based on the image content.`,
-                },
-            ],
-            max_tokens: 60,
-            temperature: 0.9
-        });
-
-        const description = completion.content.trim();
-
-        const newPost = {
-            id: `ig_ai_post_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-            author: aiAuthor,
-            imageUrl: imageUrl,
-            description: description,
-            timestamp: Date.now() - Math.floor(Math.random() * 3600000 * 48), // Post from within the last 2 days
-            likes: Math.floor(Math.random() * 100) + 5 // Random initial likes
-        };
-
-        instantgramsPosts.push(newPost);
-        saveAppState();
-        if (currentUrl === 'instantgrams.com') {
-            navigate('instantgrams.com'); // Re-render if on page
-        }
-
-    } catch (error) {
-        console.error("Error generating AI Instant Grams post:", error);
-    }
 }
 
 async function generateAIInstantGramsCommentOrLike(postId, isUserPost) {
@@ -1726,23 +424,17 @@ const fakeContent = {
         domain in examples without prior coordination or asking for permission.</p>
         <p><a href="#" data-url="https://www.iana.org/domains/example">More information...</a></p>
         <hr>
-        <p>This is a simulated page for <strong>example.com</strong>.</p>
-        <p>Try typing "about:blank" or "${HOME_URL}"</p>
+        <p>This is a page for <strong>example.com</strong>.</p>
     `,
     'about:blank': `
-        <h1>About Blank</h1>
-        <p>This is a blank page, often used as a placeholder.</p>
-        <p>In a real browser, this page is usually completely empty.</p>
-        <p>Here, we just show this text to demonstrate the "about:blank" functionality.</p>
-        <p>Try typing "example.com" or "${HOME_URL}"</p>
     `,
     'fexplorer:home': `
         <div class="home-page-content">
-            <img src="fakebrowser_logo.png" alt="FExplorer Logo" class="app-logo">
+            <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>Welcome to FExplorer!</h1>
-            <p class="tagline">Your window to the simulated web.</p>
+            <p class="tagline">A browser inside your browser.</p>
             <div class="home-page-search-container">
-                <input type="search" class="home-page-search-input" placeholder="Search the simulated web or type a URL...">
+                <input type="search" class="home-page-search-input" placeholder="Search the web or type in a URL...">
                 <button class="home-page-search-button">Search</button>
             </div>
             <div class="quick-links-section">
@@ -1753,23 +445,23 @@ const fakeContent = {
                     <button class="home-page-button" data-url="fexplorer:updates">Updates</button>
                 </div>
             </div>
-            <p class="footer-note">This is a simulated browser. Only pre-defined URLs are available.</p>
+            <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
     'fexplorer:quick-links': `
         <div class="quick-links-page home-page-content">
             <h1>FExplorer Quick Links</h1>
-            <p class="tagline">Easily jump to common simulated sites.</p>
+            <p class="tagline">Easily jump to other sites.</p>
             <div class="quick-links-section">
                 <h2>Available Links</h2>
                 <ul class="quick-links">
                     <li>
                         <a href="#" data-url="example.com">Example Site</a>
-                        <p class="link-description">A generic example domain page.</p>
+                        <p class="link-description">It's in the name, buddy.</p>
                     </li>
                     <li>
                         <a href="#" data-url="about:blank">Blank Page</a>
-                        <p class="link-description">A placeholder for an empty page.</p>
+                        <p class="link-description"></p>
                     </li>
                     <li>
                         <a href="#" data-url="fexplorer:home">FExplorer Home</a>
@@ -1777,23 +469,7 @@ const fakeContent = {
                     </li>
                     <li>
                         <a href="#" data-url="goog.com">Goog!</a>
-                        <p class="link-description">Visit the simulated Goog! search engine.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="headbook.com">Headbook</a>
-                        <p class="link-description">Connect with friends on this social network.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="instantgrams.com">Instant Grams</a>
-                        <p class="link-description">Share photos and videos instantly.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="mytube.com">MyTube</a>
-                        <p class="link-description">Watch and share videos.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="minceraft.com">Minceraft</a>
-                        <p class="link-description">Explore a blocky world of adventure.</p>
+                        <p class="link-description">Visit the Goog! search engine.</p>
                     </li>
                     <li>
                         <a href="#" data-url="fexplorer:financial">FExplorer Financials</a>
@@ -1817,7 +493,7 @@ const fakeContent = {
                     </li>
                     <li>
                         <a href="#" data-url="unknown.site">Unknown Site</a>
-                        <p class="link-description">A page demonstrating a 'not found' error.</p>
+                        <p class="link-description">Haha funny 404 error</p>
                     </li>
                 </ul>
             </div>
@@ -1866,7 +542,7 @@ const fakeContent = {
                     <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
                 </div>
             </div>
-            <p class="footer-note">Simulated financial page. Not real money!</p>
+            <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
     'fexplorer:shop': `
@@ -1910,147 +586,43 @@ const fakeContent = {
                     <div class="shop-item-grid" id="shopItemsGrid">
                         <!-- Shop items will be dynamically inserted here by JavaScript -->
                     </div>
-                    <p class="footer-note" style="text-align: center; margin-top: 30px;">Simulated shop. Items provide simulated benefits.</p>
+                    <p class="footer-note" style="text-align: center; margin-top: 30px;">Made by smrtC951!</p>
                 </div>
             </div>
         </div>
     `,
     'fexplorer:updates': `
         <div class="updates-page-content">
-            <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+            <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
+			<h2>Update Name: Demo 1.1</h2>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>Added functionality to more 'websites' (e.g., Headbook, MyTube, Shop).</li>
-                    <li>Added FPoints! (Now saves this time!)</li>
-                    <li>Introduced daily bonus FPoints and simulated stock market.</li>
-                    <li>Implemented interactive social features on Headbook (posts, comments, likes).</li>
-                    <li>Added MyTube channel creation and video 'uploads'.</li>
-                    <li>Instant Grams page is now interactive with AI posts and user image uploads/likes!</li>
-                    <li>Implemented a user page creator with simple and code modes.</li>
-                    <li>Introduced the FExplorer Creator Hub to view your published pages.</li>
+                    <li>Removed a ton of other sites, because I'm revamping them!</li>
+					<li></li>
                 </ul>
             </div>
 
             <div class="updates-section">
                 <h2>Upcoming Updates</h2>
                 <ul>
-                    <li>(Stay tuned!) Probably a new search engine and some easter eggs soon.</li>
-                    <li>More interactive content for existing applications.</li>
-                    <li>Expanding the FExplorer Shop with new unique items.</li>
-                    <li>Minceraft website design overhaul.</li>
+                    <li>A new search engine and some easter eggs soon</li>
+                    <li>New features such as Cookies and a FPoints rework!</li>
+                    <li>New sites are on the way for you!</li>
+					<li>Creator Hub rework soon!</li>
                 </ul>
             </div>
 
             <div class="home-page-buttons-container">
-                <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
-                <button class="home-page-button" data-url="fexplorer:quick-links">More Quick Links</button>
+                <button class="home-page-button" data-url="fexplorer:home">Home</button>
+                <button class="home-page-button" data-url="fexplorer:quick-links">Quick Links</button>
             </div>
-            <p class="footer-note" style="margin-top: 20px;">FExplorer is constantly evolving!</p>
+            <p class="footer-note" style="margin-top: 20px;">Made by smrtC951!</p>
         </div>
     `,
-    'goog.com': `
-        <div class="home-page-content">
-            <img src="goog_logo.png" alt="Goog! Logo" class="app-logo" style="width: 100px;">
-            <h1>Goog!</h1>
-            <p class="tagline">Search the simulated web.</p>
-            <div class="home-page-search-container">
-                <input type="search" id="googSearchInput" class="home-page-search-input" placeholder="Search Goog!...">
-                <button id="googSearchButton" class="home-page-search-button">Goog! Search</button>
-            </div>
-            <div class="quick-links-section">
-                <h2>Popular Searches</h2>
-                <ul class="quick-links">
-                    <li><a href="#" data-url="goog.com/search?q=example">Example Website</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=blank">Blank Page Info</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=fexplorer">About FExplorer</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=quick+links">FExplorer Quick Links</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=headbook">Headbook Social</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=instantgrams">Instant Grams Pics</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=mytube">MyTube Videos</a></li>
-                    <li><a href="#" data-url="goog.com/search?q=minceraft">Minceraft Game</a></li>
-                </ul>
-            </div>
-            <p class="footer-note">This is a simulated search engine. Results are pre-defined.</p>
-        </div>
-    `,
-    'headbook.com': `
-        <div class="home-page-content">
-            <img src="fakebook_logo.png" alt="Headbook Logo" class="app-logo" style="width: 80px;">
-            <h1>Welcome to Headbook!</h1>
-            <p class="tagline">Connect with friends and the world around you.</p>
-            <div style="max-width: 400px; width: 100%; text-align: left; background-color: #f2f2f2; padding: 20px; border-radius: 8px;">
-                <p><strong>John Doe</strong> posted a new update: "Enjoying the simulated web on FExplorer! #fakebrowser #webdev"</p>
-                <hr>
-                <p><strong>Jane Smith</strong> liked your post.</p>
-                <p><strong>Admin</strong>: This is a placeholder for your social feed. In a real browser, this would be dynamic.</p>
-                <p style="text-align: center; margin-top: 20px;"><a href="#" data-url="fexplorer:quick-links">Explore more apps</a></p>
-            </div>
-            <p class="footer-note">Your simulated social network.</p>
-        </div>
-    `,
-    'instantgrams.com': `
-        <div class="home-page-content">
-            <img src="instantgrams_logo.png" alt="Instant Grams Logo" class="app-logo" style="width: 80px;">
-            <h1>Instant Grams</h1>
-            <p class="tagline">Capture and Share the World's Moments.</p>
-            <div style="max-width: 500px; width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 20px;">
-                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 1</div>
-                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 2</div>
-                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 3</div>
-                <div style="background-color: #eee; height: 120px; display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; border-radius: 5px;">Image 4</div>
-            </div>
-            <p style="margin-top: 20px;">Browse photos from friends and discover new accounts.</p>
-            <p style="text-align: center; margin-top: 20px;"><a href="#" data-url="fexplorer:quick-links">Back to Quick Links</a></p>
-            <p class="footer-note">Simulated photo sharing.</p>
-        </div>
-    `,
-    'minceraft.com': `
-        <div class="minceraft-page-layout">
-            <div class="app-header">
-                <img src="minceraft_logo.png" alt="Minceraft Logo" class="app-logo">
-                <span class="app-title">Minceraft</span>
-                <div class="app-search-container" style="max-width: 300px;">
-                    <input type="search" id="minceraftSearchInput" class="app-search-input" placeholder="Search Minceraft...">
-                    <button id="minceraftSearchButton" class="app-search-button">Search</button>
-                </div>
-                <a href="#" data-url="fexplorer:quick-links" class="app-header-button">Quick Links</a>
-            </div>
-            <div class="minceraft-hero-section">
-                <img src="mytube_thumbnail_minceraft.png" alt="Minceraft World" class="minceraft-hero-background">
-                <div class="minceraft-hero-overlay">
-                    <h1>Minceraft</h1>
-                    <p class="tagline">Explore infinite worlds and build anything from the simplest of homes to the grandest of castles.</p>
-                    <button class="minceraft-main-button">Get Minceraft</button>
-                </div>
-            </div>
-            <div class="minceraft-content-section">
-                <h2>What will you create?</h2>
-                <div class="minceraft-features-grid">
-                    <div class="minceraft-feature-card">
-                        <h3>Explore</h3>
-                        <p>Discover vast landscapes, mysterious caves, and unique biomes.</p>
-                    </div>
-                    <div class="minceraft-feature-card">
-                        <h3>Build</h3>
-                        <p>Craft tools, construct structures, and shape your world block by block.</p>
-                    </div>
-                    <div class="minceraft-feature-card">
-                        <h3>Survive</h3>
-                        <p>Face challenges and creatures in a world that changes with the day and night.</p>
-                    </div>
-                    <div class="minceraft-feature-card">
-                        <h3>Create</h3>
-                        <p>Unleash your imagination in creative mode with unlimited resources.</p>
-                    </div>
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated game website.</p>
-        </div>
-    `
 };
 
 function updateBackButtonState() {
@@ -2811,17 +1383,9 @@ function navigate(urlToLoad, isBackNavigation = false) {
     const shouldAwardFPoints = currentUrl &&
                                 currentUrl !== sanitizedUrl &&
                                 !isBackNavigation &&
-                                !sanitizedUrl.startsWith('mytube.com/watch?v=') &&
-                                !sanitizedUrl.startsWith('mytube.com/create-channel') &&
-                                !sanitizedUrl.startsWith('mytube.com/my-channel') &&
                                 !sanitizedUrl.startsWith('fexplorer:shop?category=') &&
                                 !sanitizedUrl.startsWith('fexplorer:shop?q=') &&
-                                !sanitizedUrl.startsWith('mytube.com/search?q=') &&
                                 !sanitizedUrl.startsWith('goog.com/search?q=') &&
-                                !sanitizedUrl.startsWith('headbook.com') && // Handled by post/like
-                                !sanitizedUrl.startsWith('headbook.com/messages') && // Handled by chat
-                                !sanitizedUrl.startsWith('instantgrams.com') && // Handled by post/like
-                                !sanitizedUrl.startsWith('minceraft.com') && // No FPoints for minceraft page navigation
                                 !sanitizedUrl.startsWith('fexplorer:user-page-') && // No FPoints for visiting user created pages directly
                                 !sanitizedUrl.startsWith('fexplorer:create') && // No FPoints for visiting create page
                                 !sanitizedUrl.startsWith('fexplorer:create.hub') && // No FPoints for visiting hub page
@@ -3006,12 +1570,7 @@ function navigate(urlToLoad, isBackNavigation = false) {
                     'blank': { url: 'about:blank', title: 'About Blank' },
                     'fexplorer': { url: 'fexplorer:home', title: 'FExplorer Home' },
                     'home': { url: 'fexplorer:home', title: 'FExplorer Home' },
-                    'fakebrowser': { url: 'fexplorer:home', title: 'FExplorer Home' },
                     'quick links': { url: 'fexplorer:quick-links', title: 'FExplorer Quick Links' },
-                    'headbook': { url: 'headbook.com', title: 'Headbook - Social Network' },
-                    'instantgrams': { url: 'instantgrams.com', title: 'Instant Grams - Photo Sharing' },
-                    'mytube': { url: 'mytube.com', title: 'MyTube - Video Platform' },
-                    'minceraft': { url: 'minceraft.com', title: 'Minceraft - Blocky Game' },
                     'fpoints': { url: 'fexplorer:financial', title: 'FExplorer Financials - Earn FPoints!' },
                     'shop': { url: 'fexplorer:shop', title: 'FExplorer Shop - Spend FPoints!' },
                     'financial': { url: 'fexplorer:financial', title: 'FExplorer Financials - Earn FPoints!' },
