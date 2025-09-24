@@ -66,8 +66,6 @@ let userLuck = parseFloat(localStorage.getItem('userLuck') || '1.0');
 let lastFinancialVisit = parseInt(localStorage.getItem('lastFinancialVisit') || '0', 10);
 let lastGoogSearchTime = parseInt(localStorage.getItem('lastGoogSearchTime') || '0', 10);
 
-let stockPrice = parseFloat(localStorage.getItem('stockPrice') || INITIAL_STOCK_PRICE.toString());
-let lastStockUpdate = parseInt(localStorage.getItem('lastStockUpdate') || Date.now().toString(), 10);
 
 let headbookPosts;
 try {
