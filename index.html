@@ -2,5 +2,33 @@
 <html>
 	<head>
 		<title>FExplorer (DEMO)</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="style.css">
+		<script type="module" src="script.js"></script>
 	</head>
+	<body>
+    <div class="browser-frame">
+        <div class="browser-header">
+            <div class="browser-buttons">
+                <span class="browser-button close"></span>
+                <span class="browser-button minimize"></span>
+                <span class="browser-button maximize"></span>
+            </div>
+            <div class="navigation-buttons">
+                <button id="backButton" class="nav-button" disabled>&lt;</button>
+                <button id="homeButton" class="nav-button">&#x2302;</button>
+                <button id="createPageButton" class="nav-button create-page-button">+</button>
+                <span id="fpointsCounter" class="fpoints-counter">0 FPoints</span>
+            </div>
+            <div class="address-bar-container">
+                <input type="text" id="addressBar" class="address-bar" value="fexplorer:home">
+                <button id="goButton" class="go-button">Go</button>
+            </div>
+        </div>
+        <div class="browser-content" id="browserContent">
+            <!-- Content will be loaded by JavaScript -->
+        </div>
+    </div>
+	</body>
 </html>
