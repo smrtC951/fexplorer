@@ -1,18 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FExplorer</title>
-    <link rel="stylesheet" href="style.css">
-    <script type="importmap">
-        {
-            "imports": {}
-        }
-    </script>
-    <script type="module" src="main.js"></script>
-</head>
-<body>
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>FExplorer (Demo 1.1)</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="style.css">
+		<link rel="icon" type="image/x-icon" href="fexplorer.png">
+	</head>
+	<body>
     <div class="browser-frame">
         <div class="browser-header">
             <div class="browser-buttons">
@@ -21,7 +16,8 @@
                 <span class="browser-button maximize"></span>
             </div>
             <div class="navigation-buttons">
-                <button id="backButton" class="nav-button" disabled>&lt;</button>
+                <button id="backButton" class="nav-button" disabled><</button>
+				<button id="settingsButton" class="nav-button">Settings</button>
                 <button id="homeButton" class="nav-button">&#x2302;</button>
                 <button id="createPageButton" class="nav-button create-page-button">+</button>
                 <span id="fpointsCounter" class="fpoints-counter">0 FPoints</span>
@@ -35,6 +31,6 @@
             <!-- Content will be loaded by JavaScript -->
         </div>
     </div>
-</body>
+	<script src="main.js"></script>
+	</body>
 </html>
-
