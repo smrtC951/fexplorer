@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>FExplorer (Demo 1.1)</title>
+		<title>FExplorer (Demo 1.2)</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" href="style.css">
@@ -16,10 +16,21 @@
                 <span class="browser-button maximize"></span>
             </div>
             <div class="navigation-buttons">
-                <button id="backButton" class="nav-button" disabled><</button>
-				<button id="settingsButton" class="nav-button">Settings</button>
-                <button id="homeButton" class="nav-button">&#x2302;</button>
-                <button id="createPageButton" class="nav-button create-page-button">+</button>
+                <button id="backButton" class="nav-button" title="Back">
+                    <img src="icons/back-icon.png" alt="Back" style="width:15px;height:15px;vertical-align:middle;">
+                </button>
+                <button id="forwardButton" class="nav-button" title="Forward">
+                    <img src="icons/forward-icon.png" alt="Forward" style="width:17px;height:17px;vertical-align:middle;">
+                </button>
+                <button id="settingsButton" class="nav-button" title="Settings">
+                    <img src="icons/settings-icon.png" alt="Settings" style="width:15px;height:15px;vertical-align:middle;">
+                </button>
+                <button id="homeButton" class="nav-button" title="Home">
+                    <img src="icons/home-icon.png" alt="Home" style="width:15px;height:15px;vertical-align:middle;">
+                </button>
+                <button id="createPageButton" class="nav-button" title="Create Page">
+                    <img src="icons/create-icon.png" alt="Create Page" style="width:15px;height:15px;vertical-align:middle;">
+                </button>
                 <span id="fpointsCounter" class="fpoints-counter">0 FPoints</span>
             </div>
             <div class="address-bar-container">

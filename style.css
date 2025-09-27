@@ -1,3 +1,38 @@
+/* OS-specific window styles */
+.window-mac .browser-header {
+    background-color: #e0e0e0;
+    border-radius: 8px 8px 0 0;
+}
+.window-mac .browser-buttons .browser-button.close { background-color: #ff5f56; }
+.window-mac .browser-buttons .browser-button.minimize { background-color: #ffbd2e; }
+.window-mac .browser-buttons .browser-button.maximize { background-color: #27c93f; }
+
+.window-win11 .browser-header {
+    background-color: #f3f6fd;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #cfd8dc;
+}
+.window-win11 .browser-buttons .browser-button.close { background-color: #e81123; }
+.window-win11 .browser-buttons .browser-button.minimize { background-color: #f9f1a5; }
+.window-win11 .browser-buttons .browser-button.maximize { background-color: #16c60c; }
+
+.window-win7 .browser-header {
+    background-color: #e4ecf7;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #b0c4de;
+}
+.window-win7 .browser-buttons .browser-button.close { background-color: #d9534f; }
+.window-win7 .browser-buttons .browser-button.minimize { background-color: #f0ad4e; }
+.window-win7 .browser-buttons .browser-button.maximize { background-color: #5cb85c; }
+
+.window-macx .browser-header {
+    background-color: #dbefff;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #b0c4de;
+}
+.window-macx .browser-buttons .browser-button.close { background-color: #ff605c; }
+.window-macx .browser-buttons .browser-button.minimize { background-color: #ffbd44; }
+.window-macx .browser-buttons .browser-button.maximize { background-color: #00ca56; }
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -174,6 +209,63 @@ body {
     color: #333;
 }
 
+.random-user-page {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto; /* Enable scrolling for content */
+    background-color: #fcfcfc;
+    line-height: 1.6;
+    color: #333;
+}
+
+.random-link {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+/* Goog Styles */
+.goog-homepage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%; /* Ensure content fills height for centering */
+    text-align: center;
+    padding: 20px; /* Add padding for overall content */
+}
+.goog-search-input {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px 20px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 25px;
+    outline: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-top: 20px;
+    box-sizing: border-box;
+}
+.goog-search-button {
+    background-color: #000000;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+    border-radius: 25px;
+    white-space: nowrap;
+}
+.goog-search-button:hover {
+    background-color: #727272;
+}
+.goog-search-results {
+    margin-top: 30px;
+    width: 100%;
+    max-width: 600px;
+    text-align: left;
+}
 /* Home Page Specific Styles */
 .home-page-content {
     display: flex;
@@ -376,7 +468,7 @@ body {
     display: flex;
     align-items: center;
     padding: 10px 20px;
-    background-color: #fff;
+    background-color: rgba(0, 0, 0, 0);
     border-bottom: 1px solid #eee;
     gap: 15px;
     flex-wrap: wrap;
@@ -1226,11 +1318,6 @@ body {
     background-color: #166fe5;
 }
 
-.headbook-create-post button:disabled {
-    background-color: #a8d5ff; /* Lighter blue when disabled */
-    cursor: not-allowed;
-}
-
 .headbook-post {
     background-color: #fff;
     border-radius: 8px;
@@ -1843,936 +1930,622 @@ body {
     }
 }
 
-/* New styles for Updates page */
-.updates-page-content {
+/* Improved notification UI for settings */
+.fexplorer-notification {
+    position: fixed;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%);
+    min-width: 220px;
+    max-width: 90vw;
+    background: #28a745;
+    color: #fff;
+    padding: 14px 32px 14px 48px;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    font-size: 1.08em;
+    font-family: inherit;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, bottom 0.3s;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Align content to the top */
-    min-height: 100%;
-    text-align: center;
-    padding: 20px;
+    gap: 12px;
+}
+.fexplorer-notification.show {
+    opacity: 1;
+    pointer-events: auto;
+    bottom: 56px;
+}
+.fexplorer-notification.success {
+    background: #28a745;
+    color: #fff;
+}
+.fexplorer-notification.error {
+    background: #e74c3c;
+    color: #fff;
+}
+.fexplorer-notification .notif-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+    margin-right: 8px;
 }
 
-.updates-page-content h1 {
-    font-size: 2.5em;
-    color: #2c3e50;
-    margin-bottom: 20px;
+/* OS-specific window button styles */
+.window-mac .browser-buttons {
+    justify-content: flex-start;
+    gap: 6px;
+}
+.window-mac .browser-button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 2px;
+}
+.window-mac .browser-close { background: #ff5f57; }
+.window-mac .browser-minimize { background: #ffbd2e; }
+.window-mac .browser-maximize { background: #28c940; }
+
+.window-win11 .browser-buttons,
+.window-win7 .browser-buttons {
+    justify-content: flex-end;
+    gap: 0;
+}
+.window-win11 .browser-button,
+.window-win7 .browser-button {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-left: 8px;
+    margin-right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #fff;
+    border: none;
+}
+.window-win11 .browser-close { background: #e81123; }
+.window-win11 .browser-minimize { background: #f9f9f9; color: #333; }
+.window-win11 .browser-maximize { background: #16c60c; }
+.window-win7 .browser-close { background: #c00; }
+.window-win7 .browser-minimize { background: #f9f9f9; color: #333; }
+.window-win7 .browser-maximize { background: #00c000; }
+
+/* Add icons for Win buttons */
+.window-win11 .browser-close::after,
+.window-win7 .browser-close::after {
+    content: '\2715'; /* X */
+    font-size: 12px;
+}
+.window-win11 .browser-minimize::after,
+.window-win7 .browser-minimize::after {
+    content: '\2013'; /* – */
+    font-size: 14px;
+    color: #333;
+}
+.window-win11 .browser-maximize::after,
+.window-win7 .browser-maximize::after {
+    content: '\25A1'; /* □ */
+    font-size: 12px;
 }
 
-.updates-section {
-    background-color: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 25px;
-    margin-bottom: 30px;
-    max-width: 600px;
-    width: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    text-align: left;
+/* Dark mode styles for FExplorer */
+body.fexplorer-dark-mode,
+.fexplorer-dark-mode .settings-page-content,
+.fexplorer-dark-mode .home-page-content,
+.fexplorer-dark-mode .settings-section,
+.fexplorer-dark-mode .app-header,
+.fexplorer-dark-mode .fexplorer-button,
+.fexplorer-dark-mode .settings-save-btn,
+.fexplorer-dark-mode .settings-reset-btn {
+    background-color: #181a1b !important;
+    color: #e0e0e0 !important;
+}
+.fexplorer-dark-mode .app-header {
+    border-bottom: 1px solid #333;
+}
+.fexplorer-dark-mode .fexplorer-button,
+.fexplorer-dark-mode .settings-save-btn {
+    background-color: #218838 !important;
+    color: #fff !important;
+}
+.fexplorer-dark-mode .settings-reset-btn {
+    background-color: #c0392b !important;
+    color: #fff !important;
+}
+.fexplorer-dark-mode select,
+.fexplorer-dark-mode input[type="text"],
+.fexplorer-dark-mode input[type="search"],
+.fexplorer-dark-mode textarea {
+    background-color: #222 !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #444 !important;
+}
+.fexplorer-dark-mode .footer-note {
+    color: #aaa !important;
 }
 
-.updates-section h2 {
-    font-size: 1.8em;
-    color: #2c3e50;
-    margin-top: 0;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 5px;
+/* FExplorer Settings Page CSS */
+.settings-page-content {
+    max-width: 520px;
+    margin: 40px auto 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    padding: 32px 28px 24px 28px;
+    font-family: inherit;
 }
-
-.updates-section ul {
+.settings-section {
+    margin-top: 18px;
+    margin-bottom: 18px;
+}
+.settings-section h2 {
+    font-size: 1.3em;
+    margin-bottom: 12px;
+    color: #28a745;
+}
+.settings-section ul {
     list-style: none;
     padding: 0;
     margin: 0;
 }
+.settings-section li {
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.settings-section label {
+    min-width: 140px;
+    font-weight: 500;
+    color: #333;
+}
+.settings-section select,
+.settings-section input[type="checkbox"] {
+    font-size: 1em;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    color: #333;
+}
+.settings-section input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #28a745;
+}
+.settings-section button.fexplorer-button {
+    margin-left: 8px;
+}
+#settingsStatus {
+    font-size: 1em;
+    margin-top: 10px;
+    color: #28a745;
+    font-weight: 500;
+}
+/* Dark mode for settings page */
+.fexplorer-dark-mode .settings-page-content {
+    background: #181a1b;
+    color: #e0e0e0;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+}
+.fexplorer-dark-mode .settings-section h2 {
+    color: #28a745;
+}
+.fexplorer-dark-mode .settings-section label {
+    color: #e0e0e0;
+}
+.fexplorer-dark-mode .settings-section select,
+.fexplorer-dark-mode .settings-section input[type="checkbox"] {
+    background: #222;
+    color: #e0e0e0;
+    border: 1px solid #444;
+}
+.fexplorer-dark-mode #settingsStatus {
+    color: #28a745;
+}
 
+/* FExplorer Button Styles */
+.fexplorer-button,
+.settings-save-btn,
+.settings-reset-btn {
+    border-radius: 5px;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-right: 8px;
+    background-color: #28a745;
+    color: #fff;
+}
+.fexplorer-button:hover,
+.settings-save-btn:hover {
+    background-color: #218838;
+}
+.settings-reset-btn {
+    background-color: #e74c3c;
+    color: #fff;
+}
+.settings-reset-btn:hover {
+    background-color: #c0392b;
+}
+/* Dark mode for buttons */
+.fexplorer-dark-mode .fexplorer-button,
+.fexplorer-dark-mode .settings-save-btn {
+    background-color: #218838 !important;
+    color: #fff !important;
+}
+.fexplorer-dark-mode .settings-reset-btn {
+    background-color: #c0392b !important;
+    color: #fff !important;
+}
+
+/* FExplorer Updates Page CSS */
+.updates-page-content {
+    max-width: 700px;
+    margin: 40px auto 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    padding: 32px 28px 24px 28px;
+    font-family: inherit;
+}
+.updates-page-content h1 {
+    font-size: 2em;
+    color: #28a745;
+    margin-bottom: 18px;
+}
+.updates-page-content h2 {
+    font-size: 1.2em;
+    color: #007bff;
+    margin-top: 24px;
+    margin-bottom: 10px;
+}
+.updates-section {
+    margin-bottom: 24px;
+}
+.updates-section ul {
+    padding-left: 20px;
+    margin: 0;
+}
 .updates-section li {
-    background-color: #f9f9f9;
-    padding: 12px 15px;
     margin-bottom: 8px;
-    border-radius: 6px;
     font-size: 1em;
     color: #333;
-    border: 1px solid #e0e0e0;
 }
-
-.updates-section li:last-child {
-    margin-bottom: 0;
+.updates-page-content .app-logo {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
 }
-
-/* Instant Grams Styles */
-.instantgrams-page-layout {
+.updates-page-content .tagline {
+    color: #555;
+    font-size: 1.1em;
+    margin-bottom: 18px;
+}
+.updates-page-content .home-page-buttons-container {
+    margin-top: 24px;
     display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #fafafa; /* Lighter background for Instant Grams */
-    padding: 0;
-}
-
-.instantgrams-main-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    justify-content: center; /* Center the grid */
-}
-
-.instantgrams-post-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid */
-    gap: 25px; /* Spacing between posts */
-    max-width: 900px; /* Max width for the content feed */
-    width: 100%;
-}
-
-.instantgrams-post-card {
-    background-color: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.instantgrams-post-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.instantgrams-post-image {
-    width: 100%;
-    height: 250px; /* Fixed height for consistent images */
-    object-fit: cover; /* Cover the area, cropping if necessary */
-    display: block;
-    background-color: #f0f0f0;
-}
-
-.instantgrams-post-info {
-    padding: 15px;
-    display: flex;
-    flex-wrap: wrap; /* Allow wrapping for meta */
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid #f5f5f5;
-}
-
-.instantgrams-post-info .post-author-avatar {
-    width: 32px;
-    height: 32px;
-    background-color: #607d8b; /* Grey-blue for IG avatars */
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
+    gap: 12px;
     justify-content: center;
-    font-weight: bold;
-    color: white;
-    font-size: 0.9em;
-    flex-shrink: 0;
+}
+.updates-page-content .footer-note {
+    color: #aaa;
+    font-size: 0.95em;
+    margin-top: 20px;
+    text-align: center;
+}
+/* Dark mode for updates page */
+.fexplorer-dark-mode .updates-page-content {
+    background: #181a1b;
+    color: #e0e0e0;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+}
+.fexplorer-dark-mode .updates-page-content h1 {
+    color: #28a745;
+}
+.fexplorer-dark-mode .updates-page-content h2 {
+    color: #66aaff;
+}
+.fexplorer-dark-mode .updates-section li {
+    color: #e0e0e0;
+}
+.fexplorer-dark-mode .updates-page-content .footer-note {
+    color: #aaa;
 }
 
-.instantgrams-post-info .post-author-name {
-    font-weight: bold;
-    color: #333;
-    font-size: 0.9em;
-    flex-grow: 1; /* Allows it to take space before time */
+/* FExplorer Create Page Styles */
+.fexplorer-create-wrapper {
+    background: #f8fafc;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
 }
-
-.instantgrams-post-info .post-time {
-    font-size: 0.75em;
-    color: #999;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.instantgrams-post-info .post-description {
-    width: 100%; /* Full width for description */
-    font-size: 0.9em;
-    color: #333;
-    margin-top: 10px; /* Space from author/time */
-    margin-bottom: 0;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.instantgrams-post-actions {
-    padding: 10px 15px;
+.fexplorer-create-header {
+    background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+    color: #fff;
+    padding: 18px 32px;
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.fexplorer-create-header .app-logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 16px;
+}
+.fexplorer-create-header .app-title {
+    font-size: 1.6em;
+    font-weight: bold;
+    margin-right: auto;
+}
+.fexplorer-create-header nav {
+    display: flex;
+    gap: 16px;
+}
+.fexplorer-create-header .app-header-button {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 1em;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.fexplorer-create-header .app-header-button:hover {
+    background: rgba(255,255,255,0.3);
+}
+.fexplorer-create-main {
+    padding: 32px;
+}
+.fexplorer-create-form {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.fexplorer-create-form h2 {
+    margin-top: 0;
+    color: #007bff;
+}
+.mode-toggle {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 18px;
+}
+.form-group {
+    margin-bottom: 18px;
+}
+.form-group label {
+    font-weight: 500;
+    margin-bottom: 6px;
+    display: block;
+}
+.form-group input[type="text"],
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #d0d7de;
+    font-size: 1em;
+    margin-top: 4px;
+    box-sizing: border-box;
+}
+.form-group textarea {
+    resize: vertical;
+}
+.created-button-preview {
+    background: #f0f4f8;
+    border-radius: 5px;
+    padding: 6px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.created-button-preview .remove-button {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+    margin-left: 10px;
+}
+.created-button-preview .remove-button:hover {
+    background: #c0392b;
+}
+.fexplorer-create-actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 18px;
+}
+.fexplorer-create-actions .fexplorer-button {
+    font-size: 1em;
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background: #007bff;
+    color: #fff;
+    transition: background 0.2s;
+}
+.fexplorer-create-actions .fexplorer-button:hover {
+    background: #0056b3;
+}
+.status-message {
+    color: #28a745;
+    font-size: 1em;
+    margin-top: 10px;
+}
+.fexplorer-create-footer {
+    background: #f0f4f8;
+    color: #555;
+    text-align: center;
+    padding: 14px 0;
+    font-size: 0.95em;
+    border-top: 1px solid #e0e6ed;
+}
+.code-note {
+    color: #888;
+    font-size: 0.95em;
+    margin-top: 8px;
+    display: block;
+}
+
+/* FExplorer Creator Hub Page Styles (matches Create Page) */
+.create-hub-page-layout {
+    background: #f8fafc;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+.create-hub-page-layout .app-header {
+    background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+}
+.create-hub-page-layout .app-logo {
+    width: 40px;
+    height: 40px;
+    margin-right:  16px;
+ }
+.create-hub-page-layout .app-title {
+    font-size: 1.6em;
+    font-weight: bold;
+    margin-right: auto;
+    color:#fff;
+}
+.create-hub-page-layout .app-header-button {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 1em;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.create-hub-page-layout .app-header-button:hover {
+    background: rgba(255,255,255,0.3);
+}
+.create-hub-main-content {
+    padding: 32px;
+}
+.create-hub-main-content h1 {
+    margin-top: 0;
+    color: #007bff;
+}
+.hub-item-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+}
+.hub-item-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: box-shadow 0.2s;
+}
+.hub-item-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.hub-item-card h3 {
+    margin: 0 0 8px 0;
+    color: #28a745;
+    font-size: 1.2em;
+}
+.hub-item-card p {
+    color: #555;
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+.view-page-button {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 1em;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 8px;
+    transition: background 0.2s;
+}
+.view-page-button:hover {
+    background: #0056b3;
+}
+.status-message {
+    color: #28a745;
+    font-size: 1em;
+    margin-top: 10px;
+}
+.footer-note {
+    background: #f0f4f8;
+    color: #555;
+    text-align: center;
+    padding: 14px 0;
+    font-size: 0.95em;
+    border-top: 1px solid #e0e6ed;
+    margin-top: 30px;
+}
+
+/* Make settings page content fit fully inside browser-frame */
+.browser-frame .settings-page-content {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
     justify-content: flex-start;
     align-items: center;
 }
 
-.instantgrams-post-actions .like-button {
-    background: none;
-    border: none;
-    color: #999;
-    font-size: 1.1em;
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: color 0.2s ease, background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.instantgrams-post-actions .like-button:hover {
-    color: #e74c3c; /* Red for hover */
-    background-color: #ffebeb;
-}
-
-.instantgrams-post-actions .like-button.liked {
-    color: #e74c3c; /* Red for liked state */
-    font-weight: bold;
-}
-
-.instantgrams-button {
-    background-color: #e4405f; /* Instagram pink/red */
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.instantgrams-button:hover:not(:disabled) {
-    background-color: #d12e4c;
-}
-
-.instantgrams-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* Instant Grams Modal for Adding Post */
-.instantgrams-modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: auto;
-    padding: 20px;
-    border: 1px solid #888;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 600px;
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: #333;
-    font-size: 1.5em;
-    text-align: center;
-}
-
-.close-button {
-    color: #aaa;
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.image-selector-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 10px;
-    margin-bottom: 15px;
-    max-height: 200px; /* Limit height and allow scroll */
-    overflow-y: auto;
-    border: 1px solid #eee;
-    padding: 10px;
+.browser-frame .settings-section {
+    width: 100%;
+    max-width: 500px;
+    background: #fff;
     border-radius: 8px;
-    background-color: #f9f9f9;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    padding: 24px;
+    margin-top: 24px;
 }
 
-.image-selector-item {
+.browser-frame .app-header {
     width: 100%;
-    padding-bottom: 100%; /* 1:1 aspect ratio container */
-    position: relative;
-    cursor: pointer;
-    border: 2px solid transparent;
-    border-radius: 5px;
-    overflow: hidden;
-    transition: border-color 0.2s ease, transform 0.1s ease;
-}
-
-.image-selector-item:hover {
-    border-color: #e4405f;
-    transform: scale(1.02);
-}
-
-.image-selector-item img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.image-selector-item img.selected {
-    border: 3px solid #e4405f; /* Highlight selected image */
-    box-shadow: 0 0 0 2px #e4405f;
-    transform: scale(0.98); /* Slight shrink to show selection */
-}
-
-.image-selection-status {
-    font-size: 0.9em;
-    color: #666;
-    text-align: center;
-    margin-bottom: 15px;
-}
-
-.modal-content textarea {
-    width: calc(100% - 20px);
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 0.95em;
-    resize: vertical;
-    min-height: 80px;
-    box-sizing: border-box;
-    outline: none;
-}
-
-.modal-content button.instantgrams-button {
-    width: 100%;
-    padding: 12px;
-    font-size: 1.1em;
-}
-
-@media (max-width: 480px) {
-    .updates-page-content h1 {
-        font-size: 2em;
-    }
-    .updates-section {
-        padding: 15px;
-    }
-    .updates-section h2 {
-        font-size: 1.5em;
-    }
-    .updates-section li {
-        font-size: 0.9em;
-        padding: 10px 12px;
-    }
-    /* Instant Grams Mobile Adjustments */
-    .instantgrams-main-content {
-        padding: 10px;
-    }
-    .instantgrams-post-grid {
-        gap: 15px;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
-    .instantgrams-post-image {
-        height: 180px;
-    }
-    .instantgrams-post-info {
-        padding: 10px;
-    }
-    .instantgrams-post-info .post-author-avatar {
-        width: 28px;
-        height: 28px;
-        font-size: 0.8em;
-    }
-    .instantgrams-post-info .post-author-name,
-    .instantgrams-post-info .post-time,
-    .instantgrams-post-info .post-description {
-        font-size: 0.8em;
-    }
-    .instantgrams-post-actions {
-        padding: 8px 10px;
-    }
-    .instantgrams-post-actions .like-button {
-        font-size: 1em;
-        padding: 3px 8px;
-    }
-    .instantgrams-modal .modal-content {
-        padding: 15px;
-        gap: 10px;
-    }
-    .modal-content h2 {
-        font-size: 1.2em;
-    }
-    .close-button {
-        font-size: 24px;
-        top: 5px;
-        right: 10px;
-    }
-    .image-selector-grid {
-        gap: 5px;
-        padding: 5px;
-    }
-    .image-selector-item {
-        border-width: 1px;
-    }
-    .image-selector-item img.selected {
-        border-width: 2px;
-    }
-    .image-selection-status {
-        font-size: 0.8em;
-    }
-    .modal-content textarea {
-        min-height: 60px;
-        font-size: 0.85em;
-    }
-    .modal-content button.instantgrams-button {
-        font-size: 1em;
-        padding: 10px;
-    }
-}
-
-/* FExplorer Page Creator (fexplorer:create) styles */
-.create-page-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #f0f2f5;
-    padding: 0;
-}
-
-.create-page-main-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Align form to the top */
-}
-
-.create-page-form {
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    padding: 30px;
-    max-width: 700px;
-    width: 100%;
-    text-align: left;
-    margin-bottom: 20px; /* Space from footer */
-}
-
-.create-page-form h2 {
-    font-size: 2em;
-    color: #2c3e50;
-    margin-top: 0;
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.form-description {
-    font-size: 1.0em;
-    color: #666;
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.form-section {
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-}
-
-.form-section:last-of-type {
-    border-bottom: none;
-    margin-bottom: 15px; /* Adjust if it's the last section before buttons */
-    padding-bottom: 0;
-}
-
-.form-section h3 {
-    font-size: 1.4em;
-    color: #007bff;
-    margin-top: 0;
-    margin-bottom: 15px;
-}
-
-.form-section label {
-    display: block;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 8px;
-    font-size: 0.95em;
-}
-
-.form-section input[type="text"],
-.form-section textarea {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1em;
-    box-sizing: border-box;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.form-section input[type="text"]:focus,
-.form-section textarea:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-    outline: none;
-}
-
-.created-button-preview {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background-color: #e9f5ff;
-    border: 1px solid #cce5ff;
-    border-radius: 6px;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    font-size: 0.9em;
-    color: #333;
-}
-
-.created-button-preview span {
-    flex-grow: 1;
-    word-break: break-all;
-    padding-right: 10px;
-}
-
-.remove-button {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    flex-shrink: 0;
-}
-
-.remove-button:hover {
-    background-color: #c82333;
-}
-
-.create-page-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-    justify-content: flex-end; /* Align buttons to the right */
-}
-
-.create-page-actions .mytube-button {
-    flex: 1 1 auto; /* Allow buttons to grow, but respect content */
-    max-width: 200px;
-}
-
-/* Styles for the published user-created page */
-.user-created-page-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #fcfcfc;
-    padding: 0;
-}
-
-.user-page-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 30px;
-    max-width: 800px;
-    margin: 0 auto;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
-    text-align: left; /* Default text alignment */
-}
-
-.user-page-content h1 {
-    font-size: 2.2em;
-    color: #2c3e50;
-    margin-top: 0;
-    margin-bottom: 20px;
-    text-align: center; /* Center the main title */
-}
-
-.user-page-text {
-    font-size: 1em;
-    color: #333;
-    line-height: 1.6;
-    margin-bottom: 25px;
-    white-space: pre-wrap; /* Preserve whitespace and allow wrapping */
-    word-break: break-word; /* Break long words */
-}
-
-.user-page-text img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 5px;
-    display: block;
-    margin: 15px auto; /* Center images within content */
-}
-
-.user-page-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-top: 20px;
-    justify-content: center; /* Center the buttons */
-}
-
-.user-page-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    min-width: 120px;
-    text-align: center;
-}
-
-.user-page-button:hover {
-    background-color: #0056b3;
-    transform: translateY(-2px);
-}
-
-.user-page-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* New styles for Code Editor section */
-.create-page-mode-selector {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 25px;
-    background-color: #f0f2f5;
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.create-page-mode-selector label {
-    flex: 1;
-    text-align: center;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    font-weight: bold;
-    color: #555;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.create-page-mode-selector label:hover {
-    background-color: #e0e0e0;
-}
-
-.create-page-mode-selector input[type="radio"] {
-    display: none; /* Hide default radio button */
-}
-
-.create-page-mode-selector input[type="radio"]:checked + label {
-    background-color: #007bff;
-    color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Apply directly to the label for hover behavior */
-.create-page-mode-selector label:has(input[type="radio"]:checked) {
-    background-color: #007bff;
-    color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-.create-page-mode-selector label:has(input[type="radio"]:checked):hover {
-    background-color: #0056b3;
-}
-
-.simple-editor-section,
-.code-editor-section {
-    transition: opacity 0.3s ease;
-}
-
-.code-editor-textarea {
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 0.9em;
-    background-color: #282c34; /* Dark background for code */
-    color: #abb2bf; /* Light text color for code */
-    border: 1px solid #3e4451;
-    border-radius: 6px;
-    padding: 10px;
-    resize: vertical;
-    width: 100%;
-    box-sizing: border-box;
-    white-space: pre; /* Preserve whitespace for code */
-    overflow-x: auto; /* Allow horizontal scrolling for long lines */
-}
-
-.code-editor-textarea::selection {
-    background-color: #61afef;
-    color: #282c34;
-}
-
-.code-note {
-    font-size: 0.85em;
-    color: #777;
-    text-align: center;
-    margin-top: -10px;
-    margin-bottom: 20px;
-}
-
-/* Styles for published code pages - similar to simple pages, but content injection differs */
-.user-created-code-page-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #fcfcfc;
-    padding: 0;
-}
-
-.user-code-page-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 20px; /* Padding for the code content area */
-    max-width: none; /* Allow full width */
-    margin: 0; /* No auto margin here, fills container */
-    background-color: #fff;
-    box-shadow: none;
-    border-radius: 0;
-    /* Styles for content injected by user JS/CSS */
-    font-family: Arial, sans-serif; /* Default font, can be overridden by user CSS */
-    color: #333; /* Default text color, can be overridden by user CSS */
-}
-
-/* Mobile adjustments for create/user pages */
-@media (max-width: 768px) {
-    .create-page-main-content {
-        padding: 15px;
-    }
-    .create-page-form {
-        padding: 20px;
-        margin-bottom: 15px;
-    }
-    .create-page-form h2 {
-        font-size: 1.8em;
-    }
-    .form-description {
-        font-size: 0.9em;
-        margin-bottom: 20px;
-    }
-    .form-section h3 {
-        font-size: 1.2em;
-        margin-bottom: 10px;
-    }
-    .form-section input[type="text"],
-    .form-section textarea {
-        padding: 10px;
-        font-size: 0.9em;
-    }
-    .created-button-preview {
-        padding: 8px 12px;
-        font-size: 0.85em;
-        flex-direction: column; /* Stack text and button */
-        align-items: flex-start;
-    }
-    .created-button-preview span {
-        padding-right: 0;
-        margin-bottom: 5px;
-    }
-    .remove-button {
-        align-self: flex-end; /* Push button to corner */
-    }
-    .create-page-actions {
-        flex-direction: column; /* Stack buttons vertically */
-        gap: 10px;
-    }
-    .create-page-actions .mytube-button {
-        max-width: 100%;
-    }
-
-    .user-page-content {
-        padding: 20px;
-    }
-    .user-page-content h1 {
-        font-size: 1.8em;
-    }
-    .user-page-text {
-        font-size: 0.9em;
-    }
-    .user-page-buttons {
-        gap: 10px;
-    }
-    .user-page-button {
-        padding: 8px 15px;
-        font-size: 0.9em;
-    }
-}
-
-/* New styles for FExplorer Creator Hub */
-.create-hub-page-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #f0f2f5;
-    padding: 0;
-}
-
-.create-hub-main-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Center content horizontally */
-    text-align: center;
-}
-
-.create-hub-main-content h1 {
-    font-size: 2.5em;
-    color: #2c3e50;
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-.create-hub-main-content .tagline {
-    font-size: 1.1em;
-    color: #555;
-    margin-bottom: 30px;
-}
-
-.hub-item-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
-    width: 100%;
-    max-width: 900px; /* Limit grid width */
-    margin-bottom: 30px;
-}
-
-.hub-item-card {
-    background-color: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-}
-
-.hub-item-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-}
-
-.hub-item-card a {
-    display: block;
-    padding: 15px;
-    text-decoration: none;
-    color: inherit;
-    flex-grow: 1;
-}
-
-.hub-item-card h3 {
-    font-size: 1.2em;
-    font-weight: bold;
-    margin-top: 0;
-    margin-bottom: 8px;
-    color: #007bff;
-}
-
-.hub-item-card p {
-    font-size: 0.9em;
-    color: #666;
-    margin-bottom: 10px;
-    line-height: 1.4;
-    max-height: 4.2em; /* Limit to 3 lines */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-.hub-item-card .view-page-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    width: auto;
-    align-self: flex-start; /* Align button to start within card */
-    margin-left: 15px;
-    margin-bottom: 15px;
-    text-decoration: none; /* For anchor buttons */
-    display: inline-block; /* For anchor buttons */
-}
-
-.hub-item-card .view-page-button:hover {
-    background-color: #0056b3;
-}
-
-/* Mobile adjustments for Creator Hub */
-@media (max-width: 768px) {
-    .create-hub-main-content {
-        padding: 15px;
-    }
-    .create-hub-main-content h1 {
-        font-size: 2em;
-    }
-    .hub-item-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 15px;
-    }
-    .hub-item-card h3 {
-        font-size: 1.1em;
-    }
-    .hub-item-card p {
-        font-size: 0.85em;
-        max-height: 3.4em; /* Adjust for smaller font */
-    }
-    .hub-item-card .view-page-button {
-        padding: 6px 12px;
-        font-size: 0.8em;
-    }
+    gap: 16px;
+    margin-bottom: 16px;
 }

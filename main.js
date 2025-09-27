@@ -1,16 +1,47 @@
+// OS window style switching logic
+    function updateWindowStyle(osValue) {
+        const frame = document.querySelector('.browser-frame');
+        if (!frame) return;
+        frame.classList.remove('window-mac', 'window-win11', 'window-win7', 'window-macx');
+        switch (osValue) {
+            case 'win11':
+                frame.classList.add('window-win11');
+                break;
+            case 'win7':
+                frame.classList.add('window-win7');
+                break;
+            case 'macx':
+                frame.classList.add('window-macx');
+                break;
+            case 'default':
+            default:
+                frame.classList.add('window-mac');
+                break;
+        }
+    }
+
+    // On page load, apply saved OS style
+    updateWindowStyle(localStorage.getItem('fexplorerSettingOS') || 'default');
 const addressBar = document.getElementById('addressBar');
 const goButton = document.getElementById('goButton');
 const browserContent = document.getElementById('browserContent');
 const backButton = document.getElementById('backButton');
 const homeButton = document.getElementById('homeButton');
+const settingsButton = document.getElementById('settingsButton');
 const fpointsCounter = document.getElementById('fpointsCounter');
 
+const SETTINGS_URL = 'fexplorer:settings';
 const HOME_URL = 'fexplorer:home';
+const CREATE_PAGE_URL = 'fexplorer:create';
 const GOOG_COOLDOWN = 10000;
 const DAILY_BONUS_COOLDOWN = 5 * 60 * 1000;
 const BASE_DAILY_BONUS = 70;
 const STOCK_UPDATE_INTERVAL = 10 * 1000;
 const INITIAL_STOCK_PRICE = 100;
+const RANDOM_USER_PAGE_AMOUNT = 5; // Base FPoints for visiting random user pages
+const USER_PAGE_COOLDOWN = 60 * 1000; // 1 minute cooldown for FPoints from user pages
+const RANDOM_PAGE_COOLDOWN = 60 * 1000; // 1 minute cooldown for FPoints from random pages
+let lastRandomPageVisitTime = 0; // Timestamp of last random user page visit
 
 let historyStack = [];
 let currentUrl = '';
@@ -24,6 +55,31 @@ const DEFAULT_MY_TUBE_VIDEOS_INITIAL = {
 let myTubeVideos;
 try {
     myTubeVideos = JSON.parse(localStorage.getItem('myTubeVideos')) || {};
+    // OS window style switching logic
+    function updateWindowStyle(osValue) {
+        const frame = document.querySelector('.browser-frame');
+        if (!frame) return;
+        frame.classList.remove('window-mac', 'window-win11', 'window-win7', 'window-macx');
+        switch (osValue) {
+            case 'win11':
+                frame.classList.add('window-win11');
+                break;
+            case 'win7':
+                frame.classList.add('window-win7');
+                break;
+            case 'macx':
+                frame.classList.add('window-macx');
+                break;
+            case 'default':
+            default:
+                frame.classList.add('window-mac');
+                break;
+        }
+    }
+
+    // On page load, apply saved OS style
+    updateWindowStyle(localStorage.getItem('fexplorerSettingOS') || 'default');
+
 } catch (e) {
     console.error("Failed to parse myTubeVideos from localStorage, using default.", e);
     myTubeVideos = {};
@@ -51,13 +107,36 @@ try {
         subscribers: 0,
         uploadedVideoIds: [],
         ownedItems: {},
-        stockOwned: 0,
-        chatHistory: {}
+    stockOwned: 0,
+    chatHistory: {}
     };
 }
 userChannel.ownedItems = userChannel.ownedItems || {};
+
+let instantgramsPosts = [];
+let headbookPosts = [];
+let FPOINTS_PER_LIKE = 1;
+let aiPostTimer = null;
+
+function generateAIInstantGramsCommentOrLike(postId, isUserPost) {
+    // ...original logic...
+}
+function generateAIInstantGramsPost() {
+    // ...original logic...
+}
+function handleAddHeadbookPost() {
+    // ...original logic...
+}
+function handleAddHeadbookComment() {
+    // ...original logic...
+}
+function handleSendMessage(contactName, chatInput) {
+                updateWindowStyle('default');
+    // ...original logic...
+}
+
+// ...existing code...
 userChannel.stockOwned = userChannel.stockOwned || 0;
-userChannel.chatHistory = userChannel.chatHistory || {};
 
 let userFPoints = parseInt(localStorage.getItem('userFPoints') || '0', 10);
 let userLuck = parseFloat(localStorage.getItem('userLuck') || '1.0');
@@ -139,21 +218,23 @@ function saveAppState() {
 }
 
 const shopItems = [
-    { id: 'luck_boost_1', name: 'Minor Luck Charm', description: 'Slightly increases FPoint earnings from MyTube and Goog!', cost: 500, effect: { luck: 0.1 }, icon: 'fexplorer_logo.png' },
-    { id: 'luck_boost_2', name: 'Major Luck Amulet', description: 'Significantly increases FPoint earnings from MyTube and Goog!', cost: 2000, effect: { luck: 0.3 }, icon: 'fexplorer_logo.png' },
+    { id: 'luck_boost_1', name: 'Minor Luck Charm', description: 'Slightly increases FPoint earnings from Goog!', cost: 500, effect: { luck: 0.1 }, icon: 'fexplorer_logo.png' },
+    { id: 'luck_boost_2', name: 'Major Luck Amulet', description: 'Significantly increases FPoint earnings from Goog!', cost: 2000, effect: { luck: 0.3 }, icon: 'fexplorer_logo.png' },
     { id: 'mystery_box', name: 'Mystery Box', description: 'Contains a random cool simulated item!', cost: 1000, effect: { mystery: true }, icon: 'fexplorer_logo.png' },
     { id: 'golden_hat', name: 'Golden Browser Hat', description: 'A stylish cosmetic hat for your FExplorer browser icon.', cost: 5000, effect: { cosmetic: 'golden_hat' }, icon: 'fexplorer_logo.png' },
     { id: 'speed_boost', name: 'Simulated Speed Boost', description: 'Makes browsing feel snappier (purely cosmetic).', cost: 750, effect: { cosmetic: 'speed_boost' }, icon: 'fexplorer_logo.png' },
     { id: 'extra_storage', name: 'Cloud Storage (1TB)', description: 'Simulated cloud storage for your virtual files. (No actual storage)', cost: 1500, effect: { cosmetic: 'storage' }, icon: 'fexplorer_logo.png' },
 ];
 
+function getRandomUserPage() {
+    return `fexplorer:user-page-${getRandomNum()}`;
+}
+function getRandomNum() {
+    return Math.floor(Math.random() * 1000000);
+}
+const url = `fexplorer:user-page-${getRandomNum()}`;
 const randomWebsiteUrls = [
-    'example.com',
-    'goog.com',
-    'fexplorer:financial',
-    'fexplorer:shop',
-    'fexplorer:updates',
-    'fexplorer:create.hub' // Add the new hub to random URLs
+    `fexplorer:user-page-${getRandomNum()}`,
 ];
 // Ensure user-created pages are added to randomWebsiteUrls pool on load
 Object.keys(userCreatedPages).forEach(pageId => {
@@ -212,25 +293,7 @@ function getTimeElapsedString(timestamp) {
     return `${years} year${years > 1 ? 's' : ''} ago`;
 }
 
-async function generateAIInstantGramsCommentOrLike(postId, isUserPost) {
-    const post = instantgramsPosts.find(p => p.id === postId);
-    if (!post) return;
-
-    const action = Math.random() < 0.7 ? 'like' : 'comment'; // More likely to like
-
-    if (action === 'like') {
-        post.likes = (post.likes || 0) + 1;
-        saveAppState();
-        if (currentUrl === 'instantgrams.com') {
-             navigate('instantgrams.com'); // Re-render to show updated likes
-        }
-    } else {
-        // AI comments are not implemented yet for InstantGrams
-        // For now, let's just make them like or perhaps generate another AI post instead
-        generateAIInstantGramsPost(); // Instead of commenting, another AI might post
-    }
-}
-
+// Function to generate the create page editor HTML
 function getCreatePageEditorHTML() {
     if (!draftPage) {
         initializeDraftPage(); // Ensure draftPage is initialized if null
@@ -244,77 +307,78 @@ function getCreatePageEditorHTML() {
     `).join('');
 
     return `
-        <div class="create-page-layout">
-            <div class="app-header">
-                <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
-                <span class="app-title">FExplorer Page Creator</span>
-                <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
-                <a href="#" data-url="fexplorer:create.hub" class="app-header-button">My Pages Hub</a>
-            </div>
-            <div class="create-page-main-content">
-                <div class="create-page-form">
-                    <h2>Create Your Own Page</h2>
-                    <p class="form-description">Design a simple page with text and interactive buttons, or dive into code!</p>
-
-                    <div class="create-page-mode-selector">
-                        <label><input type="radio" name="creationMode" value="simple" ${draftPage.creationMode === 'simple' ? 'checked' : ''}> Simple Editor</label>
-                        <label><input type="radio" name="creationMode" value="code" ${draftPage.creationMode === 'code' ? 'checked' : ''}> Code Editor</label>
+            <header class="fexplorer-create-header">
+                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+                <span class="app-title">FExplorer Create</span>
+                <nav>
+                    <a href="#" data-url="fexplorer:home" class="app-header-button">Home</a>
+                    <a href="#" data-url="fexplorer:create.hub" class="app-header-button">My Pages Hub</a>
+                </nav>
+            </header>
+            <main class="fexplorer-create-main">
+                <section class="fexplorer-create-form">
+                    <h2>Create a Custom Page</h2>
+                    <div class="mode-toggle">
+                        <label><input type="radio" name="creationMode" value="simple" ${draftPage.creationMode === 'simple' ? 'checked' : ''}> Simple Mode</label>
+                        <label><input type="radio" name="creationMode" value="code" ${draftPage.creationMode === 'code' ? 'checked' : ''}> Code Mode</label>
                     </div>
-
-                    <div id="simpleEditorSection" class="simple-editor-section" style="display: ${draftPage.creationMode === 'simple' ? 'block' : 'none'};">
-                        <div class="form-section">
-                            <h3>Page Details</h3>
-                            <label for="pageTitleInput">Page Title:</label>
-                            <input type="text" id="pageTitleInput" placeholder="My Awesome Page" value="${escapeHtml(draftPage.title)}" maxlength="50">
-                            <label for="pageContentInput">Page Content (HTML/Text):</label>
-                            <textarea id="pageContentInput" placeholder="Write your page content here. Basic HTML is supported (e.g., &lt;strong&gt;bold&lt;/strong&gt;, &lt;em&gt;italic&lt;/em&gt;, &lt;img src='path/to/image.png'&gt;)." rows="8">${escapeHtml(draftPage.simpleContent)}</textarea>
+                    <div id="simpleEditorSection" style="display: ${draftPage.creationMode === 'simple' ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label for="pageTitleInput">Title</label>
+                            <input type="text" id="pageTitleInput" maxlength="50" value="${escapeHtml(draftPage.title)}" placeholder="Page Title">
                         </div>
-
-                        <div class="form-section">
-                            <h3>Add Buttons (Optional)</h3>
-                            <label for="buttonTextInput">Button Text:</label>
-                            <input type="text" id="buttonTextInput" placeholder="Click Me!" maxlength="30">
-                            <label for="buttonUrlInput">Button URL (e.g., example.com, fexplorer:shop, fexplorer:user-page-yourid):</label>
-                            <input type="text" id="buttonUrlInput" placeholder="example.com">
-                            <button id="addPageButton" class="mytube-button">Add Button to Page</button>
+                        <div class="form-group">
+                            <label for="pageContentInput">Content (HTML/Text)</label>
+                            <textarea id="pageContentInput" rows="6" placeholder="Write your page content here">${escapeHtml(draftPage.simpleContent)}</textarea>
                         </div>
-
-                        <div class="form-section">
-                            <h3>Added Buttons:</h3>
+                        <div class="form-group">
+                            <label>Add Button</label>
+                            <input type="text" id="buttonTextInput" maxlength="30" placeholder="Button Text">
+                            <input type="text" id="buttonUrlInput" placeholder="Button URL (e.g. example.com)">
+                            <button id="addPageButton" class="fexplorer-button">Add</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Buttons Added</label>
                             <div id="pageButtonsPreview">${simpleButtonsHtml}</div>
-                            <p id="noButtonsMessage" style="${draftPage.simpleButtons.length > 0 ? 'display:none;' : ''}color:#888;">No buttons added yet.</p>
+                            <p id="noButtonsMessage" style="${draftPage.simpleButtons.length > 0 ? 'display:none;' : ''}color:#888;">No buttons yet.</p>
                         </div>
                     </div>
-
-                    <div id="codeEditorSection" class="code-editor-section" style="display: ${draftPage.creationMode === 'code' ? 'block' : 'none'};">
-                        <div class="form-section">
-                            <h3>HTML Code</h3>
-                            <textarea id="htmlCodeInput" class="code-editor-textarea" rows="15" spellcheck="false">${escapeHtml(draftPage.htmlCode)}</textarea>
+                    <div id="codeEditorSection" style="display: ${draftPage.creationMode === 'code' ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label for="htmlCodeInput">HTML</label>
+                            <textarea id="htmlCodeInput" rows="10" spellcheck="false">${escapeHtml(draftPage.htmlCode)}</textarea>
                         </div>
-                        <div class="form-section">
-                            <h3>CSS Code (Optional)</h3>
-                            <textarea id="cssCodeInput" class="code-editor-textarea" rows="10" spellcheck="false">${escapeHtml(draftPage.cssCode)}</textarea>
+                        <div class="form-group">
+                            <label for="cssCodeInput">CSS (optional)</label>
+                            <textarea id="cssCodeInput" rows="6" spellcheck="false">${escapeHtml(draftPage.cssCode)}</textarea>
                         </div>
-                        <div class="form-section">
-                            <h3>JavaScript Code (Optional)</h3>
-                            <textarea id="jsCodeInput" class="code-editor-textarea" rows="10" spellcheck="false">${escapeHtml(draftPage.jsCode)}</textarea>
+                        <div class="form-group">
+                            <label for="jsCodeInput">JavaScript (optional)</label>
+                            <textarea id="jsCodeInput" rows="6" spellcheck="false">${escapeHtml(draftPage.jsCode)}</textarea>
                         </div>
-                        <p class="code-note">
-                            Note: For JS in preview, alert() calls will be intercepted.
-                            Images can be linked with paths like 'mytube_logo.png'.
-                        </p>
+                        <small class="code-note">JS alerts are intercepted in preview. Images: 'fexplorer_logo.png'.</small>
                     </div>
-
-                    <div class="create-page-actions">
-                        <button id="previewUserPage" class="mytube-button" style="background-color: #007bff;">Preview Page</button>
-                        <button id="publishUserPage" class="mytube-button">Publish Page</button>
+                    <div class="fexplorer-create-actions">
+                        <button id="previewUserPage" class="fexplorer-button" style="background-color: #007bff;">Preview</button>
+                        <button id="publishUserPage" class="fexplorer-button">Publish</button>
                     </div>
                     <div id="pageStatusMessage" class="status-message" style="margin-top: 10px;"></div>
-                </div>
-            </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">Your page will be saved locally. Not accessible by others.</p>
+                </section>
+            </main>
+            <footer class="fexplorer-create-footer">
+                <p>Your page is saved locally. Not accessible by others.</p>
+            </footer>
         </div>
     `;
+}
+
+// Function to render the create page editor
+function renderCreatePageEditor() {
+    if (!draftPage) {
+        initializeDraftPage(); // Ensure draftPage is initialized if null
+    }
+    browserContent.innerHTML = getCreatePageEditorHTML();
+    attachCreatePageEditorEventListeners();
 }
 
 // New function to generate the FExplorer Creator Hub page HTML
@@ -342,14 +406,14 @@ function getFExplorerCreatorHubPageHTML() {
     return `
         <div class="create-hub-page-layout">
             <div class="app-header">
-                <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
                 <span class="app-title">FExplorer Creator Hub</span>
                 <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
                 <a href="#" data-url="fexplorer:create" class="app-header-button">Create New Page</a>
             </div>
             <div class="create-hub-main-content">
                 <h1>Your Published Pages</h1>
-                <p class="tagline">Manage and share your custom creations. Click on a page to view it!</p>
+                <p class="tagline">Manage and share your own pages. Click on one of them to view it!</p>
                 <div id="userPagesGrid" class="hub-item-grid">
                     ${pagesGridHtml}
                 </div>
@@ -382,7 +446,7 @@ function getPublishedUserPageHTML(pageId) {
         return `
             <div class="user-created-page-layout">
                 <div class="app-header">
-                    <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                    <img src="icons/placeholder.png" alt="FExplorer Logo" class="app-logo">
                     <span class="app-title">${escapeHtml(pageData.title)}</span>
                     <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
                     <a href="#" data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
@@ -394,7 +458,7 @@ function getPublishedUserPageHTML(pageId) {
                         ${buttonsHtml}
                     </div>
                 </div>
-                <p class="footer-note" style="text-align: center; margin: 20px;">This is a user-created simulated page.</p>
+                <p class="footer-note" style="text-align: center; margin: 20px;">This is a user-created page.</p>
             </div>
         `;
     } else if (pageData.creationMode === 'code') {
@@ -402,7 +466,7 @@ function getPublishedUserPageHTML(pageId) {
         return `
             <div class="user-created-code-page-layout">
                 <div class="app-header">
-                    <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                    <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
                     <span class="app-title">${escapeHtml(pageData.title)}</span>
                     <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
                     <a href="#" data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
@@ -418,6 +482,7 @@ function getPublishedUserPageHTML(pageId) {
 }
 
 const fakeContent = {
+    // Example site
     'example.com': `
         <h1>Example Domain</h1>
         <p>This domain is for use in illustrative examples in documents. You may use this
@@ -426,11 +491,31 @@ const fakeContent = {
         <hr>
         <p>This is a page for <strong>example.com</strong>.</p>
     `,
+    // Blank page
     'about:blank': `
     `,
+    // Placeholder page for non-existent content
+    'fexplorer:placeholder': `
+    <h1>This is a placeholder page.</h1>
+    <p>You might be directed to this page if the requested content is not available.</p>
+    <br>
+    <p>Want to make your own page? <a href="#" id="createPageButton">Click here</a></p>
+    `,
+    // Search Engine: Goog!
+    'goog.com': `
+        <div class="goog-homepage">
+            <img src="icons/goog-logo.png" alt="Goog! Logo" class="goog-logo" style="width: 200px; margin-top: 40px;">
+            <input type="search" id="googSearchInput" class="goog-search-input" placeholder="Search the web with Goog!">
+            <button id="googSearchButton" class="goog-search-button">Search!</button>
+            <div id="googSearchResults" class="goog-search-results"></div>
+            <p class="footer-note">© Goog | Made by smrtC951!</p>
+        </div>
+    `,
+    // FExplorer Home Page
+    // The randomWebsiteButton is just a random 'User Page' button (its just a random page)
     'fexplorer:home': `
         <div class="home-page-content">
-            <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>Welcome to FExplorer!</h1>
             <p class="tagline">A browser inside your browser.</p>
             <div class="home-page-search-container">
@@ -441,13 +526,18 @@ const fakeContent = {
                 <h2>Explore</h2>
                 <div class="home-page-buttons-container">
                     <button class="home-page-button" data-url="fexplorer:quick-links">Quick Links</button>
-                    <button id="randomWebsiteButton" class="home-page-button">Random Website</button>
+                    <button id="randomWebsiteButton" class="home-page-button">Random Page</button>
                     <button class="home-page-button" data-url="fexplorer:updates">Updates</button>
+					<button class="home-page-button" data-url="fexplorer:financial">Financials</button>
+					<button class="home-page-button" data-url="fexplorer:settings">Settings</button>
+                    <button class="home-page-button" data-url="fexplorer:games">Games</button>
+                    <button class="home-page-button" data-url="fexplorer:about">About</button>
                 </div>
             </div>
             <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
+    // FExplorer Quick Links Page
     'fexplorer:quick-links': `
         <div class="quick-links-page home-page-content">
             <h1>FExplorer Quick Links</h1>
@@ -492,6 +582,14 @@ const fakeContent = {
                         <p class="link-description">View and manage all your published pages!</p>
                     </li>
                     <li>
+                        <a href="#" data-url="fexplorer:games">FExplorer Games</a>
+                        <p class="link-description">Explore a variety of games!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:programs">FExplorer Programs</a>
+                        <p class="link-description">Explore a variety of professional programs!</p>
+                    </li>
+                    <li>
                         <a href="#" data-url="unknown.site">Unknown Site</a>
                         <p class="link-description">Haha funny 404 error</p>
                     </li>
@@ -500,11 +598,12 @@ const fakeContent = {
             <p class="footer-note">Back to <a href="#" data-url="fexplorer:home">FExplorer Home</a></p>
         </div>
     `,
+    // FExplorer Financial Page
     'fexplorer:financial': `
         <div class="home-page-content">
-            <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+            <img src="icons/financial-icon.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Financials</h1>
-            <p class="tagline">Manage your FPoints and explore simulated investments.</p>
+            <p class="tagline">Manage your FPoints and explore totally legal investments.</p>
             <div style="background-color: #f0f8ff; border: 1px solid #add8e6; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; margin-bottom: 20px;">
                 <p style="font-size: 1.2em; font-weight: bold; color: #333;">Your FPoints: <span id="currentFPoints">${userFPoints.toLocaleString()}</span></p>
                 <p style="font-size: 0.9em; color: #555;">Your Luck Multiplier: <span id="currentLuck">${userLuck.toFixed(1)}x</span></p>
@@ -518,25 +617,28 @@ const fakeContent = {
             </div>
 
             <div class="stock-market-card" style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
-                <h2>Simulated WebTech Stock</h2>
+                <h2>The WebTech Stock</h2>
                 <p style="font-size: 1.1em;">Current Price: <span id="stockPriceDisplay" style="font-weight: bold; color: #007bff;">${stockPrice.toFixed(2)}</span> FPoints per share</p>
                 <p style="font-size: 0.9em;">Shares Owned: <span id="userOwnedStock" style="font-weight: bold;">${userChannel.stockOwned}</span></p>
 
                 <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 150px;">
                         <input type="number" id="stockBuyInput" class="mytube-input" placeholder="Quantity to Buy" min="1" value="1" style="width: calc(100% - 20px); margin-bottom: 5px;">
-                        <button id="buyStockButton" class="mytube-button" style="background-color: #28a745; width: 100%;">Buy Stock</button>
+                        <button id="buyStockButton" class="fexplorer-button" style="background-color: #28a745; width: 100%;">Buy Stock</button>
                     </div>
                     <div style="flex: 1; min-width: 150px;">
                         <input type="number" id="stockSellInput" class="mytube-input" placeholder="Quantity to Sell" min="1" value="1" style="width: calc(100% - 20px); margin-bottom: 5px;">
                         <button id="sellStockButton" class="mytube-button" style="background-color: #dc3545; width: 100%;">Sell Stock</button>
                     </div>
                 </div>
-                <p style="font-size: 0.8em; color: #666; margin-top: 15px;">Stock price fluctuates over time. Buy low, sell high!</p>
+                <p style="font-size: 0.8em; color: #666; margin-top: 15px;">Stock price depends over time. Buy low, sell high!</p>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button class="home-page-button" id="riskAllButton" style="flex: 1; min-width: 150px; background-color: #ffc107;">Risk all of it.</button>
             </div>
 
             <div class="quick-links-section" style="margin-top: 30px;">
-                <h2>Explore FPoint Opportunities</h2>
                 <div class="home-page-buttons-container">
                     <button class="home-page-button" data-url="fexplorer:shop">Visit the FPoints Shop</button>
                     <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
@@ -545,10 +647,11 @@ const fakeContent = {
             <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
+    // FExplorer Shop Page
     'fexplorer:shop': `
         <div class="shop-page-layout">
             <div class="app-header">
-                <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
                 <span class="app-title">FExplorer Shop</span>
                 <div class="app-search-container">
                     <input type="search" id="shopSearchInput" class="app-search-input" placeholder="Search the shop...">
@@ -591,18 +694,26 @@ const fakeContent = {
             </div>
         </div>
     `,
+    // FExplorer Updates Page
     'fexplorer:updates': `
         <div class="updates-page-content">
-            <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Demo 1.1</h2>
+			<h2>Update Name: Demo 1.2 - The 'WHY IS THIS UPDATE SO BIG' Update!</h2>
+            <p>Release Date: September 27, 2025</p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>Removed a ton of other sites, because I'm revamping them!</li>
-					<li></li>
+                    <li>New pages, such as placeholder</li>
+					<li>New design for FExplorer Create!</li>
+                    <li>Bug fixes, but more bugs appear out of nowhere</li>
+                    <li>New games page, with upcoming games coming to you!</li>
+                    <li>Settings have been added, but functionality will come later!</li>
+                    <li>New placeholder icons for FExplorer! Some of them are.</li>
+                    <li>Brand new feature - Random user pages! (They're really good)</li>
+                    <li>Risk it all! (On FExplorer Finances!)</li>
                 </ul>
             </div>
 
@@ -610,9 +721,13 @@ const fakeContent = {
                 <h2>Upcoming Updates</h2>
                 <ul>
                     <li>A new search engine and some easter eggs soon</li>
-                    <li>New features such as Cookies and a FPoints rework!</li>
-                    <li>New sites are on the way for you!</li>
+                    <li>New features such as Cookies!</li>
 					<li>Creator Hub rework soon!</li>
+                    <li>More customization soon!</li>
+                    <li>More games coming soon!</li>
+                    <li>More user page variants!</li>
+                    <li>Games! (Yes, more games!)</li>
+                    <li>More bug fixes, probably</li>
                 </ul>
             </div>
 
@@ -623,14 +738,282 @@ const fakeContent = {
             <p class="footer-note" style="margin-top: 20px;">Made by smrtC951!</p>
         </div>
     `,
+    // FExplorer Settings Page
+    'fexplorer:settings': `
+        <div class="browser-frame">
+            <div class="settings-page-content">
+                <div class="app-header">
+                    <img src="icons/settings-icon.png" alt="FExplorer Logo" class="app-logo">
+                    <span class="app-title">Settings</span>
+                </div>
+                <div class="settings-section">
+                    <h2>Main Settings</h2>
+                    <p style="color: red;">Warning: Some settings may not be functional yet!</p>
+                    <ul>
+                        <li>
+                            <label for="osSelect">Operating System</label>
+                            <select id="osSelect">
+                                <option value="default">Mac OS (Default)</option>
+                                <option value="win11">Windows 11</option>
+                                <option value="win7">Windows 7</option>
+                                <option value="macx">Mac OS X</option>
+                            </select>
+                        </li>
+                        <li>
+                            <label for="themeSelect">Theme</label>
+                            <select id="themeSelect">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="custom">Custom</option>
+                                <option value="system">System Default</option>
+                            </select>
+                        </li>
+                        <li>
+                            <label for="searchEngineSelect">Search Engine</label>
+                            <select id="searchEngineSelect">
+                                <option value="google">FExplorer Browser</option>
+                                <option value="goog">Goog</option>
+                                <option value="ping" disabled>Ping (Coming Soon!)</option>
+                            </select>
+                        </li>
+                        <li>
+                            <label for="homepageSelect">Select your homepage</label>
+                            <select id="homepageSelect">
+                                <option value="fexplorer:home">FExplorer Home</option>
+                                <option value="fexplorer:quick-links">Quick Links</option>
+                                <option value="goog.com">Goog</option>
+                            </select>
+                        </li>
+                        <li>
+                            <label for="notificationsToggle">Enable Notifications</label>
+                            <input type="checkbox" id="notificationsToggle">
+                        </li>
+                        <li>
+                            <label for="resetSettingsBtn">Reset All Settings</label>
+                            <button id="resetSettingsBtn" class="fexplorer-button settings-reset-btn" style="background-color:#e74c3c;color:#fff;">Reset</button>
+                        </li>
+                    </ul>
+                    <button id="saveSettingsBtn" class="fexplorer-button settings-save-btn" style="background-color:#28a745;color:#fff;margin-top:10px;">Save Settings</button>
+                </div>
+                <div id="settingsStatus" style="margin-top:10px;color:#28a745;"></div>
+            </div>
+        </div>
+    `,
+    // Test Page for new features
+    'fexplorer:test': `
+        <div class="home-page-content">
+            <h1>Oh, hello there!</h1>
+			<p>You might be wondering what this page is for. Well, it's for testing out new features for the browser!</p>
+            <p>Here's some free FPoints for you!</p>
+            <button id="getFreeFPointsButton" class="home-page-button">Get 100 FPoints</button>
+        </div>
+    `,
+    // Games Page
+    'fexplorer:games': `
+        <div class="quick-links-page home-page-content">
+            <h1>FExplorer Games</h1>
+            <p class="tagline">Play really cool mini-games!</p>
+            <div class="quick-links-section">
+                <h2>Available Games</h2>
+                <ul class="quick-links">
+                    <li>
+                        <a href="#" data-url="fexplorer:games/pop-up">Pop-up Fighter!</a>
+                        <p class="link-description">Close pop-ups to get as much FPoints as possible!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:games/sandbox">Sandbox Building</a>
+                        <p class="link-description">Build and explore your own sandboxes!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:games/solitaire">Solitaire</a>
+                        <p class="link-description">Play a classic game of Solitaire and earn or bet FPoints!</p>
+                    </li>
+                </ul>
+
+                <h2>External Games (From other websites)</h2>
+                <ul class="quick-links">
+                    <li>
+                        <a href="https://www.roblox.com/games/88385299342844/PHASE-2-Bukit-Green-Automatic-Subway-BGAS">Bukit Green Automatic Subway</a>
+                        <p class="link-description">No description available.</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    `,
+    // About Page
+    'fexplorer:about': `
+        <div class="quick-links-page home-page-content">
+            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <h1>About FExplorer</h1>
+            <p>FExplorer is a fun and interactive way to explore the web while earning FPoints!</p>
+            <p>Our mission is to make browsing the internet more enjoyable and rewarding.</p>
+        </div>
+    `,
+    // Programs Page
+     'fexplorer:programs': `
+        <div class="quick-links-page home-page-content">
+            <h1>FExplorer Programs</h1>
+            <p class="tagline">Download or access various programs.</p>
+            <div class="quick-links-section">
+                <h2>Available Programs</h2>
+                <ul class="quick-links">
+                    <li>
+                        <a href="#" data-url="fexplorer:create.hub">Create Hub</a>
+                        <p class="link-description">Create professional or stupid pages easily.</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:placeholder">Visual Scripts Editor</a>
+                        <p class="link-description">Script your own programs visually.</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    `,
+    // Game: Pop-up Fighter
+    'fexplorer:games/pop-up': `
+        <div class="quick-links-page home-page-content">
+            <img src="icons/pop-up-icon.png" alt="Pop-up Placeholder Logo" class="app-logo">
+            <h1>Pop-up Fighter!</h1>
+            <p class="tagline">Close pop-ups to get as much FPoints as possible!</p>
+            <div class="quick-links-section">
+                <h2>Game Area</h2>
+                <p>Pop-up Fighter game would be here.</p>
+                <div id="popupFighterGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
+                    <p>Game under development. Stay tuned!</p>
+                </div>
+            </div>
+        </div>
+    `,
+    // Game: Sandbox Building
+    'fexplorer:games/sandbox': `
+        <div class="quick-links-page home-page-content">
+            <img src="icons/sandbox-icon.png" alt="Sandbox Placeholder Logo" class="app-logo">
+            <h1>Sandbox Building</h1>
+            <p class="tagline">Build and explore your own sandboxes!</p>
+            <div class="quick-links-section">
+                <h2>Game Area</h2>
+                <p>Sandbox Building game would be here.</p>
+                <div id="sandboxGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
+                <p>Game under development, stay tuned!</p>
+                </div>
+            </div>
+        </div>
+    `,
+    // Game: Solitaire
+    'fexplorer:games/solitaire': `
+        <div class="quick-links-page home-page-content">
+            <img src="icons/solitaire-icon.png" alt="Solitaire Placeholder Logo" class="app-logo">
+            <h1>Solitaire</h1>
+            <p class="tagline">Play a classic game of Solitaire and earn FPoints!</p>
+            <div class="quick-links-section">
+                <h2>Game Area</h2>
+                <p>Solitaire game would be here.</p>
+                <div id="solitaireGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
+                    <p>Game under development. Stay tuned!</p>
+                </div>
+            </div>
+        </div>
+    `,
+    // Search Engine: FExplorer Browser (default)
+    'fexplorer:search': `
+        <style>
+            .fexplorer-search-page {
+                display: flex;
+                flex-direction: column;
+            }
+            .fexplorer-search-page .app-logo {
+                width: 150px;
+                margin-top: 20px;
+            }
+            .fexplorer-search-page h1 {
+                margin-top: 10px;
+                font-size: 2em;
+            }
+            .fexplorer-search-page p {
+                font-size: 1.1em;
+                color: #555;
+            }
+            .fexplorer-search-page .footer-note {
+                margin-top: 30px;
+            }
+            .fexplorer-search-page .home-page-search-input {
+                width: 100%;
+                max-width: 500px;
+                padding: 12px 20px;
+                font-size: 1em;
+                border: 1px solid #ccc;
+                border-radius: 25px;
+                outline: none;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                margin-top: 20px;
+                box-sizing: border-box;
+            }
+            .fexplorer-search-page .home-page-search-button {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                margin-top: 15px;
+                cursor: pointer;
+                font-size: 1em;
+                transition: background-color 0.2s ease;
+                border-radius: 25px;
+                white-space: nowrap;
+            }
+            .fexplorer-search-page .home-page-search-button:hover {
+                background-color: #0056b3;
+                color: white;
+                cursor: pointer;
+            }
+        </style>
+        <div class="fexplorer-search-page">
+            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <h1>FExplorer Search</h1>
+            <p>This is the default search engine for FExplorer.</p>
+            <p>Use the search bar on the homepage to search the web!</p>
+            <input type="search" class="home-page-search-input" placeholder="Search the web or type in a URL...">
+            <button class="home-page-search-button">Search</button>
+            <p class="footer-note">© FExplorer | Made by smrtC951!</p>
+        </div>
+    `,
+    // Search Engine: Ping
+    'ping.com': `
+        <div class="ping-homepage">
+            <img src="icons/ping-icon.png" alt="Ping Logo" class="ping-logo" style="width: 200px; margin-top: 40px;">
+            <p>This search engine is coming soon!</p>
+            <p>Stay tuned for updates.</p>
+            <p class="footer-note">© Ping | Made by smrtC951!</p>
+        </div>
+    `,
 };
+
+function applyFExplorerSettings() {
+    // Apply OS style
+    const osValue = localStorage.getItem('fexplorerSettingOS') || 'default';
+    updateWindowStyle(osValue);
+    // Apply theme
+    const themeValue = localStorage.getItem('fexplorerSettingTheme') || 'light';
+    if (themeValue === 'dark') {
+        document.body.classList.add('fexplorer-dark-mode');
+    } else {
+        document.body.classList.remove('fexplorer-dark-mode');
+    }
+    if (themeValue === 'custom') {
+        document.body.classList.add('fexplorer-custom-mode');
+    } else {
+        document.body.classList.remove('fexplorer-custom-mode');
+    }
+    // Notifications (if you want to use this for future features)
+    const notificationsEnabled = localStorage.getItem('fexplorerSettingNotifications') === 'true';
+    // ...add notification logic here if needed...
+}
 
 function updateBackButtonState() {
     backButton.disabled = historyStack.length === 0;
 }
 
 function attachDynamicEventListeners() {
-    browserContent.querySelectorAll('.quick-links a[data-url], .search-results-page a[data-url], .mytube-sidebar a[data-url], .mytube-video-item a[data-url], .mytube-suggested-item a[data-url], .shop-sidebar a[data-url], .headbook-sidebar a[data-url], .user-page-buttons button[data-url], .hub-item-card a[data-url], .hub-item-card button[data-url]').forEach(link => {
+    browserContent.querySelectorAll('.quick-links a[data-url], .search-results-page a[data-url], .shop-sidebar a[data-url], .user-page-buttons button[data-url], .hub-item-card a[data-url], .hub-item-card button[data-url], .random-website-button[data-url]').forEach(link => {
         link.addEventListener('click', (event) => {
             event.preventDefault();
             const url = event.target.closest('[data-url]').dataset.url;
@@ -649,6 +1032,7 @@ function attachDynamicEventListeners() {
         });
     });
 
+    // Random Page button (its just a random page)
     const randomWebsiteButton = browserContent.querySelector('#randomWebsiteButton');
     if (randomWebsiteButton) {
         randomWebsiteButton.addEventListener('click', () => {
@@ -657,6 +1041,249 @@ function attachDynamicEventListeners() {
             navigate(randomUrl);
         });
     }
+
+    // For the random user page (excluding the main user page)
+    if (currentUrl.startsWith('fexplorer:user-page-')) {
+        const randomTemplates = [
+            // Default Page
+            `<div class="random-user-page">
+                <h2>Default User Page</h2>
+                <p>This is a default user page. Nothing special here.</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Welcome page
+            `<div class="random-user-page">
+                <h2>Welcome!</h2>
+                <p>Welcome to my page! Enjoy your stay!</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Mystery page
+            `<div class="random-user-page">
+                <h2>Mystery Page</h2>
+                <p>What secrets does this page hold? No one knows.</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Lucky page
+            `<div class="random-user-page">
+                <h2>Lucky Page</h2>
+                <p>You found a lucky user page! Maybe you'll get bonus FPoints? Click one of these 3 buttons to see!</p>
+                <button class="luck-page-button">Is it me?</button>
+                <p>Remember, it all depends on luck!</p>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Lucky subpage (once the user clicks the button)
+            `<div class="random-user-page">
+                <h2>Results</h2>
+                <p>Congratulations! You got lucky and earned some bonus FPoints, probably.</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Boring page
+            `<div class="random-user-page">
+                <h2>Boring Page</h2>
+                <p>This page is so boring... Nothing to see here.</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // 404 style page
+            `<div class="random-user-page">
+                <h2>404?</h2>
+                <p>This page doesn't exist... or does it?</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Awesome page
+            `<div class="random-user-page">
+                <h2>Awesome Page</h2>
+                <p>I AM AWESOME! YOU ARE AWESOME! WE ARE AWESOME!!</p>
+                <button class="bonus-button">Bonus</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Suspicious page
+            `<div class="random-user-page" style="background-color: #f2ff00ff; color: black;">
+                <h2>TOTALLY NORMAL PAGE!</h2>
+                <p>Why hello there, fellow user!</p>
+                <p>Why don't you click here to get unlimited FPoints?</p>
+                <button class="suspicious-button">Click me!</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Dangerous page!!
+            `<div class="random-user-page" style="background-color: #ff0000ff; color: white;">
+                <h2>DANGEROUS PAGE!!</h2>
+                <p>This page is dangerous! Click the button below to proceed at your own risk!</p>
+                <button class="dangerous-button">Proceed</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Broken page
+            `<div class="random-user-page" style="font-family: 'Times New Roman', monospace; color: #000;">
+                <h2>Broken Page</h2>
+                <p>Oops! This page seems to be broken. Try refreshing or going back.</p>
+                <button class="broken-button">NILL</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // FPoints filled page
+            `<div class="random-user-page">
+                <h2>FPoints Galore!</h2>
+                <p>This page is filled with FPoints! Click the button below to claim some!</p>
+                <p>However, it will disappear afterwards!</p>
+                <button class="fpoints-button">Claim FPoints</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Data selling page
+            `<div class="random-user-page">
+                <h2>Data Selling Page</h2>
+                <p>Want to sell your FPoints/data to us? PLEASE DO IT!!</p>
+                <button class="data-selling-button">Sell Data</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+        ];
+        const randomIndex = Math.floor(Math.random() * randomTemplates.length);
+        let contentHtml = randomTemplates[randomIndex];
+        browserContent.innerHTML = contentHtml;
+    }
+
+    // Suspicious button (button be invisible afterwards lol)
+    const suspiciousButton = browserContent.querySelector('.suspicious-button');
+    if (suspiciousButton) {
+        suspiciousButton.addEventListener('click', () => {
+            alert('Haha, nice try! No unlimited FPoints for you!');
+            suspiciousButton.style.display = 'none';
+        });
+    }
+
+    // Broken button (disappears and also random amounts)
+    const brokenButton = browserContent.querySelector('.broken-button');
+    // Random amounts of broken buttons
+    const randomBrokenAmount = Math.floor(Math.random() * 5) + 1;
+    for (let i = 0; i < randomBrokenAmount; i++) {
+        if (brokenButton) {
+            const clone = brokenButton.cloneNode(true);
+            brokenButton.parentNode.insertBefore(clone, brokenButton.nextSibling);
+            clone.addEventListener('click', () => {
+                clone.style.display = 'none';
+            });
+        }
+    }
+    if (brokenButton) {
+        brokenButton.addEventListener('click', () => {
+            brokenButton.style.display = 'none';
+        });
+    }
+
+    // Bonus button (works like FPoints button but gives 25 to 75 FPoints)
+    const bonusButton = browserContent.querySelector('.bonus-button');
+    if (bonusButton) {
+        bonusButton.addEventListener('click', () => {
+            const randomBonusPoints = Math.floor(Math.random() * 51) + 25;
+            userFPoints += randomBonusPoints;
+            saveAppState();
+            showFPointsNotification(randomBonusPoints);
+            bonusButton.style.display = 'none';
+        });
+    }
+
+    // FPoints button (gives random amount of FPoints between 20 and 200)
+    const fpointsButton = browserContent.querySelector('.fpoints-button');
+    if (fpointsButton) {
+        fpointsButton.addEventListener('click', () => {
+            const randomFPoints = Math.floor(Math.random() * 181) + 20;
+            userFPoints += randomFPoints;
+            saveAppState();
+            showFPointsNotification(randomFPoints);
+            fpointsButton.style.display = 'none';
+        });
+    }
+
+    // Dangerous button (gives random amount of FPoints between -500 and 1000, so the user can lose FPoints)
+    // If the user has less than that, they'll be in debt
+    const dangerousButton = browserContent.querySelector('.dangerous-button');
+    if (dangerousButton) {
+        dangerousButton.addEventListener('click', () => {
+            const randomDangerousPoints = Math.floor(Math.random() * 1501) - 500;
+            userFPoints += randomDangerousPoints;
+            saveAppState();
+            showFPointsNotification(randomDangerousPoints);
+            dangerousButton.style.display = 'none';
+            if (randomDangerousPoints < 0) {
+                alert('Oh no! You lost ' + Math.abs(randomDangerousPoints) + ' FPoints! Better luck next time!');
+            } else {
+                alert('Phew! You gained ' + randomDangerousPoints + ' FPoints! Lucky you!');
+            }
+        });
+    }
+    // SELL MY DATA! :D
+    const dataSellingButton = browserContent.querySelector('.data-selling-button');
+    if (dataSellingButton) {
+        dataSellingButton.addEventListener('click', () => {
+            const randomSellingAmount = Math.floor(Math.random() * 101) + 50; // between 50 and 150
+            userFPoints += randomSellingAmount;
+            saveAppState();
+            alert('Thank you for your data! You know what? We don\'t want it anymore. We have a lot of it. Bye!');
+            dataSellingButton.style.display = 'none';
+        });
+    }
+
+    // The random user pages have 5 FPoints for visiting every time (works like the other pages that give FPoints)
+   if (currentUrl.startsWith('fexplorer:user-page-')) {
+        const baseFPoints = 2;
+        const earnedFPoints = Math.round(baseFPoints * userLuck);
+        userFPoints += earnedFPoints;
+        saveAppState();
+        showFPointsNotification(earnedFPoints);
+    }
+
+    // Lucky Page - Buttons (clone the button 3 times)
+    const luckPageButtons = browserContent.querySelectorAll('.luck-page-button');
+    luckPageButtons.forEach(button => {
+        for (let i = 0; i < 2; i++) {
+            const clone = button.cloneNode(true);
+            button.parentNode.insertBefore(clone, button.nextSibling);
+            clone.addEventListener('click', () => {
+                const luckyFPoints = Math.floor(Math.random() * 50) + 1;
+                const earnedFPoints = Math.round(luckyFPoints * userLuck);
+                const specialMessage = luckyFPoints === 50 ? ' (GOD DAMN!!)' : luckyFPoints === 20 ? ' (Jackpot!)' : luckyFPoints >= 15 ? ' (Awesome!)' : luckyFPoints >= 10 ? ' (Nice!)' :  luckyFPoints >= 5 ? ' (Good!)' :  luckyFPoints >= 1 ? ' (You can\'t even afford anything with this.)' : '';
+                userFPoints += earnedFPoints;
+                saveAppState();
+                alert("You've received " + earnedFPoints + " FPoints for clicking the button!" + specialMessage);
+                showFPointsNotification(earnedFPoints);
+            });
+        }
+    });
+    luckPageButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const luckyFPoints = Math.floor(Math.random() * 50) + 1;
+            const earnedFPoints = Math.round(luckyFPoints * userLuck);
+            const specialMessage = luckyFPoints === 50 ? ' (GOD DAMN!!)' : luckyFPoints === 20 ? ' (Jackpot!)' : luckyFPoints >= 15 ? ' (Awesome!)' : luckyFPoints >= 10 ? ' (Nice!)' :  luckyFPoints >= 5 ? ' (Good!)' :  luckyFPoints >= 1 ? ' (You can\'t even afford anything with this.)' : '';
+            userFPoints += earnedFPoints;
+            saveAppState();
+            alert("You've received " + earnedFPoints + " FPoints for clicking the button!" + specialMessage);
+            showFPointsNotification(earnedFPoints);
+        });
+    });
+    // Random hyperlink
+    const randomLinks = browserContent.querySelectorAll('.random-link');
+    randomLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            const url = link.getAttribute('data-url');
+            navigate(url);
+            if (url === 'fexplorer:random-user-page-') { // send the user to another random page with the random url
+                const randomIndex = Math.floor(Math.random() * 1000000); // large number to avoid collisions
+                navigate(`fexplorer:user-page-${randomIndex}`);
+            }
+        });
+    });
+
+    // Random user page appearance
+    const userPageButtons = browserContent.querySelectorAll('.user-page-button');
+    userPageButtons.forEach(button => {
+        const randomIndex = Math.floor(Math.random() * userPageAppearances.length);
+        button.style.backgroundImage = `url(${userPageAppearances[randomIndex]})`;
+    });
 
     if (currentUrl.startsWith('goog.com')) {
         const googSearchInput = browserContent.querySelector('#googSearchInput');
@@ -711,26 +1338,7 @@ function attachDynamicEventListeners() {
         }
     }
 
-    if (currentUrl.startsWith('mytube.com')) {
-        const mytubeSearchInput = browserContent.querySelector('#mytubeSearchInput');
-        const mytubeSearchButton = browserContent.querySelector('#mytubeSearchButton');
-
-        if (mytubeSearchInput && mytubeSearchButton) {
-            const performMyTubeSearch = () => {
-                const query = mytubeSearchInput.value.trim();
-                if (query) {
-                    navigate(`mytube.com/search?q=${encodeURIComponent(query)}`);
-                }
-            };
-
-            mytubeSearchButton.addEventListener('click', performMyTubeSearch);
-            mytubeSearchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    performMyTubeSearch();
-                }
-            });
-        }
-    }
+    // ...existing code...
 
     if (currentUrl.startsWith('minceraft.com')) {
         const minceraftSearchInput = browserContent.querySelector('#minceraftSearchInput');
@@ -846,6 +1454,50 @@ function attachDynamicEventListeners() {
         const buyStockButton = browserContent.querySelector('#buyStockButton');
         const stockSellInput = browserContent.querySelector('#stockSellInput');
         const sellStockButton = browserContent.querySelector('#sellStockButton');
+        const riskWarning = browserContent.querySelector('#riskWarning');
+        const riskAllButton = browserContent.querySelector('#riskAllButton');
+
+        riskAllButton.addEventListener('click', () => {
+            const totalAffordable = Math.floor(userFPoints / stockPrice);
+            if (totalAffordable > 0) {
+                const cost = totalAffordable * stockPrice;
+                userFPoints -= cost;
+                userChannel.stockOwned += totalAffordable;
+                fluctuateStockPrice();
+                saveAppState();
+                alert(`Bought ${totalAffordable} stock for ${cost.toFixed(2)} FPoints. Remaining FPoints: ${userFPoints.toLocaleString()}`);
+                updateStockMarketUI();
+                showFPointsNotification(-cost);
+                // If the user lost all their FPoints, this happens
+                if (userFPoints <= 0) {
+                    alert('You have lost all your FPoints! How unfortunate. You can continue using FExplorer, but you will not be able to buy anything until you earn more FPoints.');
+                    userFPoints = 0;
+                }
+            } else {
+                alert('Not enough FPoints to risk it all!');
+            }
+        });
+        if (riskWarning) {
+            alert('Warning: Stock market is risky! Prices can go up or down unpredictably. Invest wisely!');
+            riskWarning.style.display = 'block';
+            riskAllButton.style.display = 'inline-block';
+            riskAllButton.addEventListener('click', () => {
+                const totalAffordable = Math.floor(userFPoints / stockPrice);
+                if (totalAffordable > 0) {
+                    const cost = totalAffordable * stockPrice;
+                    userFPoints -= cost;
+                    userChannel.stockOwned += totalAffordable;
+                    fluctuateStockPrice();
+                    saveAppState();
+                    alert(`Bought ${totalAffordable} stock for ${cost.toFixed(2)} FPoints. Remaining FPoints: ${userFPoints.toLocaleString()}`);
+                    updateStockMarketUI();
+                    showFPointsNotification(-cost);
+                    if (currentFPointsSpan) currentFPointsSpan.textContent = userFPoints.toLocaleString();
+                } else {
+                    alert('Not enough FPoints to risk it all!');
+                }
+            });
+        }
 
         if (currentFPointsSpan) currentFPointsSpan.textContent = userFPoints.toLocaleString();
         if (currentLuckSpan) currentLuckSpan.textContent = userLuck.toFixed(1) + 'x';
@@ -1046,327 +1698,30 @@ function attachDynamicEventListeners() {
         });
     }
 
-    if (currentUrl === 'headbook.com') {
-        const addHeadbookPostButton = browserContent.querySelector('#addHeadbookPostButton');
-        if (addHeadbookPostButton) {
-            addHeadbookPostButton.addEventListener('click', handleAddHeadbookPost);
-        }
-
-        browserContent.querySelectorAll('.headbook-post .comment-button').forEach(button => {
-            button.addEventListener('click', (event) => {
-                const postElement = event.target.closest('.headbook-post');
-                const addCommentArea = postElement.querySelector('.add-comment-area');
-                if (addCommentArea) {
-                    addCommentArea.style.display = addCommentArea.style.display === 'none' ? 'flex' : 'none';
-                    if (addCommentArea.style.display === 'flex') {
-                        addCommentArea.querySelector('.comment-input').focus();
-                    }
-                }
-            });
-        });
-
-        browserContent.querySelectorAll('.headbook-post .submit-reply-button').forEach(button => {
-            button.addEventListener('click', handleAddHeadbookComment);
-        });
-
-        browserContent.querySelectorAll('.headbook-post .comment-input').forEach(input => {
-            input.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    handleAddHeadbookComment({ target: event.target.nextElementSibling });
-                }
-            });
-        });
-
-        browserContent.querySelectorAll('.headbook-post button[data-action="like-post"]').forEach(button => {
-            button.addEventListener('click', (event) => {
-                const postId = event.target.dataset.postId;
-                const post = headbookPosts.find(p => p.id === postId);
-                if (post) {
-                    post.likes = (post.likes || 0) + 1;
-                    userFPoints += Math.round(FPOINTS_PER_LIKE * userLuck);
-                    showFPointsNotification(Math.round(FPOINTS_PER_LIKE * userLuck));
-                    saveAppState();
-
-                    const likeCountSpan = button.querySelector('.like-count');
-                    if (likeCountSpan) {
-                        likeCountSpan.textContent = post.likes;
-                    }
-
-                    const originalText = button.innerHTML;
-                    button.innerHTML = `Liked! (${post.likes})`;
-                    button.classList.add('liked');
-
-                    setTimeout(() => {
-                        if (button && likeCountSpan) {
-                             button.innerHTML = originalText;
-                             button.classList.remove('liked');
-                        }
-                    }, 1500);
-                }
-            });
-        });
-
-        browserContent.querySelectorAll('.headbook-post .share-button').forEach(button => {
-            button.addEventListener('click', (event) => {
-                if (!button.classList.contains('shared')) {
-                    const initialText = button.textContent;
-                    button.textContent = 'Shared!';
-                    button.classList.add('shared');
-                    button.style.backgroundColor = '#17a2b8';
-                    button.style.color = 'white';
-                    setTimeout(() => {
-                        button.textContent = initialText;
-                        button.classList.remove('shared');
-                        button.style.backgroundColor = '';
-                        button.style.color = '';
-                    }, 2000);
-                }
-            });
-        });
+    // Add event listeners for settings page buttons if present
+    const saveSettingsBtn = browserContent.querySelector('#saveSettingsBtn');
+    const resetSettingsBtn = browserContent.querySelector('#resetSettingsBtn');
+    if (saveSettingsBtn && typeof saveSettings === 'function') {
+        saveSettingsBtn.onclick = saveSettings;
     }
-
-    if (currentUrl.startsWith('headbook.com/messages')) {
-        browserContent.querySelectorAll('.chat-contact-item').forEach(item => {
-            item.addEventListener('click', (event) => {
-                const contactName = event.currentTarget.dataset.contactName;
-                if (contactName) {
-                    navigate(`headbook.com/messages?contact=${encodeURIComponent(contactName)}`);
-                }
-            });
-        });
-
-        const chatInput = browserContent.querySelector('#chatInput');
-        const chatSendButton = browserContent.querySelector('#chatSendButton');
-
-        if (chatInput && chatSendButton) {
-            const contactName = chatSendButton.dataset.contactName;
-
-            chatSendButton.addEventListener('click', () => {
-                handleSendMessage(contactName, chatInput);
-            });
-
-            chatInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    handleSendMessage(contactName, chatInput);
-                }
-            });
-            scrollChatToBottom();
-        }
-    }
-
-    if (currentUrl === 'instantgrams.com') {
-        const addInstantgramsPostButton = browserContent.querySelector('#addInstantgramsPostButton');
-        if (addInstantgramsPostButton) {
-            addInstantgramsPostButton.addEventListener('click', handleAddInstantGramsPost);
-        }
-
-        browserContent.querySelectorAll('.instantgrams-post-card button[data-action="like-instantgrams-post"]').forEach(button => {
-            button.addEventListener('click', handleLikeInstantGramsPost);
-        });
-
-        const instantgramsSearchInput = browserContent.querySelector('#instantgramsSearchInput');
-        const instantgramsSearchButton = browserContent.querySelector('#instantgramsSearchButton');
-        if (instantgramsSearchInput && instantgramsSearchButton) {
-             instantgramsSearchButton.addEventListener('click', () => {
-                alert('Simulated search function. No actual search implemented yet!');
-                instantgramsSearchInput.value = '';
-            });
-            instantgramsSearchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    alert('Simulated search function. No actual search implemented yet!');
-                    instantgramsSearchInput.value = '';
-                }
-            });
-        }
-    }
-
-    // Add event listener for the new create page button
-    const createPageButton = document.getElementById('createPageButton');
-    if (createPageButton) {
-        createPageButton.addEventListener('click', () => {
-            navigate('fexplorer:create');
-        });
-    }
-
-    // Handle actions specific to fexplorer:create page
-    if (currentUrl === 'fexplorer:create') {
-        initializeDraftPage(); // Ensure draftPage is ready when editor is loaded
-
-        const modeRadios = browserContent.querySelectorAll('input[name="creationMode"]');
-        const simpleEditorSection = browserContent.querySelector('#simpleEditorSection');
-        const codeEditorSection = browserContent.querySelector('#codeEditorSection');
-
-        const pageTitleInput = browserContent.querySelector('#pageTitleInput');
-        const pageContentInput = browserContent.querySelector('#pageContentInput'); // Simple mode content
-        const buttonTextInput = browserContent.querySelector('#buttonTextInput');
-        const buttonUrlInput = browserContent.querySelector('#buttonUrlInput');
-        const addPageButton = browserContent.querySelector('#addPageButton');
-        const pageButtonsPreview = browserContent.querySelector('#pageButtonsPreview');
-        const noButtonsMessage = browserContent.querySelector('#noButtonsMessage');
-
-        const htmlCodeInput = browserContent.querySelector('#htmlCodeInput');
-        const cssCodeInput = browserContent.querySelector('#cssCodeInput');
-        const jsCodeInput = browserContent.querySelector('#jsCodeInput');
-
-        const previewUserPageButton = browserContent.querySelector('#previewUserPage');
-        const publishUserPageButton = browserContent.querySelector('#publishUserPage');
-        const pageStatusMessage = browserContent.querySelector('#pageStatusMessage');
-
-        const updateDraftPage = () => {
-            draftPage.title = pageTitleInput.value;
-            draftPage.simpleContent = pageContentInput.value;
-            draftPage.htmlCode = htmlCodeInput.value;
-            draftPage.cssCode = cssCodeInput.value;
-            draftPage.jsCode = jsCodeInput.value;
-            saveDraftPage();
+    if (resetSettingsBtn && typeof resetSettingsBtn.onclick !== 'function') {
+        resetSettingsBtn.onclick = function() {
+            localStorage.removeItem('fexplorerSettingOS');
+            localStorage.removeItem('fexplorerSettingTheme');
+            localStorage.removeItem('fexplorerSettingNotifications');
+            const osSelect = browserContent.querySelector('#osSelect');
+            const themeSelect = browserContent.querySelector('#themeSelect');
+            const searchEngineSelect = browserContent.querySelector('#searchEngineSelect');
+            const homepageSelect = browserContent.querySelector('#homepageSelect');
+            const notificationsToggle = browserContent.querySelector('#notificationsToggle');
+            const settingsStatus = browserContent.querySelector('#settingsStatus');
+            if (osSelect) osSelect.value = 'default';
+            if (themeSelect) themeSelect.value = 'light';
+            if (notificationsToggle) notificationsToggle.checked = false;
+            updateWindowStyle('default');
+            document.body.classList.remove('fexplorer-dark-mode');
+            if (settingsStatus) settingsStatus.textContent = 'Settings reset to default.';
         };
-
-        // Event listeners for inputs in both modes
-        pageTitleInput.addEventListener('input', updateDraftPage);
-        pageContentInput.addEventListener('input', updateDraftPage);
-        htmlCodeInput.addEventListener('input', updateDraftPage);
-        cssCodeInput.addEventListener('input', updateDraftPage);
-        jsCodeInput.addEventListener('input', updateDraftPage);
-
-        modeRadios.forEach(radio => {
-            radio.addEventListener('change', (event) => {
-                draftPage.creationMode = event.target.value;
-                if (draftPage.creationMode === 'simple') {
-                    simpleEditorSection.style.display = 'block';
-                    codeEditorSection.style.display = 'none';
-                } else {
-                    simpleEditorSection.style.display = 'none';
-                    codeEditorSection.style.display = 'block';
-                }
-                saveDraftPage();
-            });
-        });
-
-        const renderButtonsPreview = () => {
-            pageButtonsPreview.innerHTML = draftPage.simpleButtons.map((btn, index) => `
-                <div class="created-button-preview">
-                    <span>Text: "${escapeHtml(btn.text)}" | URL: "${escapeHtml(btn.url)}"</span>
-                    <button class="remove-button" data-index="${index}">X</button>
-                </div>
-            `).join('');
-            noButtonsMessage.style.display = draftPage.simpleButtons.length > 0 ? 'none' : 'block';
-
-            browserContent.querySelectorAll('.remove-button').forEach(btn => {
-                btn.addEventListener('click', (event) => {
-                    const indexToRemove = parseInt(event.target.dataset.index, 10);
-                    draftPage.simpleButtons.splice(indexToRemove, 1);
-                    updateDraftPage();
-                    renderButtonsPreview();
-                });
-            });
-        };
-        renderButtonsPreview(); // Initial render of buttons
-
-        if (addPageButton) {
-            addPageButton.addEventListener('click', () => {
-                const buttonText = buttonTextInput.value.trim();
-                const buttonUrl = buttonUrlInput.value.trim();
-
-                if (!buttonText || !buttonUrl) {
-                    pageStatusMessage.textContent = 'Button text and URL cannot be empty.';
-                    pageStatusMessage.style.color = '#e74c3c';
-                    return;
-                }
-
-                draftPage.simpleButtons.push({ text: buttonText, url: buttonUrl });
-                updateDraftPage();
-                renderButtonsPreview();
-                buttonTextInput.value = '';
-                buttonUrlInput.value = '';
-                pageStatusMessage.textContent = 'Button added!';
-                pageStatusMessage.style.color = '#28a745';
-            });
-        }
-
-        if (previewUserPageButton) {
-            previewUserPageButton.addEventListener('click', () => {
-                if (!pageTitleInput.value.trim() && draftPage.creationMode === 'simple') {
-                    pageStatusMessage.textContent = 'Please enter a page title before previewing.';
-                    pageStatusMessage.style.color = '#e74c3c';
-                    return;
-                }
-                if (!htmlCodeInput.value.trim() && draftPage.creationMode === 'code') {
-                    pageStatusMessage.textContent = 'Please enter HTML code before previewing.';
-                    pageStatusMessage.style.color = '#e74c3c';
-                    return;
-                }
-
-                // Save draft data to localStorage for retrieval by the preview page
-                localStorage.setItem('fexplorerPreviewDraft', JSON.stringify(draftPage));
-                navigate('fexplorer:preview');
-            });
-        }
-
-        if (publishUserPageButton) {
-            publishUserPageButton.addEventListener('click', () => {
-                const title = pageTitleInput.value.trim(); // Title is used for both modes
-
-                if (!title) {
-                    pageStatusMessage.textContent = 'Page title is required to publish.';
-                    pageStatusMessage.style.color = '#e74c3c';
-                    return;
-                }
-
-                if (draftPage.creationMode === 'code' && !htmlCodeInput.value.trim()) {
-                    pageStatusMessage.textContent = 'HTML code is required to publish a code page.';
-                    pageStatusMessage.style.color = '#e74c3c';
-                    return;
-                }
-
-                pageStatusMessage.textContent = 'Publishing page...';
-                pageStatusMessage.style.color = '#666';
-                publishUserPageButton.disabled = true;
-
-                const newPageId = `user_page_${Date.now()}`;
-                let baseFPoints = 0;
-
-                if (draftPage.creationMode === 'simple') {
-                    userCreatedPages[newPageId] = {
-                        title: title,
-                        creationMode: 'simple',
-                        content: draftPage.simpleContent,
-                        buttons: draftPage.simpleButtons
-                    };
-                    baseFPoints = 100 + (draftPage.simpleButtons.length * 10);
-                } else if (draftPage.creationMode === 'code') {
-                    userCreatedPages[newPageId] = {
-                        title: title,
-                        creationMode: 'code',
-                        htmlCode: draftPage.htmlCode,
-                        cssCode: draftPage.cssCode,
-                        jsCode: draftPage.jsCode
-                    };
-                    baseFPoints = 250; // Higher fixed FPoints for code pages
-                }
-
-                const newPageUrl = `fexplorer:user-page-${newPageId}`;
-                if (!randomWebsiteUrls.includes(newPageUrl)) {
-                    randomWebsiteUrls.push(newPageUrl);
-                }
-
-                // Award FPoints for publishing a page
-                const earnedFPoints = Math.round(baseFPoints * userLuck);
-                userFPoints += earnedFPoints;
-
-                // Clear draft page after publishing
-                initializeDraftPage(); // Reset draftPage to empty state
-                saveAppState(); // Save everything
-
-                alert(`Your page "${title}" has been published! You earned ${earnedFPoints} FPoints! You can visit it at fexplorer:user-page-${newPageId}`);
-                navigate(newPageUrl);
-            });
-        }
-    } else if (currentUrl.startsWith('fexplorer:user-page-')) {
-        // This block handles visiting a user-created page
-        // No specific event listeners needed here beyond the generic attachDynamicEventListeners
-        // which already handles `data-url` buttons.
     }
 }
 
@@ -1408,33 +1763,7 @@ function navigate(urlToLoad, isBackNavigation = false) {
         let contentHtml = '';
         let pageFound = false;
 
-        if (sanitizedUrl === 'mytube.com') {
-            contentHtml = getMyTubeHomePageHTML();
-            pageFound = true;
-        } else if (sanitizedUrl.startsWith('mytube.com/watch?v=')) {
-            const videoId = sanitizedUrl.split('v=')[1];
-            contentHtml = getMyTubeWatchPageHTML(videoId);
-            pageFound = true;
-        } else if (sanitizedUrl === 'mytube.com/create-channel') {
-            contentHtml = getMyTubeCreateChannelPageHTML();
-            pageFound = true;
-        } else if (sanitizedUrl === 'mytube.com/my-channel') {
-            contentHtml = getMyTubeMyChannelPageHTML();
-            pageFound = true;
-        } else if (sanitizedUrl === 'headbook.com') {
-            contentHtml = getHeadbookPageHTML();
-            pageFound = true;
-            scheduleNextAIHeadbookPost(); // Start scheduling AI posts
-        } else if (sanitizedUrl.startsWith('headbook.com/messages')) {
-            const urlObj = new URL(`http://${sanitizedUrl}`);
-            const contactParam = urlObj.searchParams.get('contact');
-            contentHtml = getHeadbookMessagesPageHTML(contactParam);
-            pageFound = true;
-        } else if (sanitizedUrl === 'instantgrams.com') {
-            contentHtml = getInstantGramsPageHTML();
-            pageFound = true;
-            generateAIInstantGramsPost(); // Attempt to generate a new AI post when visiting Instant Grams
-        } else if (sanitizedUrl === 'fexplorer:create') { // New case for create page
+        if (sanitizedUrl === 'fexplorer:create') { // New case for create page
             contentHtml = getCreatePageEditorHTML();
             pageFound = true;
         } else if (sanitizedUrl === 'fexplorer:create.hub') { // New case for Creator Hub page
@@ -1448,7 +1777,7 @@ function navigate(urlToLoad, isBackNavigation = false) {
                 contentHtml = `
                     <div class="user-created-code-page-layout">
                         <div class="app-header">
-                            <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
                             <span class="app-title">${escapeHtml(pageData.title)}</span>
                             <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
                             <a href="#" data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
@@ -1495,7 +1824,7 @@ function navigate(urlToLoad, isBackNavigation = false) {
                 contentHtml = `
                     <div class="user-created-page-layout">
                         <div class="app-header">
-                            <img src="fexplorer_logo.png" alt="FExplorer Logo" class="app-logo">
+                            <img src="icons/placeholder.png" alt="FExplorer Logo" class="app-logo">
                             <span class="app-title">Preview: ${escapeHtml(previewData.title)}</span>
                             <a href="#" data-url="fexplorer:create" class="app-header-button">Back to Editor</a>
                         </div>
@@ -1568,6 +1897,8 @@ function navigate(urlToLoad, isBackNavigation = false) {
                 const searchResultsMap = {
                     'example': { url: 'example.com', title: 'Example Domain' },
                     'blank': { url: 'about:blank', title: 'About Blank' },
+                    'placeholder': { url: 'fexplorer:placeholder', title: 'Placeholder' },
+                    'goog': { url: 'goog.com', title: 'Goog - That One Search Engine' },
                     'fexplorer': { url: 'fexplorer:home', title: 'FExplorer Home' },
                     'home': { url: 'fexplorer:home', title: 'FExplorer Home' },
                     'quick links': { url: 'fexplorer:quick-links', title: 'FExplorer Quick Links' },
@@ -1579,6 +1910,9 @@ function navigate(urlToLoad, isBackNavigation = false) {
                     'create page': { url: 'fexplorer:create', title: 'FExplorer Page Creator' },
                     'creator hub': { url: 'fexplorer:create.hub', title: 'FExplorer Creator Hub' }, // Add search result for hub
                     'my pages': { url: 'fexplorer:create.hub', title: 'FExplorer Creator Hub - Your Pages' }, // Add search result for hub
+					'settings': { url: 'fexplorer:settings', title: 'FExplorer Settings' },
+                    'games': { url: 'fexplorer:games', title: 'FExplorer Games' },
+                    'program': { url: 'fexplorer:programs', title: 'FExplorer Programs' },
                 };
 
                 const matchedResult = searchResultsMap[lowerQuery] || Object.values(searchResultsMap).find(item => lowerQuery.includes(item.url.split('.')[0]));
@@ -1587,11 +1921,11 @@ function navigate(urlToLoad, isBackNavigation = false) {
                     searchResultContent = `
                         <div class="search-result-item">
                             <h3><a href="#" data-url="${matchedResult.url}">${matchedResult.title} - ${matchedResult.url}</a></h3>
-                            <p>This is a simulated search result for ${matchedResult.url}. Click to visit.</p>
+                            <p>This is a search result for ${matchedResult.url}. Click to visit.</p>
                         </div>
                     `;
                 } else {
-                    searchResultContent = `<p>Here are some simulated results for your search query, "${query}":</p>`;
+                    searchResultContent = `<p>Here are some results for your search query, "${query}":</p>`;
                     const numRandomResults = Math.floor(Math.random() * 3) + 3;
                     for (let i = 0; i < numRandomResults; i++) {
                         const randomId = Math.random().toString(36).substring(2, 8);
@@ -1606,10 +1940,11 @@ function navigate(urlToLoad, isBackNavigation = false) {
                             `Explore the world of ${query} - A detailed analysis`,
                             `Aow ${query} impacts simulated daily life`,
                             `Understanding ${query}: A beginner's perspective`,
-                            `The history and future of ${query}`
+                            `The history and future of ${query}`,
+                            `Tips and tricks for ${query}`
                         ];
                         const fakeTitle = fakeTitleOptions[Math.floor(Math.random() * fakeTitleOptions.length)];
-                        const fakeDescription = `Dive deep into the fascinating aspects of ${query}. Find comprehensive information and expert opinions on ${query.toLowerCase()}. This is a simulated link.`;
+                        const fakeDescription = `Dive deep into the fascinating aspects of ${query}. Find comprehensive information and expert opinions on ${query.toLowerCase()}. This is a fake link.`;
 
                         searchResultContent += `
                             <div class="search-result-item">
@@ -1619,7 +1954,7 @@ function navigate(urlToLoad, isBackNavigation = false) {
                             </div>
                         `;
                     }
-                    searchResultContent += `<p style="margin-top: 20px;">(All search results are simulated and do not lead to real external websites.)</p>`;
+                    searchResultContent += `<p style="margin-top: 20px;">(These search results are obviously not real.)</p>`;
                 }
 
                 contentHtml = `
@@ -1704,8 +2039,7 @@ function navigate(urlToLoad, isBackNavigation = false) {
                 <div style="text-align: center; padding: 20px;">
                     <h1>404 - Page Not Found</h1>
                     <p>The requested URL <strong>${sanitizedUrl}</strong> could not be found.</p>
-                    <p>This is a fake browser, so only pre-defined URLs work.</p>
-                    <p>Try <code>example.com</code>, <code>about:blank</code>, <code>fexplorer:home</code>, <code>fexplorer:quick-links</code>, <code>goog.com</code>, <code>headbook.com</code>, <code>instantgrams.com</code>, <code>mytube.com</code>, <code>minceraft.com</code>, <code>fexplorer:financial</code>, <code>fexplorer:shop</code>, <code>fexplorer:updates</code>, <code>fexplorer:create</code>, or <code>fexplorer:create.hub</code></p>
+                    <p>The site either could not load or does not exist.</p>
                     ${Object.keys(userCreatedPages).length > 0 ? `<p>You also have your own created pages! Like: <a href="#" data-url="fexplorer:user-page-${Object.keys(userCreatedPages)[0]}">Your First Page</a></p>` : ''}
                 </div>
             `;
@@ -1752,8 +2086,138 @@ homeButton.addEventListener('click', () => {
     navigate(HOME_URL);
 });
 
+settingsButton.addEventListener('click', () => {
+    navigate(SETTINGS_URL);
+});
+
+createPageButton.addEventListener('click', () => {
+    navigate(CREATE_PAGE_URL);
+});
+
+// Forward button functionality can be added if a forward stack is implemented
+const forwardButton = document.getElementById('forwardButton');
+forwardButton.addEventListener('click', () => {
+    // Placeholder for future forward navigation
+    alert('Forward navigation is not implemented yet.');
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeDraftPage(); // Initialize or load draftPage
     updateFPointsDisplay();
+    applyFExplorerSettings();
     navigate(HOME_URL);
 });
+
+// ...existing code...
+    if (currentUrl === 'fexplorer:settings') {
+        const osSelect = browserContent.querySelector('#osSelect');
+        const themeSelect = browserContent.querySelector('#themeSelect');
+        const notificationsToggle = browserContent.querySelector('#notificationsToggle');
+        const resetSettingsBtn = browserContent.querySelector('#resetSettingsBtn');
+        const settingsStatus = browserContent.querySelector('#settingsStatus');
+        const saveSettingsBtn = browserContent.querySelector('#saveSettingsBtn');
+
+        // Load saved settings
+        if (osSelect) osSelect.value = localStorage.getItem('fexplorerSettingOS') || 'default';
+        if (themeSelect) themeSelect.value = localStorage.getItem('fexplorerSettingTheme') || 'light';
+        if (notificationsToggle) notificationsToggle.checked = localStorage.getItem('fexplorerSettingNotifications') === 'true';
+
+        // Custom notification function
+        function showSettingsNotification(message, type = 'success') {
+            let notif = document.querySelector('.fexplorer-notification');
+            if (!notif) {
+                notif = document.createElement('div');
+                notif.className = 'fexplorer-notification';
+                document.body.appendChild(notif);
+            }
+            notif.innerHTML = '';
+            let iconSpan = document.createElement('span');
+            iconSpan.className = 'notif-icon';
+            if (type === 'success') {
+                iconSpan.innerHTML = '&#10003;'; // checkmark
+            } else if (type === 'error') {
+                iconSpan.innerHTML = '&#9888;'; // warning
+            } else {
+                iconSpan.innerHTML = '&#9432;'; // info
+            }
+            notif.appendChild(iconSpan);
+            let msgSpan = document.createElement('span');
+            msgSpan.textContent = message;
+            notif.appendChild(msgSpan);
+            notif.classList.remove('success', 'error', 'show');
+            notif.classList.add(type, 'show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 2500);
+        }
+
+        // Save all settings
+        function saveSettings() {
+            try {
+                if (osSelect) {
+                    localStorage.setItem('fexplorerSettingOS', osSelect.value);
+                    updateWindowStyle(osSelect.value); // Ensure window style updates on save
+                }
+                if (themeSelect) {
+                    localStorage.setItem('fexplorerSettingTheme', themeSelect.value);
+                    if (themeSelect.value === 'dark') {
+                        document.body.classList.add('fexplorer-dark-mode');
+                    } else {
+                        document.body.classList.remove('fexplorer-dark-mode');
+                    }
+                }
+                if (notificationsToggle) {
+                    localStorage.setItem('fexplorerSettingNotifications', notificationsToggle.checked ? 'true' : 'false');
+                }
+                if (settingsStatus) settingsStatus.textContent = 'Settings saved!';
+                // Show notification if enabled
+                if (notificationsToggle && notificationsToggle.checked) {
+                    showSettingsNotification('Settings saved successfully!', 'success');
+                }
+            } catch (e) {
+                if (settingsStatus) settingsStatus.textContent = 'Error saving settings!';
+                if (notificationsToggle && notificationsToggle.checked) {
+                    showSettingsNotification('Error saving settings!', 'error');
+                }
+            }
+        }
+
+        if (osSelect) {
+            osSelect.addEventListener('change', () => {
+                updateWindowStyle(osSelect.value);
+                localStorage.setItem('fexplorerSettingOS', osSelect.value);
+            });
+        }
+        if (themeSelect) {
+            themeSelect.addEventListener('change', () => {
+                localStorage.setItem('fexplorerSettingTheme', themeSelect.value);
+                if (themeSelect.value === 'dark') {
+                    document.body.classList.add('fexplorer-dark-mode');
+                } else {
+                    document.body.classList.remove('fexplorer-dark-mode');
+                }
+            });
+        }
+        if (resetSettingsBtn) {
+            resetSettingsBtn.addEventListener('click', () => {
+                localStorage.removeItem('fexplorerSettingOS');
+                localStorage.removeItem('fexplorerSettingTheme');
+                localStorage.removeItem('fexplorerSettingNotifications');
+                if (osSelect) osSelect.value = 'default';
+                if (themeSelect) themeSelect.value = 'light';
+                if (notificationsToggle) notificationsToggle.checked = false;
+                updateWindowStyle('default');
+                document.body.classList.remove('fexplorer-dark-mode');
+                if (settingsStatus) settingsStatus.textContent = '';
+                if (notificationsToggle && notificationsToggle.checked) {
+                    showSettingsNotification('Settings reset to default.', 'success');
+                } else {
+                    // Show notification as a textbox for reset even if notifications are off
+                    showSettingsNotification('Settings reset to default.', 'success');
+                }
+            });
+        }
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', saveSettings);
+        }
+    }
