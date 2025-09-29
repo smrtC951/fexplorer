@@ -29,10 +29,16 @@ const backButton = document.getElementById('backButton');
 const homeButton = document.getElementById('homeButton');
 const settingsButton = document.getElementById('settingsButton');
 const fpointsCounter = document.getElementById('fpointsCounter');
+const cookiesCounter = document.getElementById('cookiesCounter');
 
 const SETTINGS_URL = 'fexplorer:settings';
 const HOME_URL = 'fexplorer:home';
 const CREATE_PAGE_URL = 'fexplorer:create';
+const PROGRAMS_URL = 'fexplorer:programs';
+const COOKIE_URL = 'fexplorer:cookies';
+const ACHIEVE_URL = 'fexplorer:achievements';
+const SHOP_URL = 'fexplorer:shop';
+
 const GOOG_COOLDOWN = 10000;
 const DAILY_BONUS_COOLDOWN = 5 * 60 * 1000;
 const BASE_DAILY_BONUS = 70;
@@ -138,6 +144,7 @@ function handleSendMessage(contactName, chatInput) {
 // ...existing code...
 userChannel.stockOwned = userChannel.stockOwned || 0;
 
+let userCookies = parseInt(localStorage.getItem('userCookies') || '0', 10);
 let userFPoints = parseInt(localStorage.getItem('userFPoints') || '0', 10);
 let userLuck = parseFloat(localStorage.getItem('userLuck') || '1.0');
 let lastFinancialVisit = parseInt(localStorage.getItem('lastFinancialVisit') || '0', 10);
@@ -207,6 +214,7 @@ function escapeHtml(text) {
 
 function saveAppState() {
     localStorage.setItem('userFPoints', userFPoints.toString());
+    localStorage.setItem('userCookies', userCookies.toString());
     localStorage.setItem('userLuck', userLuck.toString());
     localStorage.setItem('lastFinancialVisit', lastFinancialVisit.toString());
     localStorage.setItem('lastGoogSearchTime', lastGoogSearchTime.toString());
@@ -218,12 +226,14 @@ function saveAppState() {
 }
 
 const shopItems = [
-    { id: 'luck_boost_1', name: 'Minor Luck Charm', description: 'Slightly increases FPoint earnings from Goog!', cost: 500, effect: { luck: 0.1 }, icon: 'fexplorer_logo.png' },
-    { id: 'luck_boost_2', name: 'Major Luck Amulet', description: 'Significantly increases FPoint earnings from Goog!', cost: 2000, effect: { luck: 0.3 }, icon: 'fexplorer_logo.png' },
-    { id: 'mystery_box', name: 'Mystery Box', description: 'Contains a random cool simulated item!', cost: 1000, effect: { mystery: true }, icon: 'fexplorer_logo.png' },
-    { id: 'golden_hat', name: 'Golden Browser Hat', description: 'A stylish cosmetic hat for your FExplorer browser icon.', cost: 5000, effect: { cosmetic: 'golden_hat' }, icon: 'fexplorer_logo.png' },
-    { id: 'speed_boost', name: 'Simulated Speed Boost', description: 'Makes browsing feel snappier (purely cosmetic).', cost: 750, effect: { cosmetic: 'speed_boost' }, icon: 'fexplorer_logo.png' },
-    { id: 'extra_storage', name: 'Cloud Storage (1TB)', description: 'Simulated cloud storage for your virtual files. (No actual storage)', cost: 1500, effect: { cosmetic: 'storage' }, icon: 'fexplorer_logo.png' },
+    { id: 'luck_boost_1', name: 'Minor Luck Charm', description: 'Slightly increases FPoint earnings from Goog!', cost: 500, effect: { luck: 0.1 }, icon: 'icons/goog-logo.png' },
+    { id: 'luck_boost_2', name: 'Major Luck Amulet', description: 'Significantly increases FPoint earnings from Goog!', cost: 750, effect: { luck: 0.3 }, icon: 'icons/goog-logo.png' },
+    { id: 'mystery_box', name: 'Mystery Box', description: 'Contains a random cool item!', cost: 1000, effect: { mystery: true }, icon: 'icons/placeholder.png' },
+    { id: 'golden_hat', name: 'Golden Browser Hat', description: 'A stylish cosmetic hat for your FExplorer browser icon.', cost: 5000, effect: { cosmetic: 'golden_hat' }, icon: 'icons/sandbox-icon.png' },
+    { id: 'speed_boost', name: 'Simulated Speed Boost', description: 'Makes browsing feel snappier (purely cosmetic).', cost: 750, effect: { cosmetic: 'speed_boost' }, icon: 'icons/placeholder.png' },
+    { id: 'unluck_boost_1', name: 'Unlucky Charm', description: 'Decreases your luck slightly!', cost: 500, effect: { luck: -0.1 }, icon: 'icons/goog-logo.png' },
+    { id: 'extra_storage', name: 'Cloud Storage (1TB)', description: 'Simulated cloud storage for your virtual files. (No actual storage)', cost: 1500, effect: { cosmetic: 'storage' }, icon: 'icons/placeholder.png' },
+    { id: 'more_user_luck', name: 'More User Luck', description: 'Decreases chance of dangerous user pages!', cost: 3000, effect: { luck: 0.75 }, icon: 'icons/fexplorer.png' },
 ];
 
 function getRandomUserPage() {
@@ -262,6 +272,13 @@ function showFPointsNotification(amount) {
     notificationSpan.addEventListener('animationend', () => {
         notificationSpan.remove();
     });
+}
+
+// Cookies
+function updateCookiesDisplay() {
+    if (cookiesCounter) {
+        cookiesCounter.textContent = `${userCookies.toLocaleString()} Cookies`;
+    }
 }
 
 function fluctuateStockPrice() {
@@ -666,6 +683,7 @@ const fakeContent = {
                         <p>FPoints: <strong id="shopFPoints">${userFPoints.toLocaleString()}</strong></p>
                         <p>Luck: <strong id="shopLuck">${userLuck.toFixed(1)}x</strong></p>
                         <p>Owned Items: <strong id="ownedItems">None</strong></p>
+                        <button class="luck-button" id="convert-luck">Convert Luck</button>
                     </div>
                     <div class="shop-category-list">
                         <h3>Categories</h3>
@@ -700,33 +718,30 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Demo 1.2 - The 'WHY IS THIS UPDATE SO BIG' Update!</h2>
-            <p>Release Date: September 27, 2025</p>
+			<h2>Update Name: Demo 1.2.1 - The 'whole lot of things going on' mini-update!</h2>
+            <p>Release Date: September 29, 2025</p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>New pages, such as placeholder</li>
-					<li>New design for FExplorer Create!</li>
-                    <li>Bug fixes, but more bugs appear out of nowhere</li>
-                    <li>New games page, with upcoming games coming to you!</li>
-                    <li>Settings have been added, but functionality will come later!</li>
-                    <li>New placeholder icons for FExplorer! Some of them are.</li>
-                    <li>Brand new feature - Random user pages! (They're really good)</li>
-                    <li>Risk it all! (On FExplorer Finances!)</li>
+                    <li>New variants of certain random user pages!</li>
+                    <li>New dropdown hamburger menu, along with adjustments on the navigation bar UI</li>
+                    <li>New pages - Cookies, Visual Scripts Editor</li>
+                    <li>Corporate pages!</li>
+                    <li>New search engines - Goog, Ping, FExplorer Browser (Goog only works for now)</li>
+                    <li>Easter eggs! (Clue: drinks and animal)</li>
+                    <li>New shop items!</li>
                 </ul>
             </div>
 
             <div class="updates-section">
                 <h2>Upcoming Updates</h2>
                 <ul>
-                    <li>A new search engine and some easter eggs soon</li>
-                    <li>New features such as Cookies!</li>
+                    <li>Functionality on the search engines and Cookies</li>
 					<li>Creator Hub rework soon!</li>
                     <li>More customization soon!</li>
                     <li>More games coming soon!</li>
-                    <li>More user page variants!</li>
-                    <li>Games! (Yes, more games!)</li>
+                    <li>More pages coming to you soon!</li>
                     <li>More bug fixes, probably</li>
                 </ul>
             </div>
@@ -805,7 +820,7 @@ const fakeContent = {
             <h1>Oh, hello there!</h1>
 			<p>You might be wondering what this page is for. Well, it's for testing out new features for the browser!</p>
             <p>Here's some free FPoints for you!</p>
-            <button id="getFreeFPointsButton" class="home-page-button">Get 100 FPoints</button>
+            <button class="home-page-button bonus-button">Bonus</button>
         </div>
     `,
     // Games Page
@@ -978,11 +993,96 @@ const fakeContent = {
     `,
     // Search Engine: Ping
     'ping.com': `
-        <div class="ping-homepage">
+        <div class="goog-homepage ping-homepage">
             <img src="icons/ping-icon.png" alt="Ping Logo" class="ping-logo" style="width: 200px; margin-top: 40px;">
-            <p>This search engine is coming soon!</p>
-            <p>Stay tuned for updates.</p>
+            <input type="search" id="googSearchInput" class="goog-search-input" placeholder="Search the web with Ping!">
+            <button id="googSearchButton" class="goog-search-button">Search!</button>
+            <div id="googSearchResults" class="goog-search-results"></div>
             <p class="footer-note">© Ping | Made by smrtC951!</p>
+        </div>
+    `,
+    // Program: Visual Scripts Editor
+    'scripts.visualeditor.com': `
+        <div class="home-page-content visual-scripts-content">
+            <img src="icons/placeholder.png" alt="Ping Logo" class="ping-logo" style="width: 200px; margin-top: 40px;">
+            <h1>Visual Scripts Editor</h1>
+            <p class="tagline">The Script Editor</p>
+            <br>
+            <p>Create or edit your very own scripts for a minimal price of 100 FPoints.</p>
+            <p>We support many programming languages. You can even make your own too!</p>
+            <br>
+            <p>Under construction. Stay tuned!</p>
+        </div>
+    `,
+    // Cookie Page
+    'fexplorer:cookies':`
+        <div class="home-page-content">
+            <img src="icons/cookie-icon.png" alt="COOKIE!111" class="app-logo">
+            <h1>Manage your cookies</h1>
+            <p>In FExplorer, Cookies is a side in-game currency that can be traded with FPoints! You receive them by collecting and accepting them on other pages!</p>
+            <br>
+            <h2>Current amount of cookies</h2>
+            <p  id="cookieCounter" style="color: #cc7e0a">0 Cookies</p>
+            <br>
+            <button id="cookie-button" class="home-page-button">Trade FPoints for Cookies!</button>
+            <p>Coming soon!</p>
+        </div>
+    `,
+    // Achievements Page
+    'fexplorer:achievements':`
+    <div class="home-page-content quick-links-content">
+            <img src="icons/badge-icon.png" class="app-logo">
+            <h1>Achievements</h1>
+            <p>In FExplorer, you can do certain tasks to get achievements for good rewards! Most rewards are just FPoints, but some will award you with items!</p>
+            <br>
+            <div class="quick-links-section">
+                <h2>Badges</h2>
+                <ul class="quick-links">
+                        <li>
+                            <img src="icons/fexplorer.png" style="width: 50px; height=50px;">
+                            <a>Welcome to FExplorer!</a>
+                            <p class="link-description">Visit FExplorer for the first time!</p>
+                        </li>
+                        <li>
+                            <img src="icons/financial-icon.png" style="width: 50px; height=50px;">
+                            <a>Big Bucks</a>
+                            <p class="link-description">Get your first 1000 FPoints</p>
+                        </li>
+                </ul>
+            </div>
+        </div>
+    `,
+    // Corporate Pages
+    // WoBlocks page
+    'woblocks.com':`
+        <div div class="home-page-content quick-links-content">
+            <h1>WoBlocks</h1>
+            <p class="tagline">The game.</p>
+            <br>
+            <p>Under construction!</p>
+            <br>
+            <button class="bonus-button">Bonus</button>
+        </div>
+    `,
+    // Other pages
+    // Cola Page
+    'fexplorer://cola.com':`
+        <div class="home-page-content quick-links-content">
+            <h2>bloxy cola</h2>
+            <br>
+            <br>
+            <br>
+            <button class="bonus-button">Bonus</button>
+        </div>
+    `,
+    'fexplorer://cats.com':`
+        <div class="home-page-content quick-links-content">
+            <h2>Cats</h2>
+            <p>I like cats! Meow!</p>
+            <br>
+            <br>
+            <br>
+            <button class="bonus-button">Bonus</button>
         </div>
     `,
 };
@@ -1072,12 +1172,6 @@ function attachDynamicEventListeners() {
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
-            // Lucky subpage (once the user clicks the button)
-            `<div class="random-user-page">
-                <h2>Results</h2>
-                <p>Congratulations! You got lucky and earned some bonus FPoints, probably.</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
             // Boring page
             `<div class="random-user-page">
                 <h2>Boring Page</h2>
@@ -1115,7 +1209,7 @@ function attachDynamicEventListeners() {
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
-            // Broken page
+            // Broken page (Variant 1)
             `<div class="random-user-page" style="font-family: 'Times New Roman', monospace; color: #000;">
                 <h2>Broken Page</h2>
                 <p>Oops! This page seems to be broken. Try refreshing or going back.</p>
@@ -1123,6 +1217,15 @@ function attachDynamicEventListeners() {
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
+            // Broken page (Variant 2 - 404)
+            `<div class="random-user-page" style="font-family: 'Arial'; color: #000;">
+                <h2>404 - Page not found</h2>
+                <p>The requested URL could not be found.</p>
+                <p>The site either could not load or does not exist.</p>
+                <p>You can also create your own page!</p>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            `,
             // FPoints filled page
             `<div class="random-user-page">
                 <h2>FPoints Galore!</h2>
@@ -1139,6 +1242,58 @@ function attachDynamicEventListeners() {
                 <button class="data-selling-button">Sell Data</button>
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Policies page
+            `<div class="random-user-page">
+                <h2>Policies Page</h2>
+                <p>Welcome to the policies page. Here are some random policies:</p>
+                <ul>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                    <li>Blah blah blah blah blah blah blah blah</li>
+                </ul>
+                <p>I hope you'll follow these guidelines because otherwise we will contact the authorities.</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Images page (Variant 1 - Solitaire)
+            `<div class="random-user-page">
+                <h2>My cool images</h2>
+                <p>These are my cool images. Look at them! They're very nice!</p>
+                <img src="icons/solitaire-icon.png" alt="Image"></li>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+                <p></p>
+                <br>
+                <button class="bonus-button">Bonus</button>
+            </div>`,
+            // Images page (Variant 2 - Builder)
+            `<div class="random-user-page">
+                <h2>My cool images</h2>
+                <p>These are my cool images. Look at them! They're very nice!</p>
+                <img src="icons/sandbox-icon.png" alt="Image"></li>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+                <p></p>
+                <br>
+                <button class="bonus-button">Bonus</button>
+            </div>`,
+            // Images page (Variant 3 - Pop Up)
+            `<div class="random-user-page">
+                <h2>My cool images</h2>
+                <p>These are my cool images. Look at them! They're very nice!</p>
+                <img src="icons/pop-up-icon.png" alt="Image"></li>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+                <p></p>
+                <br>
+                <button class="bonus-button">Bonus</button>
             </div>`,
         ];
         const randomIndex = Math.floor(Math.random() * randomTemplates.length);
@@ -1243,6 +1398,8 @@ function attachDynamicEventListeners() {
             const clone = button.cloneNode(true);
             button.parentNode.insertBefore(clone, button.nextSibling);
             clone.addEventListener('click', () => {
+                clone.style.display = 'none';
+                button.style.display = 'none';
                 const luckyFPoints = Math.floor(Math.random() * 50) + 1;
                 const earnedFPoints = Math.round(luckyFPoints * userLuck);
                 const specialMessage = luckyFPoints === 50 ? ' (GOD DAMN!!)' : luckyFPoints === 20 ? ' (Jackpot!)' : luckyFPoints >= 15 ? ' (Awesome!)' : luckyFPoints >= 10 ? ' (Nice!)' :  luckyFPoints >= 5 ? ' (Good!)' :  luckyFPoints >= 1 ? ' (You can\'t even afford anything with this.)' : '';
@@ -1651,7 +1808,7 @@ function attachDynamicEventListeners() {
                             userLuck += item.effect.luck;
                         }
                         if (item.effect.mystery) {
-                            const mysteryItems = ['A shiny badge!', 'A rare emoji pack!', 'A temporary speed boost!', 'A silly sound effect!'];
+                            const mysteryItems = ['A shiny badge!', 'A rare emoji pack!', 'A temporary speed boost!', 'A silly sound effect!', 'A comically placed cheeseburger!'];
                             const randomMystery = mysteryItems[Math.floor(Math.random() * mysteryItems.length)];
                             alert(`You bought a Mystery Box! You found: "${randomMystery}"`);
                         }
@@ -1913,6 +2070,8 @@ function navigate(urlToLoad, isBackNavigation = false) {
 					'settings': { url: 'fexplorer:settings', title: 'FExplorer Settings' },
                     'games': { url: 'fexplorer:games', title: 'FExplorer Games' },
                     'program': { url: 'fexplorer:programs', title: 'FExplorer Programs' },
+                    'cookie': { url: 'fexplorer:cookies', title: 'Cookies' },
+                    'visual editor': { url: 'scripts.visualeditor.com', title: 'Visual Scripts Editor' },
                 };
 
                 const matchedResult = searchResultsMap[lowerQuery] || Object.values(searchResultsMap).find(item => lowerQuery.includes(item.url.split('.')[0]));
@@ -2086,12 +2245,38 @@ homeButton.addEventListener('click', () => {
     navigate(HOME_URL);
 });
 
-settingsButton.addEventListener('click', () => {
-    navigate(SETTINGS_URL);
-});
-
 createPageButton.addEventListener('click', () => {
     navigate(CREATE_PAGE_URL);
+});
+
+// Dropdown buttons directing
+dropdown1.addEventListener('click', () => {
+    navigate(SETTINGS_URL);
+});
+dropdown2.addEventListener('click', () => {
+    navigate(CREATE_PAGE_URL);
+});
+dropdown3.addEventListener('click', () => {
+    navigate(PROGRAMS_URL);
+});
+dropdown4.addEventListener('click', () => {
+    navigate(COOKIE_URL);
+});
+dropdown5.addEventListener('click', () => {
+    navigate(ACHIEVE_URL);
+});
+dropdown6.addEventListener('click', () => {
+    navigate(SHOP_URL);
+});
+
+// CookeiButton
+document.addEventListener('DOMContentLoaded', () => {
+  const cookieButton = document.getElementById('cookieButton');
+  if (cookieButton) {
+    cookieButton.addEventListener('click', () => {
+      alert('Button clicked!');
+    });
+  }
 });
 
 // Forward button functionality can be added if a forward stack is implemented

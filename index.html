@@ -22,9 +22,6 @@
                 <button id="forwardButton" class="nav-button" title="Forward">
                     <img src="icons/forward-icon.png" alt="Forward" style="width:17px;height:17px;vertical-align:middle;">
                 </button>
-                <button id="settingsButton" class="nav-button" title="Settings">
-                    <img src="icons/settings-icon.png" alt="Settings" style="width:15px;height:15px;vertical-align:middle;">
-                </button>
                 <button id="homeButton" class="nav-button" title="Home">
                     <img src="icons/home-icon.png" alt="Home" style="width:15px;height:15px;vertical-align:middle;">
                 </button>
@@ -36,6 +33,20 @@
             <div class="address-bar-container">
                 <input type="text" id="addressBar" class="address-bar" value="fexplorer:home">
                 <button id="goButton" class="go-button">Go</button>
+            </div>
+            <!-- Dropdown button -->
+            <div class="dropdown">
+                <button class="nav-button" title="Dropdown">
+                    <img src="icons/hamburger-icon.png" alt="Create Page" style="width:15px;height:15px;vertical-align:middle;">
+                </button>
+                <div class="dropdown-content">
+                    <a href="#" id="dropdown1" data-url="fexplorer:settings" alt="Settings">Settings</a>
+                    <a href="#" id="dropdown2" data-url="fexplorer:create">Create Page</a>
+                    <a href="#" id="dropdown3" data-url="fexplorer:programs">Programs</a>
+                    <a href="#" id="dropdown4" data-url="fexplorer:cookies">Cookies</a>
+                    <a href="#" id="dropdown5" data-url="fexplorer:placeholder">Achievements</a>
+                    <a href="#" id="dropdown6" data-url="fexplorer:shop">Shop</a>
+                </div>
             </div>
         </div>
         <div class="browser-content" id="browserContent">
