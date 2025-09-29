@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FExplorer (Legacy)</title>
+    <link rel="stylesheet" href="legacy.css">
+    <link rel="icon" type="image/x-icon" href="icons/old-fexplorer.png">
+    <script type="importmap">
+        {
+            "imports": {}
+        }
+    </script>
+</head>
+<body>
+    <div class="browser-frame">
+        <div class="browser-header">
+            <div class="browser-buttons">
+                <span class="browser-button close"></span>
+                <span class="browser-button minimize"></span>
+                <span class="browser-button maximize"></span>
+            </div>
+            <div class="navigation-buttons">
+                <button id="backButton" class="nav-button" disabled>&lt;</button>
+                <button id="homeButton" class="nav-button">&#x2302;</button>
+            </div>
+            <div class="address-bar-container">
+                <input type="text" id="addressBar" class="address-bar" value="fexplorer:home">
+                <button id="goButton" class="go-button">Go</button>
+            </div>
+        </div>
+        <div class="browser-content" id="browserContent">
+            <!-- Content will be loaded by JavaScript -->
+        </div>
+    </div>
+    <script src="legacy.js"></script>
+</body>
+</html>

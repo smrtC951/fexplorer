@@ -607,6 +607,10 @@ const fakeContent = {
                         <p class="link-description">Explore a variety of professional programs!</p>
                     </li>
                     <li>
+                        <a href="#" data-url="fexplorer:wiki">Encyclopedia</a>
+                        <p class="link-description">Explore multiple sections of information about FExplorer!</p>
+                    </li>
+                    <li>
                         <a href="#" data-url="unknown.site">Unknown Site</a>
                         <p class="link-description">Haha funny 404 error</p>
                     </li>
@@ -683,7 +687,7 @@ const fakeContent = {
                         <p>FPoints: <strong id="shopFPoints">${userFPoints.toLocaleString()}</strong></p>
                         <p>Luck: <strong id="shopLuck">${userLuck.toFixed(1)}x</strong></p>
                         <p>Owned Items: <strong id="ownedItems">None</strong></p>
-                        <button class="luck-button" id="convert-luck">Convert Luck</button>
+                        <button class="luck-button" id="convertLuck">Convert Luck</button>
                     </div>
                     <div class="shop-category-list">
                         <h3>Categories</h3>
@@ -718,19 +722,15 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Demo 1.2.1 - The 'whole lot of things going on' mini-update!</h2>
+			<h2>Update Name: Demo 1.2.2 - The Legacy mini-update!</h2>
             <p>Release Date: September 29, 2025</p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
                     <li>New variants of certain random user pages!</li>
-                    <li>New dropdown hamburger menu, along with adjustments on the navigation bar UI</li>
-                    <li>New pages - Cookies, Visual Scripts Editor</li>
-                    <li>Corporate pages!</li>
-                    <li>New search engines - Goog, Ping, FExplorer Browser (Goog only works for now)</li>
-                    <li>Easter eggs! (Clue: drinks and animal)</li>
-                    <li>New shop items!</li>
+                    <li>New page - FExplorer Legacy!</li>
+                    <li>More pages and easter eggs!</li>
                 </ul>
             </div>
 
@@ -1052,6 +1052,19 @@ const fakeContent = {
             </div>
         </div>
     `,
+    // Encyclopedia Page
+    'fexplorer:wiki':`
+    <div class="home-page-content quick-links-content">
+            <img src="icons/fexplorer.png" class="app-logo">
+            <h1>Encyclopedia</h1>
+            <p>There are a lot of content in FExplorer. This page dedicates to arranging them into sections of information!</p>
+            <br>
+            <p>Under construction. Stay tuned!</p>
+            <br>
+            <button class="bonus-button home-page-button">Bonus</button>
+            </div>
+        </div>
+    `,
     // Corporate Pages
     // WoBlocks page
     'woblocks.com':`
@@ -1083,6 +1096,29 @@ const fakeContent = {
             <br>
             <br>
             <button class="bonus-button">Bonus</button>
+        </div>
+    `,
+    'fexplorer://dogs.com':`
+        <div class="home-page-content quick-links-content">
+            <h2>Dogs</h2>
+            <p>Dogs are cool.</p>
+            <br>
+            <br>
+            <br>
+            <button class="bonus-button">Bonus</button>
+        </div>
+    `,
+    'fexplorer:legacy':`
+        <div class="home-page-content">
+            <img src="icons/old-fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <h1>Welcome to the FExplorer Legacy page!</h1>
+            <p class="tagline">Your window to the simulated web.</p>
+            <div class="quick-links-section">
+                <h2>Visit the legacy version here!</h2>
+                <div class="home-page-buttons-container">
+                    <a href="https://smrtc951.github.io/fexplorer/legacy" class="home-page-button" >Visit!</a>
+                </div>
+            </div>
         </div>
     `,
 };
@@ -1145,16 +1181,23 @@ function attachDynamicEventListeners() {
     // For the random user page (excluding the main user page)
     if (currentUrl.startsWith('fexplorer:user-page-')) {
         const randomTemplates = [
-            // Default Page
+            // Default Page (Variant 1)
             `<div class="random-user-page">
                 <h2>Default User Page</h2>
                 <p>This is a default user page. Nothing special here.</p>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
-            // Welcome page
+            // Default Page (Variant 2: Welcome)
             `<div class="random-user-page">
                 <h2>Welcome!</h2>
                 <p>Welcome to my page! Enjoy your stay!</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Default Page (Variant 3: Wonders)
+            `<div class="random-user-page">
+                <h2>Here's a thought:</h2>
+                <p>Actually, I don't.</p>
+                <button class="bonus-button">Bonus</button>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
             // Mystery page
@@ -1178,11 +1221,25 @@ function attachDynamicEventListeners() {
                 <p>This page is so boring... Nothing to see here.</p>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
-            // 404 style page
+            // 404 page (Variant 1)
             `<div class="random-user-page">
                 <h2>404?</h2>
                 <p>This page doesn't exist... or does it?</p>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // 404 page (Variant 2: Error loading)
+            `<div class="random-user-page">
+                <h2>404 - Page quit loading</h2>
+                <p>The page has quitted loading.</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // 404 page (Variant 3: BSOD)
+            `<div class="random-user-page" style="background-color: #0077D6; color: white; font-family: 'Segoe UI Light', monospace;">
+                <h1>:(</h1>
+                <p>The page ran into a problem and needs to reload. We're just collecting some error info, and then we'll restart for you.</p>
+                <h5>0% complete</h5>
+                <br>
+                <p>For more information about this issue and possible fixes, visit our website: <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: white;">Random hyperlink</a></p>
             </div>`,
             // Awesome page
             `<div class="random-user-page">
@@ -1289,6 +1346,17 @@ function attachDynamicEventListeners() {
                 <h2>My cool images</h2>
                 <p>These are my cool images. Look at them! They're very nice!</p>
                 <img src="icons/pop-up-icon.png" alt="Image"></li>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+                <p></p>
+                <br>
+                <button class="bonus-button">Bonus</button>
+            </div>`,
+            // Images page (Variant 4 - Legacy)
+            `<div class="random-user-page">
+                <h2>My cool images</h2>
+                <p>These are my cool images. Look at them! They're very nice!</p>
+                <img src="icons/old-fexplorer.png" alt="Image"></li>
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
                 <p></p>
@@ -1843,6 +1911,13 @@ function attachDynamicEventListeners() {
                 }
             });
         }
+
+        const convertLuck = document.getElementById('convertLuck');
+        convertLuck.addEventListener('click', (event) => {
+            
+            alert('Converted ${userLuck}');
+            alert("I like cheeseburgers!");
+        });
 
         browserContent.querySelectorAll('.shop-sidebar a[data-url^="fexplorer:shop?category="]').forEach(link => {
             link.addEventListener('click', (event) => {

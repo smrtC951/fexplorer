@@ -645,7 +645,7 @@ body {
     transform: none; /* Override general app-header-button transform */
 }
 .app-header-button:hover {
-    background-color: #0056b3;
+    /* background-color: #0056b3; */
     transform: none; /* Override general app-header-button transform */
 }
 
