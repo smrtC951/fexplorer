@@ -243,7 +243,33 @@ body {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  height: 250px;
+  overflow: auto;
 }
+
+/* width */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  display: none;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .home-page-button {
     background-color: #007bff;
     color: white;
@@ -589,6 +615,16 @@ body {
     font-size: 1em;
     outline: none;
     border-radius: 20px 0 0 20px;
+    background-color: #fff;
+    height: 100%;
+}
+.luck-search-input {
+    flex-grow: 1;
+    border: flex;
+    padding: 0 15px;
+    font-size: 1em;
+    outline: flex;
+    border-radius: 10px;
     background-color: #fff;
     height: 100%;
 }

@@ -38,6 +38,8 @@ const PROGRAMS_URL = 'fexplorer:programs';
 const COOKIE_URL = 'fexplorer:cookies';
 const ACHIEVE_URL = 'fexplorer:achievements';
 const SHOP_URL = 'fexplorer:shop';
+const WIKI_URL = 'fexplorer:wiki';
+const TERMINAL_URL = 'file:terminal';
 
 const GOOG_COOLDOWN = 10000;
 const DAILY_BONUS_COOLDOWN = 5 * 60 * 1000;
@@ -146,7 +148,7 @@ userChannel.stockOwned = userChannel.stockOwned || 0;
 
 let userCookies = parseInt(localStorage.getItem('userCookies') || '0', 10);
 let userFPoints = parseInt(localStorage.getItem('userFPoints') || '0', 10);
-let userLuck = parseFloat(localStorage.getItem('userLuck') || '1.0');
+let userLuck = parseInt(localStorage.getItem('userLuck') || '0', 10);
 let lastFinancialVisit = parseInt(localStorage.getItem('lastFinancialVisit') || '0', 10);
 let lastGoogSearchTime = parseInt(localStorage.getItem('lastGoogSearchTime') || '0', 10);
 
@@ -280,6 +282,21 @@ function updateCookiesDisplay() {
         cookiesCounter.textContent = `${userCookies.toLocaleString()} Cookies`;
     }
 }
+
+function showCookiesNotification(amount) {
+    if (!cookiesCounter || amount <= 0) return;
+
+    const notificationSpan = document.createElement('span');
+    notificationSpan.textContent = `+${amount}`;
+    notificationSpan.classList.add('cookies--notification');
+
+    cookiesCounter.appendChild(notificationSpan);
+
+    notificationSpan.addEventListener('animationend', () => {
+        notificationSpan.remove();
+    });
+}
+
 
 function fluctuateStockPrice() {
     const now = Date.now();
@@ -687,7 +704,7 @@ const fakeContent = {
                         <p>FPoints: <strong id="shopFPoints">${userFPoints.toLocaleString()}</strong></p>
                         <p>Luck: <strong id="shopLuck">${userLuck.toFixed(1)}x</strong></p>
                         <p>Owned Items: <strong id="ownedItems">None</strong></p>
-                        <button class="luck-button" id="convertLuck">Convert Luck</button>
+                        <button class="luck-button">Convert All Luck</button>
                     </div>
                     <div class="shop-category-list">
                         <h3>Categories</h3>
@@ -722,15 +739,15 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Demo 1.2.2 - The Legacy mini-update!</h2>
-            <p>Release Date: September 29, 2025</p>
+			<h2>Update Name: Demo 1.2.3 - The Luck Conversion mini-update!</h2>
+            <p>Release Date: October 2, 2025</p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>New variants of certain random user pages!</li>
-                    <li>New page - FExplorer Legacy!</li>
-                    <li>More pages and easter eggs!</li>
+                    <li>Added the ability to convert all of your luck to FPoints!</li>
+                    <li>New random user pages and variants!</li>
+                    <li>New icons to replace placeholder icons! (They will be back)</li>
                 </ul>
             </div>
 
@@ -779,8 +796,7 @@ const fakeContent = {
                             <select id="themeSelect">
                                 <option value="light">Light</option>
                                 <option value="dark">Dark</option>
-                                <option value="custom">Custom</option>
-                                <option value="system">System Default</option>
+                                <option value="classic">Classic</option>
                             </select>
                         </li>
                         <li>
@@ -832,7 +848,7 @@ const fakeContent = {
                 <h2>Available Games</h2>
                 <ul class="quick-links">
                     <li>
-                        <a href="#" data-url="fexplorer:games/pop-up">Pop-up Fighter!</a>
+                        <a href="#" data-url="fexplorer:games/progressbar99">Progressbar99</a>
                         <p class="link-description">Close pop-ups to get as much FPoints as possible!</p>
                     </li>
                     <li>
@@ -884,17 +900,18 @@ const fakeContent = {
             </div>
         </div>
     `,
-    // Game: Pop-up Fighter
-    'fexplorer:games/pop-up': `
+    // Game: Progressbar99
+    // For the link, place a placeholder and replace it later
+    'fexplorer:games/progressbar99': `
         <div class="quick-links-page home-page-content">
             <img src="icons/pop-up-icon.png" alt="Pop-up Placeholder Logo" class="app-logo">
-            <h1>Pop-up Fighter!</h1>
+            <h1>Progressbar99</h1>
             <p class="tagline">Close pop-ups to get as much FPoints as possible!</p>
             <div class="quick-links-section">
                 <h2>Game Area</h2>
-                <p>Pop-up Fighter game would be here.</p>
+                <p>Play the game now!</p>
                 <div id="popupFighterGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
-                    <p>Game under development. Stay tuned!</p>
+                    <a href="https://smrtc951.github.io/fexplorer"><button class="home-page-button">PLAY</button></a>
                 </div>
             </div>
         </div>
@@ -1063,6 +1080,12 @@ const fakeContent = {
             <br>
             <button class="bonus-button home-page-button">Bonus</button>
             </div>
+        </div>
+    `,
+    // Terminal Page
+    'file:terminal':`
+        <div style="background-color: black; color: green; font-family: Consolas, sans-serif;">
+            <p>hi</p>
         </div>
     `,
     // Corporate Pages
@@ -1363,6 +1386,29 @@ function attachDynamicEventListeners() {
                 <br>
                 <button class="bonus-button">Bonus</button>
             </div>`,
+            // Drinks page (Variant 1: Water)
+            `<div class="random-user-page" style="background-color: #0651d2ff; color: #ffffffff;">
+                <h2>Water</h2>
+                <p>Water is good to drink because you can get hydrated!</p>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+                <br>
+                <button class="bonus-button" style="background-color: #052d71ff; color: #ffffffff;">Get hydrated!</button>
+            </div>`,
+            // Drinks page (Variant 2: Vending Machine)
+            `<div class="random-user-page" style="font-family: 'Times New Roman', monospace; color: #000;">
+                <h2>Welcome to the vending machine...</h2>
+                <p>Which of these consumptions determine your fate?</p>
+                <br>
+                <button class="drink-button">Bloxy Cola</button>
+                <button class="drink-button">Bloxaide</button>
+                <button class="drink-button">Uranium Cola</button>
+                <button class="drink-button">H2O</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+                <br>
+                <button class="bonus-button">Bonus</button>
+            </div>`,
         ];
         const randomIndex = Math.floor(Math.random() * randomTemplates.length);
         let contentHtml = randomTemplates[randomIndex];
@@ -1394,6 +1440,20 @@ function attachDynamicEventListeners() {
     if (brokenButton) {
         brokenButton.addEventListener('click', () => {
             brokenButton.style.display = 'none';
+        });
+    }
+        // Drink button (deducts 15 FPoints but increases luck by 0.5)
+    const drinkButton = browserContent.querySelector('.drink-button');
+    if (drinkButton) {
+        drinkButton.addEventListener('click', () => {
+            const earnedFPoints = 15;
+            userFPoints -= earnedFPoints;
+            userLuck += 0.5;
+            saveAppState();
+            showFPointsNotification(userFPoints);
+            alert('Exchanged 15 FPoints for 0.5 Luck rate!');
+            alert(`FPoints left: ${userFPoints.toLocaleString()} Luck rate: ${userLuck.toLocaleString()}`)
+            drinkButton.ststyle.display = 'none';
         });
     }
 
@@ -1443,7 +1503,7 @@ function attachDynamicEventListeners() {
     if (dataSellingButton) {
         dataSellingButton.addEventListener('click', () => {
             const randomSellingAmount = Math.floor(Math.random() * 101) + 50; // between 50 and 150
-            userFPoints += randomSellingAmount;
+            userFPoints -= randomSellingAmount;
             saveAppState();
             alert('Thank you for your data! You know what? We don\'t want it anymore. We have a lot of it. Bye!');
             dataSellingButton.style.display = 'none';
@@ -1912,13 +1972,21 @@ function attachDynamicEventListeners() {
             });
         }
 
-        const convertLuck = document.getElementById('convertLuck');
-        convertLuck.addEventListener('click', (event) => {
-            
-            alert('Converted ${userLuck}');
-            alert("I like cheeseburgers!");
+        // Convert luck function
+        const luckButton = browserContent.querySelector('.luck-button');
+        luckButton.addEventListener('click', () => {
+            var result = confirm('Are you sure you want to convert ALL of your luck?');
+            if (result === true) {
+                const earnedFPoints = (userLuck * -10) ;
+                earnedFPoints;
+                userFPoints -= earnedFPoints;
+                saveAppState();
+                showFPointsNotification(earnedFPoints);
+                alert(`Converted ${userLuck} Luck to ${earnedFPoints} FPoints!`);
+                userLuck = 1.0;
+            }
         });
-
+        
         browserContent.querySelectorAll('.shop-sidebar a[data-url^="fexplorer:shop?category="]').forEach(link => {
             link.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -1949,6 +2017,8 @@ function attachDynamicEventListeners() {
             const settingsStatus = browserContent.querySelector('#settingsStatus');
             if (osSelect) osSelect.value = 'default';
             if (themeSelect) themeSelect.value = 'light';
+            if (searchEngineSelect) searchEngineSelect.value = 'goog';
+            if (homepageSelect) homepageSelect.value = 'fexplorer:home';
             if (notificationsToggle) notificationsToggle.checked = false;
             updateWindowStyle('default');
             document.body.classList.remove('fexplorer-dark-mode');
@@ -2343,15 +2413,11 @@ dropdown5.addEventListener('click', () => {
 dropdown6.addEventListener('click', () => {
     navigate(SHOP_URL);
 });
-
-// CookeiButton
-document.addEventListener('DOMContentLoaded', () => {
-  const cookieButton = document.getElementById('cookieButton');
-  if (cookieButton) {
-    cookieButton.addEventListener('click', () => {
-      alert('Button clicked!');
-    });
-  }
+dropdown7.addEventListener('click', () => {
+    navigate(WIKI_URL);
+});
+dropdown8.addEventListener('click', () => {
+    navigate(TERMINAL_URL);
 });
 
 // Forward button functionality can be added if a forward stack is implemented
@@ -2368,7 +2434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     navigate(HOME_URL);
 });
 
-// ...existing code...
+// Settings
     if (currentUrl === 'fexplorer:settings') {
         const osSelect = browserContent.querySelector('#osSelect');
         const themeSelect = browserContent.querySelector('#themeSelect');
@@ -2416,7 +2482,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 if (osSelect) {
                     localStorage.setItem('fexplorerSettingOS', osSelect.value);
-                    updateWindowStyle(osSelect.value); // Ensure window style updates on save
+                    updateWindowStyle(osSelect.value);
                 }
                 if (themeSelect) {
                     localStorage.setItem('fexplorerSettingTheme', themeSelect.value);
@@ -2465,15 +2531,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.removeItem('fexplorerSettingNotifications');
                 if (osSelect) osSelect.value = 'default';
                 if (themeSelect) themeSelect.value = 'light';
+                if (searchEngineSelect) themeSelect.value = 'goog';
+                if (homepageSelect) homepageSelect.value = 'fexplorer:home';
                 if (notificationsToggle) notificationsToggle.checked = false;
                 updateWindowStyle('default');
                 document.body.classList.remove('fexplorer-dark-mode');
                 if (settingsStatus) settingsStatus.textContent = '';
                 if (notificationsToggle && notificationsToggle.checked) {
-                    showSettingsNotification('Settings reset to default.', 'success');
+                    alert('Settings reset to default.');
                 } else {
-                    // Show notification as a textbox for reset even if notifications are off
-                    showSettingsNotification('Settings reset to default.', 'success');
+                    alert('Settings reset to default.');
                 }
             });
         }
