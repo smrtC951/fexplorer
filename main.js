@@ -1,24 +1,103 @@
-// OS window style switching logic
-    function updateWindowStyle(osValue) {
-        const frame = document.querySelector('.browser-frame');
-        if (!frame) return;
-        frame.classList.remove('window-mac', 'window-win11', 'window-win7', 'window-macx');
-        switch (osValue) {
-            case 'win11':
-                frame.classList.add('window-win11');
-                break;
-            case 'win7':
-                frame.classList.add('window-win7');
-                break;
-            case 'macx':
-                frame.classList.add('window-macx');
-                break;
-            case 'default':
-            default:
-                frame.classList.add('window-mac');
-                break;
-        }
+// =============================
+// OS Window Style Switching
+// =============================
+function updateWindowStyle(osValue) {
+    const frame = document.querySelector('.browser-frame');
+    const controls = frame.querySelector('.browser-buttons');
+    if (!frame || !controls) return;
+
+    frame.classList.remove('window-mac', 'window-win11', 'window-win7', 'window-macx');
+    controls.classList.remove('left', 'right');
+
+    switch (osValue) {
+        case 'win11':
+        case 'win7':
+            frame.classList.add('window-win11');
+            controls.classList.add('right'); // Windows-style: buttons on right
+            break;
+        case 'macx':
+        case 'default':
+        default:
+            frame.classList.add('window-mac');
+            controls.classList.add('left'); // macOS-style: buttons on left
+            break;
     }
+}
+
+
+// Apply saved OS style on load
+updateWindowStyle(localStorage.getItem('fexplorerSettingOS') || 'default');
+
+// =============================
+// Settings Logic
+// =============================
+function saveSettings() {
+    try {
+        const osSelect = browserContent.querySelector('#osSelect');
+        const themeSelect = browserContent.querySelector('#themeSelect');
+        const notificationsToggle = browserContent.querySelector('#notificationsToggle');
+        const settingsStatus = browserContent.querySelector('#settingsStatus');
+
+        if (osSelect) {
+            localStorage.setItem('fexplorerSettingOS', osSelect.value);
+            updateWindowStyle(osSelect.value);
+        }
+        if (themeSelect) {
+            localStorage.setItem('fexplorerSettingTheme', themeSelect.value);
+            if (themeSelect.value === 'Dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+        if (notificationsToggle) {
+            localStorage.setItem('fexplorerSettingNotifications', notificationsToggle.checked ? 'true' : 'false');
+        }
+
+        if (settingsStatus) settingsStatus.textContent = 'Settings saved!';
+    } catch (e) {
+        console.error("Error saving settings", e);
+    }
+}
+
+function resetSettings() {
+    localStorage.removeItem('fexplorerSettingOS');
+    localStorage.removeItem('fexplorerSettingTheme');
+    localStorage.removeItem('fexplorerSettingNotifications');
+
+    updateWindowStyle('default');
+    document.body.classList.remove('dark-mode');
+
+    const osSelect = browserContent.querySelector('#osSelect');
+    const themeSelect = browserContent.querySelector('#themeSelect');
+    const notificationsToggle = browserContent.querySelector('#notificationsToggle');
+    const settingsStatus = browserContent.querySelector('#settingsStatus');
+
+    if (osSelect) osSelect.value = 'default';
+    if (themeSelect) themeSelect.value = 'Light';
+    if (notificationsToggle) notificationsToggle.checked = false;
+    if (settingsStatus) settingsStatus.textContent = 'Settings reset to default.';
+}
+
+function attachSettingsListeners() {
+    const saveSettingsBtn = browserContent.querySelector('#saveSettingsBtn');
+    const resetSettingsBtn = browserContent.querySelector('#resetSettingsBtn');
+
+    if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
+    if (resetSettingsBtn) resetSettingsBtn.addEventListener('click', resetSettings);
+}
+
+// Apply saved theme on load
+document.addEventListener("DOMContentLoaded", () => {
+    const savedTheme = localStorage.getItem('fexplorerSettingTheme');
+    if (savedTheme === 'Dark') {
+        document.body.classList.add('dark-mode');
+    }
+});
+
+// =============================
+// Global Elements
+// =============================
 
     // On page load, apply saved OS style
     updateWindowStyle(localStorage.getItem('fexplorerSettingOS') || 'default');
@@ -739,15 +818,16 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Demo 1.2.3 - The Luck Conversion mini-update!</h2>
-            <p>Release Date: October 2, 2025</p>
+			<h2>Update Name: Demo 1.3 - The Major Update!</h2>
+            <p>Release Date: October 17, 2025</p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>Added the ability to convert all of your luck to FPoints!</li>
-                    <li>New random user pages and variants!</li>
-                    <li>New icons to replace placeholder icons! (They will be back)</li>
+                    <li>Added more customization!</li>
+                    <li>New main page!</li>
+                    <li>New user page variants!</li>
+                    <li>Upcoming game called WoBlocks!</li>
                 </ul>
             </div>
 
@@ -756,7 +836,6 @@ const fakeContent = {
                 <ul>
                     <li>Functionality on the search engines and Cookies</li>
 					<li>Creator Hub rework soon!</li>
-                    <li>More customization soon!</li>
                     <li>More games coming soon!</li>
                     <li>More pages coming to you soon!</li>
                     <li>More bug fixes, probably</li>
@@ -781,6 +860,7 @@ const fakeContent = {
                 <div class="settings-section">
                     <h2>Main Settings</h2>
                     <p style="color: red;">Warning: Some settings may not be functional yet!</p>
+                    <p style="color: #ff6600ff;">Note: For the Operating System options, you have to reload the website to see the changes!</p>
                     <ul>
                         <li>
                             <label for="osSelect">Operating System</label>
@@ -826,6 +906,14 @@ const fakeContent = {
                     </ul>
                     <button id="saveSettingsBtn" class="fexplorer-button settings-save-btn" style="background-color:#28a745;color:#fff;margin-top:10px;">Save Settings</button>
                 </div>
+                <div class="settings-section">
+                    <h2>Browser Statistics</h2>
+                    <p>This section shows you the status of your browser. Hopefully it's good.</p>
+                    <div class="app-header">
+                        <img src="icons/fexplorer.png" class="app-logo" style="height: 50px; width: 50px;">
+                        <p class="app-title">FExplorer Demo 1.2.4</p>
+                    </div>
+                </div>
                 <div id="settingsStatus" style="margin-top:10px;color:#28a745;"></div>
             </div>
         </div>
@@ -848,10 +936,6 @@ const fakeContent = {
                 <h2>Available Games</h2>
                 <ul class="quick-links">
                     <li>
-                        <a href="#" data-url="fexplorer:games/progressbar99">Progressbar99</a>
-                        <p class="link-description">Close pop-ups to get as much FPoints as possible!</p>
-                    </li>
-                    <li>
                         <a href="#" data-url="fexplorer:games/sandbox">Sandbox Building</a>
                         <p class="link-description">Build and explore your own sandboxes!</p>
                     </li>
@@ -866,6 +950,10 @@ const fakeContent = {
                     <li>
                         <a href="https://www.roblox.com/games/88385299342844/PHASE-2-Bukit-Green-Automatic-Subway-BGAS">Bukit Green Automatic Subway</a>
                         <p class="link-description">No description available.</p>
+                    </li>
+                    <li>
+                        <a href="https://www.roblox.com/games/88385299342844/PHASE-2-Bukit-Green-Automatic-Subway-BGAS">Progressbar Popup Blocker</a>
+                        <p class="link-description">Close as much popups as possible!</p>
                     </li>
                 </ul>
             </div>
@@ -896,23 +984,11 @@ const fakeContent = {
                         <a href="#" data-url="fexplorer:placeholder">Visual Scripts Editor</a>
                         <p class="link-description">Script your own programs visually.</p>
                     </li>
+                    <li>
+                        <a href="placeholder.txt" download="placeholder.txt">placeholder</a>
+                        <p class="link-description">placeholder</p>
+                    </li>
                 </ul>
-            </div>
-        </div>
-    `,
-    // Game: Progressbar99
-    // For the link, place a placeholder and replace it later
-    'fexplorer:games/progressbar99': `
-        <div class="quick-links-page home-page-content">
-            <img src="icons/pop-up-icon.png" alt="Pop-up Placeholder Logo" class="app-logo">
-            <h1>Progressbar99</h1>
-            <p class="tagline">Close pop-ups to get as much FPoints as possible!</p>
-            <div class="quick-links-section">
-                <h2>Game Area</h2>
-                <p>Play the game now!</p>
-                <div id="popupFighterGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
-                    <a href="https://smrtc951.github.io/fexplorer"><button class="home-page-button">PLAY</button></a>
-                </div>
             </div>
         </div>
     `,
@@ -1131,6 +1207,23 @@ const fakeContent = {
             <button class="bonus-button">Bonus</button>
         </div>
     `,
+    'fexplorer://burger.com':`
+        <div class="home-page-content quick-links-content">
+            <h2>Burger</h2>
+            <p>Dogs are cool.</p>
+            <br>
+            <br>
+            <br>
+            <button class="bonus-button">Bonus</button>
+        </div>
+    `,
+    'paranoid.com':`
+        <div style="height: 450px; background-color: #4f0b0bff; color: #fff; font-family: Times New Roman;">
+            <p>Does this website even exist?</p>
+            <p>Mabye you're being paranoid.</p>
+            <p>Mabye I am the one who is making you paranoid.</p>
+        </div>
+    `,
     'fexplorer:legacy':`
         <div class="home-page-content">
             <img src="icons/old-fexplorer.png" alt="FExplorer Logo" class="app-logo">
@@ -1264,13 +1357,22 @@ function attachDynamicEventListeners() {
                 <br>
                 <p>For more information about this issue and possible fixes, visit our website: <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: white;">Random hyperlink</a></p>
             </div>`,
-            // Awesome page
+            // Awesome page (Variant 1: Default)
             `<div class="random-user-page">
                 <h2>Awesome Page</h2>
                 <p>I AM AWESOME! YOU ARE AWESOME! WE ARE AWESOME!!</p>
                 <button class="bonus-button">Bonus</button>
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Awesome page (Variant 2: ONE MORE GAME!)
+            `<div class="random-user-page">
+                <img src="icons/ONEMOREGAME!.jpg">
+                <h2>ONE MORE GAME!</h2>
+                <p>ONE MORE GAME!</p>
+                <button class="bonus-button">ONE MORE GAME!</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">ONE MORE GAME!</a>
             </div>`,
             // Suspicious page
             `<div class="random-user-page" style="background-color: #f2ff00ff; color: black;">
@@ -1442,7 +1544,8 @@ function attachDynamicEventListeners() {
             brokenButton.style.display = 'none';
         });
     }
-        // Drink button (deducts 15 FPoints but increases luck by 0.5)
+
+    // Drink button (deducts 15 FPoints but increases luck by 0.5)
     const drinkButton = browserContent.querySelector('.drink-button');
     if (drinkButton) {
         drinkButton.addEventListener('click', () => {

@@ -1,0 +1,46 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+}
+
+h1 {
+    color: #2c3e50;
+}
+
+.button {
+    width: auto;
+    height: 25px;
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #bbb;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+    text-align: right;
+}
+
+.button:hover {
+    background-color: #c7e6ff;
+}
+
+.button:disabled {
+    background-color: #9c9c9c;
+    cursor: not-allowed;
+}
+
+.logo {
+    width: 100px;
+}
+
+
+/* Only applies to the second button with an icon */
+.with-icon .btn-icon {
+  width: 20px;
+  height: 20px;
+  margin: center;
+  opacity: .75; /* makes just the image slightly transparent */
+  display: block;
+}
+
