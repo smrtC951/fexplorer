@@ -819,7 +819,7 @@ const fakeContent = {
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
 			<h2>Update Name: Demo 1.3 - The Major Update!</h2>
-            <p>Release Date: October 17, 2025</p>
+            <p>Release Date: October 31, 2025</p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
@@ -828,6 +828,7 @@ const fakeContent = {
                     <li>New main page!</li>
                     <li>New user page variants!</li>
                     <li>Upcoming game called WoBlocks!</li>
+                    <li>New halloween user page variant!</li>
                 </ul>
             </div>
 
@@ -911,7 +912,7 @@ const fakeContent = {
                     <p>This section shows you the status of your browser. Hopefully it's good.</p>
                     <div class="app-header">
                         <img src="icons/fexplorer.png" class="app-logo" style="height: 50px; width: 50px;">
-                        <p class="app-title">FExplorer Demo 1.2.4</p>
+                        <p class="app-title">FExplorer Demo 1.3</p>
                     </div>
                 </div>
                 <div id="settingsStatus" style="margin-top:10px;color:#28a745;"></div>
@@ -1511,6 +1512,14 @@ function attachDynamicEventListeners() {
                 <br>
                 <button class="bonus-button">Bonus</button>
             </div>`,
+            // Halloween Page
+            `<div class="random-user-page" style="background-color: #000000; color: #ff7518;">
+                <h2>Happy Halloween!</h2>
+                <p>Trick or Treat! Click the button below for a spooky surprise!</p>
+                <button class="bonus-button halloween-button" style="background-color: #ff7518; color: #000000;">Spooky Surprise!</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: #ff7518;">Random hyperlink</a>
+            </div>`,
         ];
         const randomIndex = Math.floor(Math.random() * randomTemplates.length);
         let contentHtml = randomTemplates[randomIndex];
@@ -1569,6 +1578,19 @@ function attachDynamicEventListeners() {
             saveAppState();
             showFPointsNotification(randomBonusPoints);
             bonusButton.style.display = 'none';
+        });
+    }
+
+    // Halloween button
+    const halloweenButton = browserContent.querySelector('.halloween-button');
+    if (halloweenButton) {
+        halloweenButton.addEventListener('click', () => {
+            const randomHalloweenPoints = Math.floor(Math.random() * 101) + 50;
+            userFPoints += randomHalloweenPoints;
+            saveAppState();
+            showFPointsNotification(randomHalloweenPoints);
+            alert("Happy Halloween! You received " + randomHalloweenPoints + " FPoints!");
+            halloweenButton.style.display = 'none';
         });
     }
 
