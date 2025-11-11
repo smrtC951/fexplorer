@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fighting Weapon Balls!</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .button {
+            width: auto;
+            height: 25px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #bbb;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            vertical-align: middle;
+            display: inline-flex;
+            align-items: center;
+            text-align: right;
+        }
+        .button:hover {
+            background-color: #c7e6ff;
+        }
+        .button:disabled {
+            background-color: #9c9c9c;
+            cursor: not-allowed;
+        }
+        .game-area {
+            width: 250px;
+            height: 250px;
+            background-color: #f0f0f0;
+            margin: 5px;
+        }
+        .shop-section {
+            width: 500px;
+            height: 250px;
+            background-color: #f0f0f0;
+            display: none;
+            overflow: auto;
+            margin: 5px;
+        }
+        .shop-info-section {
+            width: 200px;
+            height: 250px;
+            background-color: #f0f0f0;
+            margin-left: auto;
+            display: none;
+            vertical-align: top;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fighting Weapon Balls!</h1>
+    <p>Watch balls with weapons fight to their doom! This game is inspired by Weapon Ball Fight on the Play Store. Try that out!</p>
+    <button class="button" id="shopButton">Shop</button>
+    <div class="game-area">
+        <p></p>
+    </div>
+    <div class="shop-section" id="shopSection">
+        <h1>Shop</h1>
+        <button class="button" data-weapon="sword">Sword</button>
+        <button class="button" data-weapon="dagger">Dagger</button>
+    </div>
+    <div id="shopInfoSection" class="shop-info-section" style="display:none;"></div>
+</body>
+<script src="ball.js"></script>
+</html>

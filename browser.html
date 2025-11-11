@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>FExplorer (Demo 1.3)</title>
+		<title>FExplorer (Alpha 1.4)</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" href="style.css">
@@ -28,6 +28,9 @@
                 <button id="createPageButton" class="nav-button" title="Create Page">
                     <img src="icons/create-icon.png" alt="Create Page" style="width:15px;height:15px;vertical-align:middle;">
                 </button>
+                <button id="informationButton" class="nav-button info-button" title="Page Info">
+                    <img src="icons/new-info-icon.png" alt="Page Info" style="width:15px;height:15px;vertical-align:middle;">
+                </button>
                 <span id="fpointsCounter" class="fpoints-counter">0 FPoints</span>
             </div>
             <div class="address-bar-container">
@@ -48,8 +51,15 @@
                     <a href="#" id="dropdown6">Shop</a>
                     <a href="#" id="dropdown7">Encyclopedia</a>
                     <a href="#" id="dropdown8">Terminal</a>
+                    <a href="#" id="dropdown9">AI</a>
+                    <a href="#" id="dropdown10">Events</a>
                 </div>
             </div>
+        </div>
+        <div class="your-account" id="yourAccountUi">
+            <span id="userAccountInfo">You're not logged in yet.</span>
+            <button class="nav-button" id="logInButton" style="position: right;" disabled>Log in</button>
+            <button class="nav-button" id="userAccountClose" style="position: right;">X</button>
         </div>
         <div class="browser-content" id="browserContent">
             <!-- Content will be loaded by JavaScript -->
