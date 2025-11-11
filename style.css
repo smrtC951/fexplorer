@@ -3,6 +3,10 @@
     background-color: #e0e0e0;
     border-radius: 8px 8px 0 0;
 }
+.window-classic .browser-header {
+    background-color: #e0e0e0;
+    border-radius: 8px 8px 0 0;
+}
 /* Positioning helpers for window buttons */
 .browser-buttons.left {
   margin-right: auto;   /* push buttons to the left */
@@ -18,10 +22,14 @@
 .window-mac .browser-buttons .browser-button.minimize { background-color: #ffbd2e; }
 .window-mac .browser-buttons .browser-button.maximize { background-color: #27c93f; }
 
+.window-classic .browser-buttons .browser-button.close { background-color: #ff5f56; }
+.window-classic .browser-buttons .browser-button.minimize { background-color: #ffbd2e; }
+.window-classic .browser-buttons .browser-button.maximize { background-color: #27c93f; }
+
 .window-win11 .browser-header {
-    background-color: #64697e;
+    background-color: #78a9be;
     border-radius: 8px 8px 0 0;
-    border-bottom: 1px solid #979ea1;
+    border-bottom: 1px solid #6b8a98;
 }
 .window-win11 .browser-buttons .browser-button.close { background-color: rgb(191, 0, 0); }
 .window-win11 .browser-buttons .browser-button.minimize { background-color: rgb(191, 153, 0); }
@@ -36,6 +44,80 @@
 .window-win7 .browser-buttons .browser-button.minimize { background-color: #f0ad4e; }
 .window-win7 .browser-buttons .browser-button.maximize { background-color: #5cb85c; }
 
+.window-win8 .browser-header {
+    background-color: #deccb0;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #b0cfde;
+}
+.window-win8 .browser-buttons .browser-button.close { background-color: #d9534f; }
+.window-win8 .browser-buttons .browser-button.minimize { background-color: #efd1a8; }
+.window-win8 .browser-buttons .browser-button.maximize { background-color: #81b881; }
+
+.window-winxp .browser-header {
+    background-color: #3B77BC;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #D4D0C8;
+}
+.window-winxp .browser-buttons .browser-button.close { background-color: #5ba2f3; }
+.window-winxp .browser-buttons .browser-button.minimize { background-color: #5ba2f3 ; }
+.window-winxp .browser-buttons .browser-button.maximize { background-color: #d9534f; }
+/* JX1DX1 Theme */
+.theme-jx1dx1 {
+    background-color: #000000 !important;
+    color: #7b0000 !important;
+    font-family: 'Consolas', monospace !important;
+    text-shadow: 0 0 5px #ff0000;
+}
+
+.theme-jx1dx1 .browser-header {
+    background-color: #1a0000 !important;
+    border-bottom: 1px solid #7b0000 !important;
+}
+
+.theme-jx1dx1 .browser-buttons .browser-button {
+    background-color: #7b0000 !important;
+    box-shadow: 0 0 5px #ff0000;
+}
+
+.theme-jx1dx1 .browser-buttons .browser-button:hover {
+    background-color: #ff0000 !important;
+}
+
+.theme-jx1dx1 input,
+.theme-jx1dx1 button {
+    background-color: #1a0000 !important;
+    color: #7b0000 !important;
+    border: 1px solid #7b0000 !important;
+}
+
+.theme-jx1dx1 input:focus,
+.theme-jx1dx1 button:hover {
+    background-color: #2a0000 !important;
+    box-shadow: 0 0 5px #ff0000;
+}
+
+.theme-jx1dx1 .jx1dx1-page {
+    animation: glitch 0.5s infinite;
+}
+
+@keyframes glitch {
+    0% { transform: skew(0deg); }
+    20% { transform: skew(0.5deg); }
+    40% { transform: skew(-0.5deg); }
+    60% { transform: skew(0.25deg); }
+    80% { transform: skew(-0.25deg); }
+    100% { transform: skew(0deg); }
+}
+
+.window-win95 .browser-header {
+    background-color: #018281 ;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #02a5ff ;
+}
+.window-win95 .browser-buttons .browser-button.close { background-color: #e35f5f; }
+.window-win95 .browser-buttons .browser-button.minimize { background-color: #dfe300; }
+.window-win95 .browser-buttons .browser-button.maximize { background-color: #208c71; }
+
 .window-macx .browser-header {
     background-color: #dbefff;
     border-radius: 8px 8px 0 0;
@@ -44,6 +126,15 @@
 .window-macx .browser-buttons .browser-button.close { background-color: #ff605c; }
 .window-macx .browser-buttons .browser-button.minimize { background-color: #ffbd44; }
 .window-macx .browser-buttons .browser-button.maximize { background-color: #00ca56; }
+
+.window-mac9 .browser-header {
+    background-color: #ababab;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+.window-mac9 .browser-buttons .browser-button.close { background-color: #e0e0e0; }
+.window-mac9 .browser-buttons .browser-button.minimize { background-color: #e0e0e0; }
+.window-mac9 .browser-buttons .browser-button.maximize { background-color: #e0e0e0; }
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -61,7 +152,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     width: 100%; /* Full width on mobile */
-    max-width: 900px; /* Max width for desktop */
+    max-width: 1000px; /* Max width for desktop */
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -81,6 +172,137 @@ body {
 
 .browser-buttons {
     display: flex;
+}
+
+/* Inventory Page Styles */
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.inventory-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inventory-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.inventory-tab {
+    padding: 8px 16px;
+    background: #333;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.inventory-tab:hover {
+    background: #444;
+}
+
+.inventory-tab.active {
+    background: #666;
+}
+
+.inventory-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    padding: 10px;
+}
+
+.inventory-item {
+    display: flex;
+    gap: 15px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 15px;
+    transition: transform 0.2s;
+}
+
+.inventory-item:hover {
+    transform: translateY(-2px);
+}
+
+.item-icon {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+}
+
+.item-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-info h3 {
+    margin: 0 0 8px 0;
+    color: #fff;
+}
+
+.item-info p {
+    margin: 0 0 12px 0;
+    color: #aaa;
+    font-size: 0.9em;
+}
+
+.theme-button,
+.cosmetic-button,
+.use-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    background: #444;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.theme-button:hover,
+.cosmetic-button:hover,
+.use-button:hover {
+    background: #555;
+}
+
+.theme-button:disabled,
+.cosmetic-button:disabled,
+.use-button:disabled {
+    background: #2a2a2a;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.inventory-item.theme.active {
+    border: 2px solid #4CAF50;
+}
+
+.inventory-item.cosmetic.equipped {
+    border: 2px solid #2196F3;
+}
+
+.inventory-item.used {
+    opacity: 0.7;
     gap: 6px;
     flex-shrink: 0; /* Prevent buttons from shrinking */
 }
@@ -131,6 +353,10 @@ body {
 }
 
 .nav-button:hover:not(:disabled) {
+    background-color: #e6e6e6;
+    border-color: #a3a3a3;
+}
+.info-button:hover:not(:disabled) {
     background-color: #e6e6e6;
     border-color: #a3a3a3;
 }
@@ -289,12 +515,15 @@ body {
     border-radius: 25px;
     font-size: 1.1em;
     cursor: pointer;
-
 }
 
 .home-page-button:hover {
     background-color: #0056b3;
     transform: translateY(-2px);
+}
+.home-page-button:disabled {
+    background-color: #9c9c9c;
+    cursor: not-allowed;
 }
 /* Links inside dropdown content */
 .dropdown-content a {
@@ -356,6 +585,46 @@ body {
     text-align: center;
     padding: 20px; /* Add padding for overall content */
 }
+
+    /* Create Page Modal Styles */
+    .modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+    }
+    .modal-panel {
+        position: relative;
+        background: #fff;
+        width: 90%;
+        max-width: 820px;
+        max-height: 80vh;
+        overflow: auto;
+        border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        padding: 12px;
+        z-index: 2;
+    }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .modal-header h2 { margin:0; }
+    .modal-close { background:transparent; border:none; font-size:20px; cursor:pointer; }
+    .create-tabs { display:flex; gap:8px; margin:10px 0; }
+    .create-tabs .tab { padding:6px 10px; border-radius:6px; cursor:pointer; border:1px solid #ddd; background:#f7f7f7; }
+    .create-tabs .tab.active { background:#fff; border-color:#bbb; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.03); }
+    .modal-body label { display:block; margin-bottom:8px; font-weight:600; }
+    .modal-body input[type="text"], .modal-body textarea { width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:6px; resize:vertical; }
+    .create-section { margin-bottom:12px; }
+    .create-preview { margin-top:10px; }
+    .create-preview iframe { width:100%; height:250px; border:1px solid #ccc; border-radius:6px; }
+    .modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    .modal-footer .nav-button { padding:6px 12px; }
 .goog-search-input {
     width: 100%;
     max-width: 500px;
@@ -402,8 +671,9 @@ body {
 
 .app-logo { /* Renamed from .home-page-logo for general use */
     width: 120px; /* Adjust size as needed */
-    height: auto;
+    height: 120px;
     margin-bottom: 15px;
+    transition: background-image 0.3s ease; /* Smooth transition between icons */
 }
 
 .home-page-content h1 {
@@ -494,6 +764,13 @@ body {
     font-size: 1.5em;
     color: #2c3e50;
     margin-bottom: 15px;
+}
+
+.black-market-section {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 500px;
+    background-color: #f0f8ff;
 }
 
 .quick-links {
@@ -689,6 +966,22 @@ body {
 
 .luck-button:hover {
     background-color: #be6c00;
+    transform: none; /* Override general app-header-button transform */
+}
+
+.refund-button {
+    background-color: #ff0000;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.refund-button:hover {
+    background-color: #be0000;
     transform: none; /* Override general app-header-button transform */
 }
 .app-header-button:hover {
@@ -1295,6 +1588,33 @@ body {
     overflow-y: auto; /* Allow content to scroll */
 }
 
+/* Achievement cards */
+.achievement-card {
+    padding: 20px;
+    background-color: #f9f9f9;
+    min-height: 100%;
+}
+.achievement-card .achievement-title {
+    font-size: 1.5em;
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+.achievement-card .achievement-description {
+    font-size: 1em;
+    color: #555;
+    line-height: 1.5;
+}
+.achievement-card .achievement-award {
+    color: green;
+    font-weight: bold;
+    margin-top: 15px;
+}
+.achievement-card .achievement-status {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #007bff;
+}
 /* Headbook Specific Styles (Facebook-like) */
 .headbook-page-layout {
     display: flex;
@@ -2128,11 +2448,17 @@ body {
 }
 
 /* OS-specific window button styles */
-.window-mac .browser-buttons {
+.window-mac .browser-buttons,
+.window-macx .browser-buttons,
+.window-classic .browser-buttons,
+.window-mac9 .browser-buttons {
     justify-content: flex-start;
     gap: 6px;
 }
-.window-mac .browser-button {
+.window-mac .browser-button,
+.window-macx .browser-button,
+.window-classic .browser-button,
+.window-mac9 .browser-button {
     width: 12px;
     height: 12px;
     border-radius: 50%;
@@ -2143,12 +2469,18 @@ body {
 .window-mac .browser-maximize { background: #28c940; }
 
 .window-win11 .browser-buttons,
-.window-win7 .browser-buttons {
+.window-win7 .browser-buttons,
+.window-win95 .browser-buttons,
+.window-winxp .browser-buttons,
+.window-win8 .browser-buttons {
     justify-content: flex-end;
     gap: 0;
 }
 .window-win11 .browser-button,
-.window-win7 .browser-button {
+.window-win7 .browser-button,
+.window-win95 .browser-button,
+.window-winxp .browser-button,
+.window-win8 .browser-button {
     width: 16px;
     height: 16px;
     border-radius: 4px;
@@ -2167,29 +2499,48 @@ body {
 .window-win7 .browser-close { background: #c00; }
 .window-win7 .browser-minimize { background: #f9f9f9; color: #333; }
 .window-win7 .browser-maximize { background: #00c000; }
+.window-win8 .browser-close { background: #c00; }
+.window-win8 .browser-minimize { background: #f9f9f9; color: #333; }
+.window-win8 .browser-maximize { background: #00c000; }
+.window-win95 .browser-close { background: #c00; }
+.window-win95 .browser-minimize { background: #f9f9f9; color: #333; }
+.window-win95 .browser-maximize { background: #00c000; }
+.window-winxp .browser-close { background: #c00; }
+.window-winxp .browser-minimize { background: #f9f9f9; color: #333; }
+.window-winxp .browser-maximize { background: #00c000; }
 
 /* Add icons for Win buttons */
 .window-win11 .browser-close::after,
+.window-win8 .browser-close::after,
+.window-winxp .browser-close::after,
+.window-win95 .browser-close::after,
 .window-win7 .browser-close::after {
     content: '\2715'; /* X */
     font-size: 12px;
 }
 .window-win11 .browser-minimize::after,
-.window-win7 .browser-minimize::after {
+.window-win7 .browser-minimize::after,
+.window-win95 .browser-minimize::after,
+.window-winxp .browser-minimize::after,
+.window-win8 .browser-minimize::after {
     content: '\2013'; /* – */
     font-size: 14px;
     color: #333;
 }
 .window-win11 .browser-maximize::after,
+.window-win8 .browser-maximize::after,
+.window-winxp .browser-maximize::after,
+.window-win95 .browser-maximize::after,
 .window-win7 .browser-maximize::after {
     content: '\25A1'; /* □ */
     font-size: 12px;
 }
 
 /* Dark mode styles for FExplorer */
-body.fexplorer-dark-mode,
-.fexplorer-dark-mode .settings-page-content,
-.fexplorer-dark-mode .home-page-content,
+body.fexplorer-dark-mode {
+    background-color: #424242 !important;
+    color: #e0e0e0 !important;
+}
 .fexplorer-dark-mode .settings-section,
 .fexplorer-dark-mode .app-header,
 .fexplorer-dark-mode .fexplorer-button,
@@ -2197,9 +2548,6 @@ body.fexplorer-dark-mode,
 .fexplorer-dark-mode .settings-reset-btn {
     background-color: #181a1b !important;
     color: #e0e0e0 !important;
-}
-.fexplorer-dark-mode .app-header {
-    border-bottom: 1px solid #333;
 }
 .fexplorer-dark-mode .fexplorer-button,
 .fexplorer-dark-mode .settings-save-btn {
@@ -2210,18 +2558,125 @@ body.fexplorer-dark-mode,
     background-color: #c0392b !important;
     color: #fff !important;
 }
-.fexplorer-dark-mode select,
-.fexplorer-dark-mode input[type="text"],
-.fexplorer-dark-mode input[type="search"],
-.fexplorer-dark-mode textarea {
-    background-color: #222 !important;
-    color: #e0e0e0 !important;
-    border: 1px solid #444 !important;
+.fexplorer-dark-mode .footer-note p,
+.fexplorer-dark-mode .quick-links li p {
+    color: #000000 !important;
 }
-.fexplorer-dark-mode .footer-note {
-    color: #aaa !important;
+.fexplorer-dark-mode .quick-links {
+    color: #0f3a65 !important;
+}
+.fexplorer-dark-mode .home-page-content h1 {
+    color: #2876a7 !important;
+}
+.fexplorer-dark-mode .home-page-content p {
+    color: #000000 !important;
+}
+.fexplorer-dark-mode .home-page-content .cookie-button:hover {
+    background-color: #444 !important;
+    color: #fff !important;
+}
+.fexplorer-dark-mode .quick-links-section .home-page-buttons-container .home-page-button:disabled {
+    background-color: #000000 !important;
+    color: #fff !important;
+}
+.fexplorer-dark-mode .home-page-button {
+    background-color: #215a88 !important;
+    color: #fff !important;
 }
 
+/* Blue theme for FExplorer */
+body.fexplorer-blue-mode {
+    background-color: #0b50a4 !important;
+    color: #fff !important;
+}
+.fexplorer-blue-mode .fexplorer-button,
+.fexplorer-blue-mode .settings-save-btn,
+.fexplorer-blue-mode .quick-links-section .home-page-buttons-container .home-page-button,
+.fexplorer-blue-mode .settings-reset-btn {
+    background-color: #0d5ab8 !important;
+    color: #fff !important;
+}
+.fexplorer-blue-mode .quick-links-section .home-page-buttons-container .home-page-button:hover {
+    background-color: #0a478f !important;
+    color: #fff !important;
+}
+.fexplorer-blue-mode .quick-links-section .home-page-buttons-container .home-page-button:disabled {
+    background-color: #0a478f !important;
+    color: #fff !important;
+}
+.fexplorer-blue-mode .home-page-content h1 {
+    color: #009dff !important;
+}
+
+/* Green theme for FExplorer */
+body.fexplorer-green-mode {
+    background-color: #10a40b !important;
+    color: #ffffff !important;
+}
+.fexplorer-green-mode .fexplorer-button,
+.fexplorer-green-mode .settings-save-btn,
+.fexplorer-green-mode .quick-links-section .home-page-buttons-container .home-page-button,
+.fexplorer-green-mode .settings-reset-btn {
+    background-color: #27b80d !important;
+    color: #ffffff !important;
+}
+.fexplorer-green-mode .quick-links-section .home-page-buttons-container .home-page-button:hover {
+    background-color: #1f9c0a !important;
+    color: #fff !important;
+}
+.fexplorer-green-mode .quick-links-section .home-page-buttons-container .home-page-button:disabled {
+    background-color: #1f9c0a !important;
+    color: #fff !important;
+}
+.fexplorer-green-mode .home-page-content h1 {
+    color: #27b80d !important;
+}
+/* Red theme for FExplorer */
+body.fexplorer-red-mode {
+    background-color: #a40b0b !important;
+    color: #ffffff !important;
+}
+.fexplorer-red-mode .fexplorer-button,
+.fexplorer-red-mode .settings-save-btn,
+.fexplorer-red-mode .quick-links-section .home-page-buttons-container .home-page-button,
+.fexplorer-red-mode .settings-reset-btn {
+    background-color: #b80d0d !important;
+    color: #ffffff !important;
+}
+.fexplorer-red-mode .quick-links-section .home-page-buttons-container .home-page-button:hover {
+    background-color: #9c0a0a !important;
+    color: #fff !important;
+}
+.fexplorer-red-mode .quick-links-section .home-page-buttons-container .home-page-button:disabled {
+    background-color: #9c0a0a !important;
+    color: #fff !important;
+}
+.fexplorer-red-mode .home-page-content h1 {
+    color: #b80d0d !important;
+}
+/* Binary theme for FExplorer */
+body.fexplorer-binary-mode {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+.fexplorer-binary-mode .fexplorer-button,
+.fexplorer-binary-mode .settings-save-btn,
+.fexplorer-binary-mode .quick-links-section .home-page-buttons-container .home-page-button,
+.fexplorer-binary-mode .settings-reset-btn {
+    background-color: #27b80d !important;
+    color: #000000 !important;
+}
+.fexplorer-binary-mode .quick-links-section .home-page-buttons-container .home-page-button:hover {
+    background-color: #1f9c0a !important;
+    color: #000000 !important;
+}
+.fexplorer-binary-mode .quick-links-section .home-page-buttons-container .home-page-button:disabled {
+    background-color: #1f9c0a !important;
+    color: #000000 !important;
+}
+.fexplorer-binary-mode .home-page-content h1 {
+    color: #27b80d !important;
+}
 /* FExplorer Settings Page CSS */
 .settings-page-content {
     max-width: 520px;
@@ -2285,6 +2740,9 @@ body.fexplorer-dark-mode,
     background: #181a1b;
     color: #e0e0e0;
     box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+}
+.fexplorer-dark-mode .app-header .app-title {
+    color: #ffffff;
 }
 .fexplorer-dark-mode .settings-section h2 {
     color: #28a745;
@@ -2397,7 +2855,6 @@ body.fexplorer-dark-mode,
 }
 /* Dark mode for updates page */
 .fexplorer-dark-mode .updates-page-content {
-    background: #181a1b;
     color: #e0e0e0;
     box-shadow: 0 2px 16px rgba(0,0,0,0.18);
 }
@@ -2701,4 +3158,17 @@ body.fexplorer-dark-mode,
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
+}
+
+/* Your account styles */
+.your-account {
+    padding: 12px 16px;
+    color: #333;
+    font-size: 1em;
+    background: #f0f4f8;
+    border-top: 1px solid #e0e6ed;
+    text-align: center;
+}
+.your-account #userAccountInfo {
+    font-weight: bold;
 }
