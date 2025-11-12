@@ -337,6 +337,27 @@ body {
     line-height: 1; /* Adjust line height for better vertical alignment */
 }
 
+#autosaveIndicator {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Arial', sans-serif;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease;
+  pointer-events: none;
+  z-index: 9999;
+}
+#autosaveIndicator.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .cookie-button {
     background-color: #cc7e0a;
     color: #333;
@@ -3172,3 +3193,4 @@ body.fexplorer-binary-mode {
 .your-account #userAccountInfo {
     font-weight: bold;
 }
+
