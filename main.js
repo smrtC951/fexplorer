@@ -15,6 +15,7 @@ function updateWindowStyle(osValue) {
     const homeBtn = document.querySelector('#homeButton img');
     const createBtn = document.querySelector('#createPageButton img');
     const infoBtn = document.querySelector('#informationButton img');
+    const dropdownBtn = document.querySelector('#dropdownButton img');
 
     switch (osValue) {
         case 'win11':
@@ -25,6 +26,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/new-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/new-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
         case 'win7':
             frame.classList.add('window-win7');
@@ -34,6 +36,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/new-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/new-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
         case 'win8':
             frame.classList.add('window-win8');
@@ -43,6 +46,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/new-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/new-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
         case 'winxp':
             frame.classList.add('window-winxp');
@@ -52,6 +56,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/xp-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/xp-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
         case 'macx':
             frame.classList.add('window-macx');
@@ -61,6 +66,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/new-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/new-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
         case 'mac9':
             frame.classList.add('window-mac9');
@@ -70,6 +76,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/new-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/new-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
         case 'classic':
             frame.classList.add('window-classic');
@@ -79,6 +86,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/hamburger-icon.png';
             break;
         case 'default':
         default:
@@ -89,6 +97,7 @@ function updateWindowStyle(osValue) {
             if (homeBtn) homeBtn.src = 'icons/new-home-icon.png';
             if (createBtn) createBtn.src = 'icons/create-icon.png';
             if (infoBtn) infoBtn.src = 'icons/new-info-icon.png';
+            if (dropdownBtn) dropdownBtn.src = 'icons/new-hamburger-icon.png';
             break;
     }
 }
@@ -729,10 +738,28 @@ function saveAppState() {
     
     saveDraftPage();
     updateFPointsDisplay();
-    
-    // Check for achievements after state changes
     checkRelevantAchievements();
+    showAutosaveIndicator();
 }
+
+function showAutosaveIndicator() {
+  const el = document.getElementById('autosaveIndicator');
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+let autosaveInterval;
+
+function startAutosave() {
+  if (autosaveInterval) clearInterval(autosaveInterval);
+  autosaveInterval = setInterval(() => {
+    saveAppState();
+    console.log('[FExplorer] Autosaved progress!');
+  }, 60000); // every 15 seconds
+}
+
+window.addEventListener('load', startAutosave);
 
 // FExplorer Event Log
 const fexplorerEvents = [
@@ -756,7 +783,8 @@ const shopItems = [
     { id: 'win95_theme', name: 'Windows 95 Theme', description: 'Receive an old-school theme!', cost: 950, effect: { cosmetic: 'win95_theme' }, icon: 'icons/solitaire-icon.png' },
     { id: 'jx1dx1_theme', name: 'JX1DX1 Theme', description: 'BUY.ME.IF.YOU.DARE.', cost: 2008, effect: { cosmetic: 'jx1dx1_theme' }, icon: 'icons/jx1dx1.jpg' },
     { id: 'dynablocks_theme', name: 'Dynablocks Theme', description: 'Classic Roblox for the win!', cost: 2005, effect: { cosmetic: 'dynablocks_theme' }, icon: 'icons/dynablocks-icon.png'},
-    { id: 'ie_title', name: 'Famous Internet Explorer title', description: 'Allows you to get the world famous Internet Explorer title!', cost: 1995, effect: { cosmetic: 'ie_title' }, icon: 'icons/fexplorer.png' }
+    { id: 'ie_title', name: 'Famous Internet Explorer title', description: 'Allows you to get the world famous Internet Explorer title!', cost: 1995, effect: { cosmetic: 'ie_title' }, icon: 'icons/fexplorer.png' },
+    { id: 'burger_hat', name: 'Burger Hat', description: 'Extremely expensive hat for your FExplorer browser icon!', cost: 33333, effect: { cosmetic: 'burger_hat' }, icon: 'icons/hamburger-icon.png' }
 ];
 
 // Achievement System
@@ -1599,6 +1627,7 @@ const fakeContent = {
             <div style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
                 <h2>Other FPoints Options</h2>
                 <button class="home-page-button" id="riskAllButton" style="flex: 1; min-width: 150px; background-color: #ffc107;">Risk all of it.</button>
+                <button class="home-page-button" id="negotiateButton" style="flex: 1; min-width: 150px; background-color: #8b07ffff;">Negotiate</button>
             </div>
 
             <div class="quick-links-section" style="margin-top: 30px;">
@@ -1688,18 +1717,17 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Alpha 1.4 - The Alpha Update!</h2>
-            <p>Release Date: <i>11 November, 2025</i></p>
+			<h2>Update Name: Alpha 1.4.1 - Quality of Shit mini-update!</h2>
+            <p>Release Date: <i>12 November, 2025</i></p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>Better shop system!</li>
-                    <li>A lot more shop items!</li>
-                    <li>Minor Settings rework!</li>
-                    <li>A ton more achievements!</li>
-                    <li>New games on the horizon! Horizon would be a cool name.</li>
-                    <li>Brand new Information button!</li>
+                    <li>Updated Sandbox Building and Solitare games!</li>
+                    <li>Information button has custom messages for special pages!</li>
+                    <li>Added Negotiate to the Financial page, but the FPoints part is broken FUCK</li>
+                    <li>Renamed Classic Operating System to Mac OS (Demo 1.2)!</li>
+                    <li>yummy-yummy gummy-gum</li>
                 </ul>
             </div>
 
@@ -1732,7 +1760,7 @@ const fakeContent = {
                                 <option value="winxp">Windows XP</option>
                                 <option value="macx">Mac OS X</option>
                                 <option value="mac9">Mac OS 9</option>
-                                <option value="classic">Classic</option>
+                                <option value="classic">Mac OS (Demo 1.2)</option>
                                 <option value="beos" disabled>BeOS</option>
                             </select>
                         </li>
@@ -1927,6 +1955,14 @@ const fakeContent = {
                         <p class="link-description">Create your very own documents for free!</p>
                     </li>
                     <li>
+                        <a href="#" data-url="fexplorer:placeholder">FExplorer Web Archives</a>
+                        <p class="link-description">View preserved update logs from previous updates!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:placeholder">FExplorer</a>
+                        <p class="link-description">View preserved update logs from previous updates!</p>
+                    </li>
+                    <li>
                         <a href="placeholder.txt" download="placeholder.txt">placeholder</a>
                         <p class="link-description">placeholder</p>
                     </li>
@@ -1942,7 +1978,7 @@ const fakeContent = {
             <p class="tagline">Build and explore your own sandboxes!</p>
             <div class="quick-links-section">
                 <h2>Game Area</h2>
-                <p>Sandbox Building game would be here. Play the demo version!</p>
+                <p>Sandbox Building game would be here.</p>
                 <div id="sandboxGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
                 <button class="home-page-button" id="startSandboxDemoButton">Start Sandbox Demo</button>
                 </div>
@@ -2678,69 +2714,202 @@ function attachDynamicEventListeners() {
     }
 
     // Sandbox Demo button
-    const startSandboxDemoButton = browserContent.querySelector('#startSandboxDemoButton');
-    if (startSandboxDemoButton) {
-        startSandboxDemoButton.addEventListener('click', () => {
-            startSandboxDemoButton.style.display = 'none';
-            const sandboxGameArea = document.getElementById('sandboxGameArea');
-            const sandboxContent = document.createElement('div');
-            let sandboxContentHTML = sandboxContent.innerHTML = `
-                <div style="align-items: center; display: flex; flex-direction: column;">
-                    <p>Sandbox Demo Started! Build your world here.</p>
-                    <div style="width: 100%; height: 300px; border: 1px solid #000; background-color: #e0e0e0; margin-top: 10px; display: flex; align-items: center; justify-content: center;">
-                        <p>Your sandbox area!</p>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <button style=" background-color: red; cursor: pointer;" id="resetSandboxButton">Reset Sandbox</button>
-                        <button style=" background-color: grey; cursor: pointer;" id="selectMaterialsButton">Select Materials</button>
-                    </div>
-                </div>
-            `;
-            sandboxGameArea.appendChild(sandboxContent);
-            const resetSandboxButton = document.getElementById('resetSandboxButton');
-            if (resetSandboxButton) {
-                resetSandboxButton.addEventListener('click', () => {
-                    // Reset the sandbox area
-                    sandboxGameArea.innerHTML = sandboxContentHTML;
-                    startSandboxDemoButton.style.display = 'block';
-                    alert('Sandbox has been reset!');
-                });
-            }
-            const selectMaterialsButton = document.getElementById('selectMaterialsButton');
-            if (selectMaterialsButton) {
-                selectMaterialsButton.addEventListener('click', () => {
-                    const materials = ['Sand', 'Water', 'Grass', 'Stone', 'Wood'];
-                    const materialList = materials.join(', ');
-                    alert('Available materials: ' + materialList);
-                    const material = window.prompt('Type the name of the material you want to use:', 'Sand');
-                    if (material) {
-                        alert('You selected: ' + material);
-                        // Add the ability to use the selected material in the sandbox (not implemented in this demo)
-                        alert('Material functionality is not implemented in this demo yet.');
-                    }
-                });
-            }
-        });
+const startSandboxDemoButton = browserContent.querySelector('#startSandboxDemoButton');
+if (startSandboxDemoButton) {
+  startSandboxDemoButton.addEventListener('click', () => {
+    startSandboxDemoButton.style.display = 'none';
+    const sandboxGameArea = document.getElementById('sandboxGameArea');
+    sandboxGameArea.innerHTML = ''; // clear old content
+
+    // --- Main Sandbox Layout ---
+    const sandboxContent = document.createElement('div');
+    sandboxContent.innerHTML = `
+      <div style="align-items:center; display:flex; flex-direction:column;">
+        <p>Sandbox Demo Started! Build your world here.</p>
+
+        <div id="sandboxGrid"
+             style="width:320px; height:320px; display:grid;
+                    grid-template-columns:repeat(10, 1fr);
+                    grid-template-rows:repeat(10, 1fr);
+                    border:2px solid #000; background-color:#e0e0e0;
+                    margin-top:10px; cursor:pointer;">
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button id="resetSandboxButton" class="button" style="background:red;">Reset</button>
+          <button id="selectMaterialsButton" class="button" style="background:grey;">Select Material</button>
+          <button id="deleteModeButton" class="button" style="background:#555;">Delete Mode: Off</button>
+        </div>
+      </div>
+    `;
+    sandboxGameArea.appendChild(sandboxContent);
+
+    // --- Game State ---
+    const materials = {
+      Sand: '#f4e3b2',
+      Water: '#4da6ff',
+      Grass: '#6cc070',
+      Stone: '#999999',
+      Wood: '#b88a56',
+      Iron: '#ffffffff'
+    };
+    let currentMaterial = 'Sand';
+    let deleteMode = false;
+
+    const sandboxGrid = document.getElementById('sandboxGrid');
+
+    // Generate 10×10 cells
+    for (let i = 0; i < 100; i++) {
+      const cell = document.createElement('div');
+      cell.style.border = '1px solid #ccc';
+      cell.style.background = '#e0e0e0';
+      cell.dataset.material = '';
+      cell.addEventListener('click', () => {
+        if (deleteMode) {
+          cell.style.background = '#e0e0e0';
+          cell.dataset.material = '';
+        } else {
+          cell.style.background = materials[currentMaterial];
+          cell.dataset.material = currentMaterial;
+        }
+      });
+      sandboxGrid.appendChild(cell);
     }
 
+    // --- Buttons ---
+    const resetButton = document.getElementById('resetSandboxButton');
+    resetButton.addEventListener('click', () => {
+      sandboxGrid.querySelectorAll('div').forEach(c => {
+        c.style.background = '#e0e0e0';
+        c.dataset.material = '';
+      });
+      alert('Sandbox reset!');
+    });
+
+    const selectButton = document.getElementById('selectMaterialsButton');
+    selectButton.addEventListener('click', () => {
+      const list = Object.keys(materials).join(', ');
+      const choice = prompt(`Available materials: ${list}\n\nType one:`, currentMaterial);
+      if (choice && materials[choice]) {
+        currentMaterial = choice;
+        alert(`You selected ${currentMaterial}!`);
+      } else if (choice) {
+        alert('Invalid material.');
+      }
+    });
+
+    const deleteModeButton = document.getElementById('deleteModeButton');
+    deleteModeButton.addEventListener('click', () => {
+      deleteMode = !deleteMode;
+      deleteModeButton.textContent = `Delete Mode: ${deleteMode ? 'On' : 'Off'}`;
+      deleteModeButton.style.background = deleteMode ? '#ff6666' : '#555';
+    });
+  });
+}
+
     // Solitaire button
-    const startSolitaireDemoButton = browserContent.querySelector('#startSolitaireDemoButton');
-    if (startSolitaireDemoButton) {
-        startSolitaireDemoButton.addEventListener('click', () => {
-            startSolitaireDemoButton.style.display = 'none';
-            const solitaireGameArea = document.getElementById('solitaireGameArea');
-            const solitaireContent = document.createElement('div');
-            let solitaireContentHTML = solitaireContent.innerHTML = `
-                <div style="align-items: center; display: flex; flex-direction: column;">
-                    <p>Welcome to Solitaire!</p>
-                    <div style="width: 300px; height: 300px; border: 1px solid #000; background-color: #e0e0e0; margin-top: 10px; display: flex; align-items: center; justify-content: center;">
-                        <p>I ate the game. My bad.</p>
-                    </div>
-                </div>
-            `;
-            solitaireGameArea.appendChild(solitaireContent);
-        });
-    };
+const startSolitaireDemoButton = browserContent.querySelector('#startSolitaireDemoButton');
+if (startSolitaireDemoButton) {
+  startSolitaireDemoButton.addEventListener('click', () => {
+    startSolitaireDemoButton.style.display = 'none';
+    const solitaireGameArea = document.getElementById('solitaireGameArea');
+    solitaireGameArea.innerHTML = ''; // clear old stuff
+
+    // --- Build Solitaire UI ---
+    const solitaireContent = document.createElement('div');
+    solitaireContent.innerHTML = `
+      <div style="align-items:center; display:flex; flex-direction:column;">
+        <p>Welcome to Solitaire (Demo)</p>
+        <div id="cardArea" style="
+          width:320px; height:160px;
+          display:flex; justify-content:center; align-items:center;
+          gap:8px; flex-wrap:wrap; border:2px solid #000;
+          background-color:#0a5c0a; color:white;
+          font-weight:bold; border-radius:10px; padding:10px; margin-top:8px;">
+          <p style="color:#fff;">Place a bet to start!</p>
+        </div>
+        <div style="margin-top:10px;">
+          <input id="betAmount" type="number" placeholder="Bet amount" min="1"
+                 style="padding:5px; width:100px; border-radius:5px; text-align:center;">
+          <button id="startRoundButton" class="button" style="background:#007bff;">Start Round</button>
+        </div>
+        <div id="resultText" style="margin-top:10px; font-weight:bold;"></div>
+        <button id="startRoundButton" class="button" style="margin-top:10px;">Restart</button>
+      </div>
+    `;
+    solitaireGameArea.appendChild(solitaireContent);
+
+    // --- Game Logic ---
+    const cardTypes = ['Ace', 'King', 'Queen', 'Jack', '10'];
+    const colors = ['red', 'black'];
+    const cardArea = document.getElementById('cardArea');
+    const betInput = document.getElementById('betAmount');
+    const startButton = document.getElementById('startRoundButton');
+    const resultText = document.getElementById('resultText');
+
+    function drawCard() {
+      const type = cardTypes[Math.floor(Math.random() * cardTypes.length)];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      return { type, color };
+    }
+
+    function renderCards(cards) {
+      cardArea.innerHTML = '';
+      cards.forEach(card => {
+        const div = document.createElement('div');
+        div.style.width = '50px';
+        div.style.height = '70px';
+        div.style.border = '1px solid #fff';
+        div.style.borderRadius = '5px';
+        div.style.background = card.color === 'red' ? '#ff4c4c' : '#222';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.textContent = card.type;
+        cardArea.appendChild(div);
+      });
+    }
+
+    function startRound() {
+      const bet = parseInt(betInput.value);
+      if (isNaN(bet)) {
+        alert('Please enter a valid bet.');
+        return;
+      }
+      if (userFPoints < bet) {
+        alert('Not enough FPoints to bet!');
+        return;
+      }
+
+      // Draw 5 random cards
+      const cards = Array.from({ length: 5 }, drawCard);
+      renderCards(cards);
+
+      // Count colors
+      const redCount = cards.filter(c => c.color === 'red').length;
+      const blackCount = cards.filter(c => c.color === 'black').length;
+
+      // Determine win/loss
+      let message = '';
+      if (redCount >= 3 || blackCount >= 3) {
+        const winnings = bet * 2;
+        userFPoints += winnings;
+        message = `🎉 You won! ${winnings} FPoints added. (${redCount} red / ${blackCount} black)`;
+      } else {
+        userFPoints -= bet;
+        message = `💀 You lost ${bet} FPoints... (${redCount} red / ${blackCount} black)`;
+      }
+
+      saveAppState();
+      resultText.textContent = message;
+      updateFPointsUI?.(); // if your site has a live counter
+    }
+
+    // --- Button Events ---
+    startButton.addEventListener('click', startRound);
+  });
+}
+
 
     // Quiz
     if (currentUrl === 'fexplorer://online-quiz.com') {
@@ -2767,7 +2936,7 @@ function attachDynamicEventListeners() {
                         correct: 2
                     },
                     {
-                        question: "What is the current version at?",
+                        question: "When was the alpha update?",
                         options: ["Alpha 1.4", "Demo 1.3", "Demo 1", "Demo 1.2"],
                         correct: 0
                     },
@@ -3206,10 +3375,19 @@ const iGameScenes = {
     ]
   },
   kitchen: {
-    text: "You see bread.",
+    text: "You see some items in the kitchen, including bread and a fridge.",
     choices: [
       { label: "Eat bread", next: "bread_ending" },
+      { label: "Open fridge", next: "fridge" },
       { label: "Go back", next: "hallway" }
+    ]
+  },
+  fridge: {
+    text: "There are some weird and obsure items, excluding the world-class water cup.",
+    choices: [
+      { label: "Drink water", next: "water_ending" },
+      { label: "Consume the inedible", next: "sickness_ending" },
+      { label: "Close fridge", next: "kitchen" }
     ]
   },
   computer: {
@@ -3234,6 +3412,16 @@ const iGameScenes = {
     ending: "Bread",
     choices: [{ label: "Start again", next: "intro" }]
   },
+  water_ending: {
+    text: "You drank water! 🚰<br><em>Ending: Water</em>",
+    ending: "Water",
+    choices: [{ label: "Start again", next: "intro" }]
+  },
+  sickness_ending: {
+    text: "You consumed the inedible, became sick and died. ☠️<br><em>Ending: Sickness</em>",
+    ending: "Sickness",
+    choices: [{ label: "Start again", next: "intro" }]
+  },
   outside_ending: {
     text: "HEY WAIT A MINUTE-- 🗣️<br><em>Ending: Outside</em>",
     ending: "Outside",
@@ -3242,7 +3430,7 @@ const iGameScenes = {
 };
 
 // List of all endings for display
-const ALL_ENDINGS = ["TV", "Secret Discovery", "Bread", "Outside"];
+const ALL_ENDINGS = ["TV", "Secret Discovery", "Bread", "Outside", "Water", "Sickness"];
 
 // ---- 3. Scene Renderer ----
 function renderScene(sceneKey) {
@@ -3410,6 +3598,12 @@ function updateAchievementsUI() {
                 <p>This page is so boring... Nothing to see here.</p>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
             </div>`,
+            // Stupid message page
+            `<div class="random-user-page">
+                <h2>Here's a message!</h2>
+                <p>Nerf FPoints. *gets hit by bananas*</p>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
             // 404 page (Variant 1)
             `<div class="random-user-page">
                 <h2>404?</h2>
@@ -3489,6 +3683,14 @@ function updateAchievementsUI() {
                 <button class="dangerous-button2">Get reward</button>
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
+            </div>`,
+            // Dangerous page (Variant 3: Virus)
+            `<div class="random-user-page dangerous-page" style="background-color: #000000ff; color: white;">
+                <h2>TOTALLY SAFE DOWNLOAD!!!!!!!!!!!!!!!!!!!!!!!!!</h2>
+                <p>This download is totally safe! Click to donwload and get 2147129498174917941 FPointd!111113131242121</p>
+                <button class="dangerous-button3">DOWNLOAD!1!111</button>
+                <br>
+                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">NO!!! CLICK DONLOAWSUAID</a>
             </div>`,
             // Broken page (Variant 1)
             `<div class="random-user-page" style="font-family: 'Times New Roman', monospace; color: #000;">
@@ -3642,6 +3844,7 @@ function updateAchievementsUI() {
             `<div class="random-user-page" style="background-color: #000000; color: #ff7518;">
                 <h2>Happy Halloween!</h2>
                 <p>Trick or Treat! Click the button below for a spooky surprise!</p>
+                <p>Hey wait a minute, isn't Halloween over? Oh well!</p>
                 <button class="bonus-button halloween-button" style="background-color: #ff7518; color: #000000;">Spooky Surprise!</button>
                 <br>
                 <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: #ff7518;">Random hyperlink</a>
@@ -3854,6 +4057,7 @@ function updateAchievementsUI() {
     // If the user has less than that, they'll be in debt
     const dangerousButton = browserContent.querySelector('.dangerous-button');
     const dangerousButton2 = browserContent.querySelector('.dangerous-button2');
+    const dangerousButton3 = browserContent.querySelector('.dangerous-button3');
     if (dangerousButton) {
         dangerousButton.addEventListener('click', () => {
             const randomDangerousPoints = Math.floor(Math.random() * 1501) - 500;
@@ -3880,6 +4084,26 @@ function updateAchievementsUI() {
             } else {
                 alert('You gained ' + randomDangerousPoints + ' FPoints! I guess it wasn\'t a scam after all.');
             }
+        });
+    }
+    if (dangerousButton3) {
+        dangerousButton3.addEventListener('click', () => {
+            alert('Downloading malware...');
+            let choice = window.confirm('Are you sure you want to download this malware?');
+            if (choice) {
+                alert('SIKE!! IT\'S MALWARE, LOSER!!');
+                alert('I MEAN HOW IDIOTIC DO YOU HAVE TO BE TO DO THAT?!');
+                userFPoints -= 400;
+                saveAppState();
+                showFPointsNotification();
+            } else {
+                alert('You evaded the malware! Nice!');
+                alert('Here\'s 200 FPoints for that!');
+                userFPoints += 200;
+                saveAppState();
+                showFPointsNotification();
+            };
+            dangerousButton3.style.display = 'none';
         });
     }
     // SELL MY DATA! :D
@@ -3952,6 +4176,7 @@ function updateAchievementsUI() {
             const mysteryNavigate = [
                 `fexplorer:home`,
                 `fexplorer:user-page-${randomIndex}`
+                `paranoid.com`
             ];
             event.preventDefault();
             const url = navigate(mysteryNavigate);
@@ -3961,8 +4186,11 @@ function updateAchievementsUI() {
                 navigate(`fexplorer:user-page-${randomIndex}`);
                 alert('It sent you to another user page! How mysterious.');
             } else if (url === 'fexplorer:home') {
-
-            };
+                navigate('fexplorer:home');
+                alert('It sent you to the home page.');
+            } else if (url === 'fexplorer:home') {
+                navigate('paranoid.com');
+            }
         });
     });
 
@@ -4126,7 +4354,7 @@ function updateAchievementsUI() {
             const keywordFollowUps = {
                 'hello': ["How's your day going?", "Anything fun planned?"],
                 'help': ["Which area do you need help with — shop, pages, or settings?", "Try 'help shop' to get shopping tips."],
-                'jx1dx1': ["Be careful searching for him.", "Some pages related to them are... odd."],
+                'jx1dx1': ["Be careful searching for him.", "Some pages related to him are... odd."],
                 'black market': ["I wouldn't stay there too long.", "Some items there are one-time deals."],
                 'shop': ["There's a mystery box you might like.", "Save up for the cooler cosmetics!"],
                 'fpoints': ["Goog searches are a reliable source of FPoints.", "Try mini-games for bonus FPoints."],
@@ -4432,6 +4660,7 @@ function updateAchievementsUI() {
         const sellStockButton = browserContent.querySelector('#sellStockButton');
         const riskWarning = browserContent.querySelector('#riskWarning');
         const riskAllButton = browserContent.querySelector('#riskAllButton');
+        const negotiateButton = browserContent.querySelector('#negotiateButton');
 
         riskAllButton.addEventListener('click', () => {
             const totalAffordable = Math.floor(userFPoints / stockPrice);
@@ -4452,6 +4681,31 @@ function updateAchievementsUI() {
             } else {
                 alert('Not enough FPoints to risk it all!');
             }
+        });
+        negotiateButton.addEventListener('click', () => {
+            let negotiateFPoints = 500;
+            let negotiateAlert = window.prompt('You are negotiating with FBot, a very awesome bot who is very generous! Negotiate for more FPoints.\nThe base is 500.');
+            if (negotiateAlert > 100) {
+                if (negotiateAlert < 500) {
+                    alert('Nice.');
+                    giveFPoints();
+                } else {
+                    alert('Wow, you\'re really poor, huh? Ok, here\'s half of it.')
+                    giveFPoints();
+                };
+            } else if (negotiateAlert < 100) {
+                if (negotiateAlert > 0) {
+                    alert('When the window blows, the trees will grow!');
+                } else {
+                    alert('bro what the fuck');
+                };
+            };
+            function giveFPoints() {
+                neogtiateFPoints = Math.floor(negotiateAlert / 2);
+                userFPoints += negotiateFPoints;
+                saveAppState();
+                showFPointsNotification();
+            };
         });
         if (riskWarning) {
             alert('Warning: Stock market is risky! Prices can go up or down unpredictably. Invest wisely!');
@@ -4861,7 +5115,7 @@ function updateAchievementsUI() {
                         }
 
                         if (item.effect && item.effect.mystery) {
-                            const mysteryItems = ['A shiny badge!', 'A rare emoji pack!', 'A temporary speed boost!', 'A silly sound effect!', 'A comically placed cheeseburger!'];
+                            const mysteryItems = ['A shiny badge!', 'A rare emoji pack!', 'A temporary speed boost!', 'A silly sound effect!', 'A comically placed cheeseburger!', 'A timebomb!'];
                             const randomMystery = mysteryItems[Math.floor(Math.random() * mysteryItems.length)];
                             userChannel.inventory.items[item.id] = {
                                 type: 'mystery',
@@ -5557,6 +5811,8 @@ function information() {
             alert('This page is safe. Start navigating!');
         } else if (currentUrl === 'about:blank') {
             alert(' ');
+        } else if (currentUrl === 'fexplorer:settings') {
+            alert('This page is safe. Go and change your settings if you want to!');
         } else {
             alert('This page is safe.');
         }
@@ -5565,7 +5821,11 @@ function information() {
     } else if (informationStatus === 'Dangerous') {
         alert('This page is dangerous. You should leave the page.');
     } else if (informationStatus === 'File') {
-        alert('This page is a file.');
+        if (currentUrl === 'file:terminal') {
+            alert('This page is a file.');
+        } else {
+            alert('This page is a file.');
+        };
     } else if (informationStatus === 'JX1DX1') {
         alert('this.page.is.safe.');
     };
