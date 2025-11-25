@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>FExplorer (Alpha 1.4.1)</title>
+		<title>FExplorer (Alpha 1.5)</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" href="style.css">
@@ -12,6 +12,7 @@
         <div id="autosaveIndicator">
             <p>💾 Progress Saved</p>
         </div>
+        <div id="bookmarkToast"></div>
 
         <div class="browser-header">
             <div class="browser-buttons">
@@ -55,7 +56,7 @@
                     <a href="#" id="dropdown6">Shop</a>
                     <a href="#" id="dropdown7">Encyclopedia</a>
                     <a href="#" id="dropdown8">Terminal</a>
-                    <a href="#" id="dropdown9">AI</a>
+                    <a href="#" id="dropdown9">System</a>
                     <a href="#" id="dropdown10">Events</a>
                 </div>
             </div>
@@ -68,7 +69,26 @@
         <div class="browser-content" id="browserContent">
             <!-- Content will be loaded by JavaScript -->
         </div>
+        <div id="tabsArea" class="tabs-area">
+
+    <div class="tabs-header">
+        <button id="newTabBtn" class="tab-new">+</button>
+        <div id="tabsList" class="tabs-list">
+            <!-- example tabs -->
+            <div class="tab active" data-tab="tab1">
+                <span class="tab-title">Home</span>
+                <span class="tab-close">×</span>
+            </div>
+            <div class="tab" data-tab="tab2">
+                <span class="tab-title">Projects</span>
+                <span class="tab-close">×</span>
+            </div>
+        </div>
     </div>
+    </div>
+    </div>
+    <script src="randomUserVariants.js"></script>
 	<script src="main.js"></script>
+    <script src="create-page.js"></script>
 	</body>
 </html>

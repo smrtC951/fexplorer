@@ -1,3 +1,88 @@
+let userPageRegistry = JSON.parse(localStorage.getItem("fexp_userPageRegistry") || "{}");
+
+// sanitize registry
+Object.keys(userPageRegistry).forEach(id => {
+    const index = Number(userPageRegistry[id]);
+    if (Number.isNaN(index)) {
+        delete userPageRegistry[id]; // remove bad entry
+    }
+});
+
+function saveUserPageRegistry() {
+    localStorage.setItem("fexp_userPageRegistry", JSON.stringify(userPageRegistry));
+}
+
+// PERSISTENT MUSIC OBJECT (single instance that loops)
+let fxMusic = null;
+
+function initializeMusic() {
+    const musicChoice = localStorage.getItem('fexplorerMusicChoice') || 'orbspire';
+
+    // Available tracks mapping
+    const trackMap = {
+        'orbspire': 'music/orbspire.mp3',
+        'obby7': 'music/obby7.mp3',
+        'random': 'music/orbspire.mp3',
+        'fexplorer': 'random'
+    };
+
+    // Build a small pool of available files (fall back to orbspire if missing)
+    const pool = ['music/orbspire.mp3', 'music/obby7.mp3'];
+
+    let chosenFile;
+    if (musicChoice === 'fexplorer' || musicChoice === 'random') {
+        // Pick a deterministic random-like choice from pool (true random each init)
+        chosenFile = pool[Math.floor(Math.random() * pool.length)];
+    } else if (trackMap[musicChoice]) {
+        chosenFile = trackMap[musicChoice];
+    } else {
+        chosenFile = 'music/orbspire.mp3';
+    }
+
+    // If fxMusic does not exist, create it. If it exists but src differs, update it.
+    if (!fxMusic) {
+        fxMusic = new Audio(chosenFile);
+        fxMusic.loop = true;
+    } else {
+        // audio.src may be an absolute URL; compare by filename
+        try {
+            const currentSrc = fxMusic.src || '';
+            const currentFile = currentSrc.split('/').slice(-1)[0];
+            const newFile = chosenFile.split('/').slice(-1)[0];
+            if (currentFile !== newFile) {
+                // Replace source to switch tracks
+                fxMusic.pause();
+                fxMusic.src = chosenFile;
+                fxMusic.load();
+                fxMusic.loop = true;
+            }
+        } catch (e) {
+            // On any error, recreate the audio element
+            fxMusic.pause?.();
+            fxMusic = new Audio(chosenFile);
+            fxMusic.loop = true;
+        }
+    }
+}
+
+// AUTO-LOAD MUSIC ON STARTUP
+setTimeout(() => { 
+    initializeMusic();
+    applyMusicSettings(); 
+}, 100);
+// applyMusicSettings function
+function applyMusicSettings() {
+    initializeMusic();  // Ensure music object exists
+    const musicEnabled = localStorage.getItem('fexplorerMusicEnabled') === 'true';
+    const musicVolume = parseFloat(localStorage.getItem('fexplorerMusicVolume')) || 0.6;
+    fxMusic.volume = musicVolume;
+    if (musicEnabled) {
+        fxMusic.play().catch(() => {});
+    } else {
+        fxMusic.pause();
+    }
+}
+
 // =============================
 // OS Window Style Switching
 // =============================
@@ -102,18 +187,120 @@ function updateWindowStyle(osValue) {
     }
 }
 
+// --------------------------------------
+// Known External Sites (domains only)
+// --------------------------------------
+const KNOWN_EXTERNAL_SITES = [
+    "goog.com",
+    "ping.com",
+];
+
+// Checks whether sanitizedUrl is external
+function isKnownExternal(sanitizedUrl) {
+    // domain = part before first slash
+    const domain = sanitizedUrl.split("/")[0];
+    return KNOWN_EXTERNAL_SITES.includes(domain);
+}
+
+// --------------------------------------
+// Unified Page Resolver
+// --------------------------------------
+function renderGenericWebsite(url) {
+    const safeUrl = escapeHtml(url);
+
+    return `
+        <div style="padding:20px;">
+            <h1 style="margin-bottom:8px;">${safeUrl}</h1>
+            <p>This is a generic webpage. There is no special content here, but you can still browse around!</p>
+
+            <div style="margin-top:20px;">
+                <h3>About this site</h3>
+                <p><strong>${safeUrl}</strong> is not part of FExplorer's internal system or known external sites.</p>
+            </div>
+
+            <hr style="margin:20px 0;">
+
+            <button class="home-page-button" data-url="fexplorer:home">Return to Home</button>
+        </div>
+    `;
+}
+
+function getPageContentFromUrl(sanitizedUrl) {
+
+    // 1. Check if page exists directly in fakeContent
+    if (fakeContent[sanitizedUrl]) {
+        return fakeContent[sanitizedUrl];
+    }
+
+    // 2. Handle FExplorer internal pages
+    if (sanitizedUrl.startsWith("fexplorer:")) {
+
+        // a) User-created pages: fexplorer:user-page-12345
+        if (sanitizedUrl.startsWith("fexplorer:user-page-")) {
+            const id = sanitizedUrl.replace("fexplorer:user-page-", "");
+            return userCreatedPages[id]
+                ? getPublishedUserPageHTML(id)
+                : null;
+        }
+
+        // b) Special cookie page (has dynamic UI)
+        if (sanitizedUrl === "fexplorer:cookies") {
+            setTimeout(() => window.fexplorerCookies?.loadCookieManager?.(), 0);
+            return window.fexplorerCookies?.getCookieManagerHTML?.() || '<div>Cookies</div>';
+        }
+
+        // c) Random variant pages: fexplorer:<id>-category/variant
+        if (sanitizedUrl.includes("-") && sanitizedUrl.includes("/")) {
+            return "__RANDOM_VARIANT_PAGE__";
+        }
+
+        // d) Special game pages with multiple sub-routes
+        if (sanitizedUrl === "fexplorer:create") {
+            return getCreatePageEditorHTML();
+        }
+        if (sanitizedUrl === "fexplorer:create.hub") {
+            return getFExplorerCreatorHubPageHTML();
+        }
+
+        // e) Generated search article pages
+        if (sanitizedUrl.startsWith('fexplorer:search-article-')) {
+            const id = sanitizedUrl.replace('fexplorer:search-article-', '');
+            return getSearchArticleHTML(id);
+        }
+
+        // e) If we get here and it's fexplorer:something but not in fakeContent, return null
+        // This will trigger 404 handling in navigate()
+        return null;
+    }
+
+    // 3. External/Search pages handled by external handler
+    if (isKnownExternal(sanitizedUrl)) {
+        return handleExternalOrSearchPages(sanitizedUrl);
+    }
+
+    // 4. Special external pages
+    if (sanitizedUrl.startsWith('goog.com') || sanitizedUrl.startsWith('ping.com')) {
+        return handleExternalOrSearchPages(sanitizedUrl);
+    }
+
+    if (sanitizedUrl.startsWith('mytube.com')) {
+        return handleExternalOrSearchPages(sanitizedUrl);
+    }
+
+    // 5. Anything else → auto-generate unique webpage
+    return renderGenericWebsite(sanitizedUrl);
+}
 
 // Apply saved OS style on load
 updateWindowStyle(localStorage.getItem('fexplorerSettingOS') || 'default');
 
-// =============================
 // Settings Logic
-// =============================
 function saveSettings() {
     try {
         const osSelect = browserContent.querySelector('#osSelect');
         const themeSelect = browserContent.querySelector('#themeSelect');
         const searchEngineSelect = browserContent.querySelector('#searchEngineSelect');
+        const homepageSelect = browserContent.querySelector('#homepageSelect');
         const notificationsToggle = browserContent.querySelector('#notificationsToggle');
         const loginToggle = browserContent.querySelector('#loginToggle');
         const settingsStatus = browserContent.querySelector('#settingsStatus');
@@ -124,26 +311,58 @@ function saveSettings() {
         }
         if (themeSelect) {
             localStorage.setItem('fexplorerSettingTheme', themeSelect.value);
-            if (themeSelect.value === 'Dark') {
-                document.body.classList.add('dark-mode');
+            if (themeSelect.value === 'dark') {
+                document.body.classList.add('fexplorer-dark-mode');
             } else {
-                document.body.classList.remove('dark-mode');
+                document.body.classList.remove('fexplorer-dark-mode');
             }
+            applyFExplorerSettings();
         }
         if (searchEngineSelect) {
             localStorage.setItem('fexplorerSearchEngine', searchEngineSelect.value);
+        }
+        if (homepageSelect) {
+            localStorage.setItem('fexplorerSettingHomepage', homepageSelect.value);
         }
         if (notificationsToggle) {
             localStorage.setItem('fexplorerSettingNotifications', notificationsToggle.checked ? 'true' : 'false');
         }
         if (loginToggle) {
             localStorage.setItem('fexplorerSettingHideLogin', loginToggle.checked ? 'true' : 'false');
-            // Update login message based on toggle state
             const loginMessageElement = document.querySelector('.login-message');
             if (loginMessageElement) {
                 loginMessageElement.style.display = loginToggle.checked ? 'none' : 'block';
             }
         }
+        
+        const cookieToggle = browserContent.querySelector('#cookieToggle');
+        if (cookieToggle) {
+            localStorage.setItem('fexplorerCookiesDisabled', cookieToggle.checked ? 'true' : 'false');
+        }
+
+        // Music settings - save the current state of controls
+        const musicToggleSetting = browserContent.querySelector('#musicToggle') || browserContent.querySelector('#musicToggleSetting');
+        const musicVolumeSetting = browserContent.querySelector('#musicVolumeSetting');
+        const musicSelect = browserContent.querySelector('#musicSelect');
+        const devModeToggle = browserContent.querySelector('#devModeToggle');
+
+        if (musicToggleSetting) {
+            localStorage.setItem('fexplorerMusicEnabled', musicToggleSetting.checked ? 'true' : 'false');
+        }
+        if (musicVolumeSetting) {
+            const v = parseFloat(musicVolumeSetting.value) || 0.6;
+            localStorage.setItem('fexplorerMusicVolume', String(v));
+            fxMusic.volume = v;
+        }
+        if (musicSelect) {
+            localStorage.setItem('fexplorerMusicChoice', musicSelect.value);
+        }
+        if (devModeToggle) {
+            localStorage.setItem('fexplorerDevMode', devModeToggle.checked ? 'true' : 'false');
+        }
+
+        // Apply music settings after saving
+        applyMusicSettings();
 
         if (settingsStatus) settingsStatus.textContent = 'Settings saved!';
     } catch (e) {
@@ -157,6 +376,12 @@ function resetSettings() {
     localStorage.removeItem('fexplorerSearchEngine');
     localStorage.removeItem('fexplorerSettingNotifications');
     localStorage.removeItem('fexplorerSettingHideLogin');
+    // remove music and other advanced settings
+    localStorage.removeItem('fexplorerMusicEnabled');
+    localStorage.removeItem('fexplorerMusicVolume');
+    localStorage.removeItem('fexplorerMusicChoice');
+    localStorage.removeItem('fexplorerSettingHomepage');
+    localStorage.removeItem('fexplorerDevMode');
 
     updateWindowStyle('default');
     document.body.classList.remove('dark-mode');
@@ -170,16 +395,33 @@ function resetSettings() {
     const osSelect = browserContent.querySelector('#osSelect');
     const themeSelect = browserContent.querySelector('#themeSelect');
     const searchEngineSelect = browserContent.querySelector('#searchEngineSelect');
+    const homepageSelect = browserContent.querySelector('#homepageSelect');
     const notificationsToggle = browserContent.querySelector('#notificationsToggle');
     const loginToggle = browserContent.querySelector('#loginToggle');
     const settingsStatus = browserContent.querySelector('#settingsStatus');
 
+    const musicToggle = browserContent.querySelector('#musicToggle') || browserContent.querySelector('#musicToggleSetting');
+    const musicVolumeSetting = browserContent.querySelector('#musicVolumeSetting');
+    const musicVolumeLabel = browserContent.querySelector('#musicVolumeLabel');
+    const musicSelect = browserContent.querySelector('#musicSelect');
+    const devModeToggle = browserContent.querySelector('#devModeToggle');
+
     if (osSelect) osSelect.value = 'default';
-    if (themeSelect) themeSelect.value = 'Light';
-    if (searchEngineSelect) searchEngineSelect.value = 'FExplorer Browser';
+    if (themeSelect) themeSelect.value = 'light';
+    if (searchEngineSelect) searchEngineSelect.value = 'fexplorer';
+    if (homepageSelect) homepageSelect.value = 'fexplorer:home';
+    if (musicToggle) musicToggle.checked = false;
+    if (musicVolumeSetting) musicVolumeSetting.value = '0.6';
+    if (musicVolumeLabel) musicVolumeLabel.textContent = '60%';
+    if (musicSelect) musicSelect.value = 'orbspire';
+    if (devModeToggle) devModeToggle.checked = false;
     if (notificationsToggle) notificationsToggle.checked = false;
     if (loginToggle) loginToggle.checked = false;
     if (settingsStatus) settingsStatus.textContent = 'Settings reset to default.';
+
+    // Apply changes
+    applyMusicSettings();
+    applyFExplorerSettings();
 }
 
 function attachSettingsListeners() {
@@ -228,14 +470,14 @@ const cookiesCounter = document.getElementById('cookiesCounter');
 
 const SETTINGS_URL = 'fexplorer:settings';
 const HOME_URL = 'fexplorer:home';
-const CREATE_PAGE_URL = 'fexplorer:create';
+const CREATE_PAGE_URL = 'fexplorer:create.new';
 const PROGRAMS_URL = 'fexplorer:programs';
 const COOKIE_URL = 'fexplorer:cookies';
 const ACHIEVE_URL = 'fexplorer:achievements';
 const SHOP_URL = 'fexplorer:shop';
 const WIKI_URL = 'fexplorer:wiki';
 const TERMINAL_URL = 'file:terminal';
-const AI_URL = 'fexplorer:ai';
+const AI_URL = 'fexplorer:system';
 const EVENTS_URL = 'fexplorer:events';
 const LOGIN_URL = 'fexplorer:placeholder';
 
@@ -250,6 +492,7 @@ const RANDOM_PAGE_COOLDOWN = 60 * 1000; // 1 minute cooldown for FPoints from ra
 let lastRandomPageVisitTime = 0; // Timestamp of last random user page visit
 
 let historyStack = [];
+let forwardStack = [];
 let currentUrl = '';
 
 const uploadableVideosPool = [
@@ -257,6 +500,405 @@ const uploadableVideosPool = [
 
 const DEFAULT_MY_TUBE_VIDEOS_INITIAL = {
 };
+
+// Generated search articles (transient)
+let searchGeneratedArticles = {};
+
+let requestCount = 0;
+let lastRequestTime = Date.now();
+let isRateLimited = false;
+let rateLimitCooldown = 7500; // 5 seconds
+const RATE_LIMIT_MAX = 5;    // max allowed actions in timeframe
+const RATE_LIMIT_INTERVAL = 1500; // 3 seconds window
+
+if (!window.__fexplorerDelegatedClickBound) {
+
+    browserContent.addEventListener("click", function (e) {
+
+        const target = e.target;
+
+        /* =============================
+           🟠 SUSPICIOUS BUTTONS
+        ============================= */
+        if (target.matches(".suspicious-button")) {
+            alert("Haha, nice try! No unlimited FPoints for you!");
+            target.style.display = "none";
+            return;
+        }
+
+        if (target.matches(".suspicious-button2")) {
+            alert("SIKE!! This is actually a normal page, stupid!");
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+           🥭 67 MANGOES
+        ============================= */
+        if (target.matches(".mango-button1")) {
+            const mangoPoints = 10;
+            userFPoints += mangoPoints;
+            saveAppState();
+            showFPointsNotification(mangoPoints);
+            alert("You received 10 FPoints for taking the mangoes!");
+            target.style.display = "none";
+            return;
+        }
+
+        if (target.matches(".mango-button2")) {
+            alert("No mangoes for you!");
+            target.style.display = "none";
+            alert("In fact, I will take 5 FPoints from you for purely existing!");
+            const mangoPenalty = 5;
+            userFPoints -= mangoPenalty;
+            saveAppState();
+            showFPointsNotification(-mangoPenalty);
+            alert("What a loser! >:)");
+            return;
+        }
+
+        /* =============================
+           🎰 BETTING BUTTON
+        ============================= */
+        if (target.matches(".betting-button")) {
+            const betAmount = window.prompt("Enter the amount of FPoints you want to bet:", "50");
+            if (!betAmount || isNaN(betAmount)) return;
+
+            const betAmountNum = parseInt(betAmount, 10);
+            if (userFPoints < betAmountNum) {
+                alert("Not enough FPoints!");
+                return;
+            }
+
+            const win = Math.random() < 0.5;
+            if (win) {
+                const winnings = betAmountNum * 2;
+                userFPoints += winnings;
+                saveAppState();
+                showFPointsNotification(winnings);
+                alert("You won " + winnings + " FPoints!");
+            } else {
+                userFPoints -= betAmountNum;
+                saveAppState();
+                showFPointsNotification(-betAmountNum);
+                alert("You lost " + betAmountNum + " FPoints.");
+            }
+
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+           🍔 BURGER BUTTON
+        ============================= */
+        if (target.matches(".burger-button")) {
+            alert("I have no idea!");
+            alert("I just like the juicy taste!");
+            alert("Wait that's a reason.");
+            userFPoints += 647;
+            saveAppState();
+            showFPointsNotification(647);
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+   🎁 BONUS BUTTON  
+   (Gives 25–75 FPoints)
+============================= */
+if (target.matches(".bonus-button")) {
+    const randomBonusPoints = Math.floor(Math.random() * 51) + 25;
+    userFPoints += randomBonusPoints;
+    saveAppState();
+    showFPointsNotification(randomBonusPoints);
+    target.style.display = "none";
+    return;
+}
+
+        /* =============================
+           🔥 HOLIDAY
+        ============================= */
+        if (target.matches(".holiday-button, #jx1dx1Halloween")) {
+            const randomHalloweenPoints = Math.floor(Math.random() * 101) + 50;
+            userFPoints += randomHalloweenPoints;
+            saveAppState();
+            showFPointsNotification(randomHalloweenPoints);
+            alert("Happy Holidays! You received " + randomHalloweenPoints + " FPoints!");
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+           💰 FPOINTS BUTTON
+        ============================= */
+        if (target.matches(".fpoints-button")) {
+            const randomFPoints = Math.floor(Math.random() * 181) + 20;
+            userFPoints += randomFPoints;
+            saveAppState();
+            showFPointsNotification(randomFPoints);
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+           ☠️ DANGEROUS BUTTONS
+        ============================= */
+        if (target.matches(".dangerous-button, .dangerous-button2")) {
+            const randomDangerousPoints = Math.floor(Math.random() * 1501) - 500;
+            userFPoints += randomDangerousPoints;
+            saveAppState();
+            showFPointsNotification(randomDangerousPoints);
+            target.style.display = "none";
+            alert(
+                randomDangerousPoints < 0
+                ? `Oh no! You lost ${Math.abs(randomDangerousPoints)} FPoints!`
+                : `Phew! You gained ${randomDangerousPoints} FPoints!`
+            );
+            return;
+        }
+
+        if (target.matches(".dangerous-button3")) {
+            alert("Downloading malware...");
+            if (confirm("Are you sure?")) {
+                alert("SIKE!! IT'S MALWARE, LOSER!!");
+                userFPoints -= 400;
+                saveAppState();
+            } else {
+                alert("You evaded the malware! Here's 200 FPoints!");
+                userFPoints += 200;
+                saveAppState();
+            }
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+           RANDOM LINK
+        ============================= */
+        if (target.matches(".random-link")) {
+            e.preventDefault();
+            const url = target.dataset.url;
+            navigate(url);
+            return;
+        }
+
+        /* =============================
+   ❓ MYSTERY HYPERLINK
+   Random unpredictable behavior
+============================= */
+if (target.matches(".mystery-link")) {
+    event.preventDefault();
+
+    // Rare 1% special redirect
+    const roll = Math.random();
+    const randomIndex = Math.floor(Math.random() * 1_000_000);
+
+    // Pools
+    const normalDestinations = [
+        "fexplorer:home",
+        "fexplorer:quick-links",
+        "goog.com/search?q=mystery",
+        "paranoid.com/error.html"
+    ];
+
+    const rareDestinations = [
+        "paranoid.com/glitch",
+        "fexplorer:404",
+        "fexplorer:secret-room",
+    ];
+
+    let chosen;
+
+    if (roll < 0.01) {
+        // 1% ultra-rare event
+        chosen = rareDestinations[Math.floor(Math.random() * rareDestinations.length)];
+        alert("⚠️ Something feels... strange.");
+    } else if (roll < 0.20) {
+        // 20% random user page
+        alert("This link took you somewhere unexpected...");
+    } else {
+        // 79% normal mystery behavior
+        chosen = normalDestinations[Math.floor(Math.random() * normalDestinations.length)];
+    }
+
+    navigate(chosen);
+    return;
+}
+
+    });
+
+    window.__fexplorerDelegatedClickBound = true;
+}
+
+
+// FExplorer Tabs
+let tabs = [];
+let activeTabId = null;
+
+const tabsList = document.getElementById("tabsList");
+const newTabBtn = document.getElementById("newTabBtn");
+
+/*-------------------------------
+  Create a new tab
+--------------------------------*/
+function createTab(startUrl = "fexplorer:home") {
+
+    const tabId = "tab_" + Date.now();
+
+    const tabObj = {
+        id: tabId,
+        url: startUrl,
+        title: "New Tab"
+    };
+
+    tabs.push(tabObj);
+    activeTabId = tabId;
+
+    renderTabs();
+    openUrlInActiveTab(startUrl);
+}
+
+/*-------------------------------
+  Switch to an existing tab
+--------------------------------*/
+function switchTab(tabId) {
+    if (activeTabId === tabId) return; // Don't reload same tab
+
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    activeTabId = tabId;
+    renderTabs();
+
+    openUrlInActiveTab(tab.url);
+}
+
+/*-------------------------------
+  Open a URL inside active tab
+--------------------------------*/
+function openUrlInActiveTab(url) {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab) return;
+
+    tab.url = url;
+
+    // Call YOUR navigation system
+    navigate(url);
+
+    // After navigation loads page content, extract a title
+    setTimeout(updateTabTitleFromContent, 120);
+}
+
+/*-------------------------------
+  Close a tab
+--------------------------------*/
+function closeTab(tabId) {
+
+    const index = tabs.findIndex(t => t.id === tabId);
+    if (index === -1) return;
+
+    const wasActive = (activeTabId === tabId);
+
+    tabs.splice(index, 1);
+
+    // If no tabs left → open a new one
+    if (tabs.length === 0) {
+        createTab("fexplorer:home");
+        return;
+    }
+
+    // If closing the active one, switch to a neighbor
+    if (wasActive) {
+        const newIndex = Math.max(0, index - 1);
+        activeTabId = tabs[newIndex].id;
+        switchTab(activeTabId);
+    }
+
+    renderTabs();
+}
+
+/*-------------------------------
+  Render tab row
+--------------------------------*/
+function renderTabs() {
+    tabsList.innerHTML = "";
+
+    tabs.forEach(tab => {
+        const tabEl = document.createElement("div");
+        tabEl.className = "tab";
+        tabEl.dataset.tab = tab.id;
+
+        if (tab.id === activeTabId) tabEl.classList.add("active");
+
+        tabEl.innerHTML = `
+            <span class="tab-title">${tab.title}</span>
+            <span class="tab-close" data-close="${tab.id}">×</span>
+        `;
+
+        // Clicking the tab switches tabs
+        tabEl.querySelector(".tab-title").addEventListener("click", () => {
+            switchTab(tab.id);
+        });
+
+        // Clicking X closes the tab (does not activate tab)
+        tabEl.querySelector(".tab-close").addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            closeTab(tab.id);
+        });
+
+        tabsList.appendChild(tabEl);
+    });
+}
+
+/*-------------------------------
+  Update title of current tab
+--------------------------------*/
+function updateTabTitle(title) {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab) return;
+
+    tab.title = title || "Untitled";
+    renderTabs();
+}
+
+/*-------------------------------
+  Auto-title detection after navigate()
+--------------------------------*/
+function updateTabTitleFromContent() {
+    const bc = document.getElementById("browserContent");
+    if (!bc) return;
+
+    let title = "";
+
+    // Prefer H1 or .app-title
+    const h1 = bc.querySelector("h1");
+    const appTitle = bc.querySelector(".app-title");
+
+    if (h1) title = h1.innerText.trim();
+    else if (appTitle) title = appTitle.innerText.trim();
+    else title = tabs.find(t => t.id === activeTabId)?.url || "Page";
+
+    updateTabTitle(title);
+}
+
+/*-------------------------------
+  New tab button
+--------------------------------*/
+newTabBtn.addEventListener("click", () => {
+    createTab("fexplorer:home");
+});
+
+/*-------------------------------
+  Start with one tab
+--------------------------------*/
+createTab("fexplorer:home");
+
+document.addEventListener('click', e => {
+  if (e.defaultPrevented) return;
+  if (e.target.closest('#tabsArea')) return; // ignore clicks coming from tabs
+  // existing bracket: handle data-url links...
+});
+
 
 let myTubeVideos;
 try {
@@ -380,6 +1022,9 @@ function handleSendMessage(contactName, chatInput) {
 userChannel.stockOwned = userChannel.stockOwned || 0;
 
 let userCookies = parseInt(localStorage.getItem('userCookies') || '0', 10);
+// throttle cookie gain visuals to avoid spam
+let lastCookieGainTime = 0;
+const COOKIE_GAIN_COOLDOWN_MS = 10000; // 10s between auto-gains/visuals
 let userFPoints = parseInt(localStorage.getItem('userFPoints') || '0', 10);
 let userLuck = parseInt(localStorage.getItem('userLuck') || '0', 10);
 let lastFinancialVisit = parseInt(localStorage.getItem('lastFinancialVisit') || '0', 10);
@@ -405,93 +1050,89 @@ try {
 // Global variable to hold the current page being drafted
 let draftPage = null; // Initialize to null or default empty structure
 
+/*───────────────────────────────
+ 🧱 FExplorer Create (Updated for Hub System)
+────────────────────────────────*/
+
+// Initialize a new draft or load existing one
 function initializeDraftPage() {
     draftPage = {
         title: '',
         creationMode: 'simple', // 'simple' or 'code'
-        simpleContent: '', // For simple text/HTML
-        simpleButtons: [], // For simple buttons { text, url }
-        htmlCode: '<!-- Your HTML content here -->\n<h1>My Custom Page</h1>\n<p>This page was made with code! Try clicking the button.</p>\n<button id="myButton">Click Me</button>',
-        cssCode: 'body { font-family: sans-serif; background-color: #e6ffe6; text-align: center; padding: 20px; }\nh1 { color: #28a745; }\n#myButton { background-color: #007bff; color: white; padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; }',
-        jsCode: 'document.getElementById("myButton").addEventListener("click", () => {\n  alert("Hello from JavaScript!");\n});',
+        simpleContent: '',
+        simpleButtons: [],
+        htmlCode: '<!-- Your HTML here -->\n<h1>Hello World!</h1>\n<p>Made in FExplorer Create.</p>',
+        cssCode: 'body { font-family: sans-serif; background-color: #fafafa; text-align: center; padding: 20px; }',
+        jsCode: 'console.log("Hello from your custom page!");',
     };
+
     try {
         const storedDraft = localStorage.getItem('draftPage');
         if (storedDraft) {
-            const parsedDraft = JSON.parse(storedDraft);
-            // Basic validation to ensure parsed data is an object and has expected properties
-            if (typeof parsedDraft === 'object' && parsedDraft !== null) {
-                // Merge loaded data, retaining defaults for new properties if not present
-                Object.assign(draftPage, parsedDraft);
-                // Ensure array properties exist even if empty
+            const parsed = JSON.parse(storedDraft);
+            if (typeof parsed === 'object' && parsed !== null) {
+                Object.assign(draftPage, parsed);
                 draftPage.simpleButtons = draftPage.simpleButtons || [];
             }
         }
     } catch (e) {
-        console.error("Failed to parse draftPage from localStorage, starting fresh.", e);
-        // draftPage remains default empty object
+        console.warn("Invalid draft data. Resetting.", e);
     }
 }
 
+// Save draftPage to localStorage
 function saveDraftPage() {
     localStorage.setItem('draftPage', JSON.stringify(draftPage));
 }
 
-// -----------------------------
-// Create Page Modal / Drafting
-// -----------------------------
-
+// Open create modal (legacy UI)
 function openCreateModal() {
     const modal = document.getElementById('createModal');
     if (!modal) return;
     modal.style.display = 'flex';
-    modal.setAttribute('aria-hidden', 'false');
     renderDraftToForm();
 }
 
+// Close modal
 function closeCreateModal() {
     const modal = document.getElementById('createModal');
     if (!modal) return;
     modal.style.display = 'none';
-    modal.setAttribute('aria-hidden', 'true');
 }
 
+// Switch editor modes
 function switchCreateMode(mode) {
     const simple = document.getElementById('simpleMode');
     const code = document.getElementById('codeMode');
-    const tabs = document.querySelectorAll('.create-tabs .tab');
-    tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-    if (mode === 'code') {
-        if (simple) simple.style.display = 'none';
-        if (code) code.style.display = 'block';
-        draftPage.creationMode = 'code';
-    } else {
-        if (simple) simple.style.display = 'block';
-        if (code) code.style.display = 'none';
-        draftPage.creationMode = 'simple';
-    }
+    draftPage.creationMode = mode;
+    if (simple) simple.style.display = mode === 'simple' ? 'block' : 'none';
+    if (code) code.style.display = mode === 'code' ? 'block' : 'none';
     saveDraftPage();
 }
 
+// Sync form → draft
 function updateDraftFromForm() {
     if (!draftPage) initializeDraftPage();
+
     const titleEl = document.getElementById('createTitle');
-    const simpleContentEl = document.getElementById('createSimpleContent');
-    const simpleButtonsEl = document.getElementById('createSimpleButtons');
+    const contentEl = document.getElementById('createSimpleContent');
+    const buttonsEl = document.getElementById('createSimpleButtons');
     const htmlEl = document.getElementById('createHtmlCode');
     const cssEl = document.getElementById('createCssCode');
     const jsEl = document.getElementById('createJsCode');
 
     if (titleEl) draftPage.title = titleEl.value.trim();
-    if (simpleContentEl) draftPage.simpleContent = simpleContentEl.value;
-    if (simpleButtonsEl) {
-        // parse simple buttons as lines of Label|URL
-        const lines = simpleButtonsEl.value.split('\n').map(l => l.trim()).filter(Boolean);
+    if (contentEl) draftPage.simpleContent = contentEl.value;
+
+    // Parse buttons
+    if (buttonsEl) {
+        const lines = buttonsEl.value.split('\n').map(l => l.trim()).filter(Boolean);
         draftPage.simpleButtons = lines.map(l => {
-            const parts = l.split('|');
-            return { text: parts[0].trim(), url: (parts[1]||'').trim() };
+            const [text, url] = l.split('|');
+            return { text: text?.trim() || '', url: url?.trim() || '' };
         });
     }
+
     if (htmlEl) draftPage.htmlCode = htmlEl.value;
     if (cssEl) draftPage.cssCode = cssEl.value;
     if (jsEl) draftPage.jsCode = jsEl.value;
@@ -499,140 +1140,145 @@ function updateDraftFromForm() {
     saveDraftPage();
 }
 
+// Sync draft → form
 function renderDraftToForm() {
     if (!draftPage) initializeDraftPage();
+
     const titleEl = document.getElementById('createTitle');
-    const simpleContentEl = document.getElementById('createSimpleContent');
-    const simpleButtonsEl = document.getElementById('createSimpleButtons');
+    const contentEl = document.getElementById('createSimpleContent');
+    const buttonsEl = document.getElementById('createSimpleButtons');
     const htmlEl = document.getElementById('createHtmlCode');
     const cssEl = document.getElementById('createCssCode');
     const jsEl = document.getElementById('createJsCode');
 
     if (titleEl) titleEl.value = draftPage.title || '';
-    if (simpleContentEl) simpleContentEl.value = draftPage.simpleContent || '';
-    if (simpleButtonsEl) {
-        simpleButtonsEl.value = (draftPage.simpleButtons || []).map(b => `${b.text}|${b.url}`).join('\n');
-    }
+    if (contentEl) contentEl.value = draftPage.simpleContent || '';
+    if (buttonsEl) buttonsEl.value = (draftPage.simpleButtons || []).map(b => `${b.text}|${b.url}`).join('\n');
     if (htmlEl) htmlEl.value = draftPage.htmlCode || '';
     if (cssEl) cssEl.value = draftPage.cssCode || '';
     if (jsEl) jsEl.value = draftPage.jsCode || '';
 }
 
+// Build preview for iframe
 function buildPreviewHtml() {
     updateDraftFromForm();
-    let html = '';
+
     if (draftPage.creationMode === 'code') {
-        html = `${draftPage.htmlCode || ''}`;
-        // inject CSS and JS
-        html = `<!doctype html><html><head><meta charset="utf-8"><style>${draftPage.cssCode || ''}</style></head><body>${html}
-<script>${draftPage.jsCode || ''}</script></body></html>`;
-    } else {
-        // simple mode: wrap simpleContent and add buttons
-        const buttonsHtml = (draftPage.simpleButtons || []).map(b => `<p><a href="${escapeHtml(b.url)}">${escapeHtml(b.text)}</a></p>`).join('');
-        html = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial, sans-serif;padding:18px;}</style></head><body><h1>${escapeHtml(draftPage.title || '')}</h1><div>${draftPage.simpleContent || ''}</div>${buttonsHtml}</body></html>`;
+        return `
+            <!doctype html>
+            <html>
+            <head><meta charset="utf-8">
+                <style>${draftPage.cssCode || ''}</style>
+            </head>
+            <body>${draftPage.htmlCode || ''}
+                <script>${draftPage.jsCode || ''}<\/script>
+            </body>
+            </html>`;
     }
-    return html;
+
+    const buttonsHtml = draftPage.simpleButtons.map(b =>
+        `<p><a href="${escapeHtml(b.url)}">${escapeHtml(b.text)}</a></p>`
+    ).join('');
+
+    return `
+        <!doctype html>
+        <html>
+        <head><meta charset="utf-8">
+            <style>body{font-family:Arial;padding:18px;}</style>
+        </head>
+        <body>
+            <h1>${escapeHtml(draftPage.title || '')}</h1>
+            <div>${draftPage.simpleContent || ''}</div>
+            ${buttonsHtml}
+        </body>
+        </html>`;
 }
 
+// Preview in iframe
 function previewDraft() {
+    const iframe = document.getElementById('createPreviewFrame');
+    if (!iframe) return;
+    const html = buildPreviewHtml();
+
     try {
-        const iframe = document.getElementById('createPreviewFrame');
-        if (!iframe) return;
-        const content = buildPreviewHtml();
-        // Use srcdoc for inline preview; fallback to writing into iframe if not supported
-        try {
-            iframe.srcdoc = content;
-        } catch (e) {
-            const doc = iframe.contentWindow.document;
-            doc.open(); doc.write(content); doc.close();
-        }
-    } catch (e) {
-        console.error('Preview failed', e);
+        iframe.srcdoc = html;
+    } catch {
+        const doc = iframe.contentWindow.document;
+        doc.open(); doc.write(html); doc.close();
     }
 }
 
+// Publish draft → FExplorer system
 function publishDraft() {
     updateDraftFromForm();
-    if (!draftPage.title || draftPage.title.trim() === '') {
+
+    if (!draftPage.title.trim()) {
         alert('Please enter a title before publishing.');
         return;
     }
-    // create unique id (format: fexplorer-xxxx)
-    const pageId = `fexplorer-${Math.floor(Math.random() * 10000).toString(36)}`;
-    const pageObj = {
-        id: pageId,
+
+    const pageId = `user-${Math.floor(Math.random() * 99999).toString(36)}`;
+    const pageData = {
         title: draftPage.title,
-        mode: draftPage.creationMode || 'simple',
-        simpleContent: draftPage.simpleContent || '',
-        simpleButtons: draftPage.simpleButtons || [],
-        htmlCode: draftPage.htmlCode || '',
-        cssCode: draftPage.cssCode || '',
-        jsCode: draftPage.jsCode || '',
-        createdAt: Date.now()
+        creationMode: draftPage.creationMode,
+        simpleContent: draftPage.simpleContent,
+        simpleButtons: draftPage.simpleButtons,
+        htmlCode: draftPage.htmlCode,
+        cssCode: draftPage.cssCode,
+        jsCode: draftPage.jsCode,
+        createdAt: Date.now(),
     };
-    userCreatedPages[pageId] = pageObj;
-    // add to random pool if needed
-    const pageUrl = `fexplorer:user-page-${pageId}`;
-    if (!randomWebsiteUrls.includes(pageUrl)) randomWebsiteUrls.push(pageUrl);
+
+    userCreatedPages[pageId] = pageData;
     saveAppState();
+
     closeCreateModal();
-    // navigate to the new page (if app routing supports it)
-    if (addressBar) addressBar.value = pageUrl;
-    if (goButton) goButton.click();
-    
-    // Check for page creation achievements
-    checkRelevantAchievements('page_create');
-    
-    alert('Page published! It may appear in random pages and is accessible via the address bar.');
+
+    const pageUrl = `fexplorer:user-page-${pageId}`;
+    alert(`✅ Page "${draftPage.title}" published!\nAccessible at:\n${pageUrl}`);
+
+    if (addressBar) {
+        addressBar.value = pageUrl;
+        if (goButton) goButton.click();
+    }
 }
 
+// Attach all event listeners
 function attachCreatePageListeners() {
-    // open modal buttons
     const createBtn = document.getElementById('createPageButton');
-    if (createBtn) createBtn.addEventListener('click', (e) => { e.preventDefault(); openCreateModal(); });
-    const dropdownCreate = document.getElementById('dropdown2');
-    if (dropdownCreate) dropdownCreate.addEventListener('click', (e) => { e.preventDefault(); openCreateModal(); });
+    if (createBtn) createBtn.addEventListener('click', e => { e.preventDefault(); openCreateModal(); });
 
-    // modal controls
     const closeBtn = document.getElementById('closeCreateModal');
     if (closeBtn) closeBtn.addEventListener('click', closeCreateModal);
-    const cancelBtn = document.getElementById('cancelCreateBtn');
-    if (cancelBtn) cancelBtn.addEventListener('click', closeCreateModal);
+
     const previewBtn = document.getElementById('previewBtn');
-    if (previewBtn) previewBtn.addEventListener('click', (e) => { e.preventDefault(); previewDraft(); });
-    const saveDraftBtn = document.getElementById('saveDraftBtn');
-    if (saveDraftBtn) saveDraftBtn.addEventListener('click', (e) => { e.preventDefault(); updateDraftFromForm(); alert('Draft saved.'); });
+    if (previewBtn) previewBtn.addEventListener('click', previewDraft);
+
     const publishBtn = document.getElementById('publishBtn');
-    if (publishBtn) publishBtn.addEventListener('click', (e) => { e.preventDefault(); publishDraft(); });
+    if (publishBtn) publishBtn.addEventListener('click', publishDraft);
 
-    // mode tabs
+    // Mode tabs
     const tabs = document.querySelectorAll('.create-tabs .tab');
-    tabs.forEach(t => t.addEventListener('click', () => switchCreateMode(t.dataset.mode)));
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchCreateMode(tab.dataset.mode));
+    });
 
-    // live-update draft when typing
-    ['createTitle','createSimpleContent','createSimpleButtons','createHtmlCode','createCssCode','createJsCode'].forEach(id => {
+    // Auto-save on input
+    [
+        'createTitle','createSimpleContent','createSimpleButtons',
+        'createHtmlCode','createCssCode','createJsCode'
+    ].forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('input', () => {
-            // debounce not necessary for simple app
-            updateDraftFromForm();
-        });
+        if (el) el.addEventListener('input', updateDraftFromForm);
     });
 }
 
-// Helper to escape HTML to prevent breaking the layout when inserting user input
+// Escape HTML safely
 function escapeHtml(text) {
-    if (typeof text !== 'string') {
-        text = String(text);
-    }
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    if (typeof text !== 'string') text = String(text);
+    return text.replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])
+    );
 }
 
 // Inventory and Theme Management
@@ -653,36 +1299,42 @@ function applyTheme(themeId) {
         if (cls.startsWith('theme-')) document.body.classList.remove(cls);
     });
     
-    // Apply base theme
-    if (theme.settings.baseTheme) {
-        document.body.classList.add(`window-${theme.settings.baseTheme}`);
+    // Build result items
+    let resultsHtml = "";
+    if (predefined[lower]) {
+        const r = predefined[lower];
+        // create an article for the predefined result
+        const art = generateSearchArticle(r.title, r.url, `An overview of ${r.title}.`, query);
+        resultsHtml += `
+            <div class="search-result-item ${isPing ? 'ping-result-item' : ''}">
+                <h3><a data-url="fexplorer:search-article-${art.id}" href="#">${escapeHtml(r.title)}</a></h3>
+                <p>${escapeHtml(r.url)}</p>
+            </div>
+        `;
+    } else {
+        const resultCount = Math.floor(Math.random() * 4) + 3; // 3–6 results
+        for (let i = 0; i < resultCount; i++) {
+            const id = Math.random().toString(36).substring(2, 8);
+            const safe = query.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+            const domain = `${safe}-${id}.com`;
+            const titles = [
+                `10 big facts about ${query}!`,
+                `Why ${query} is very important for diet`,
+                `Top 10 things about ${query} you didn't know`,
+                `How ${query} saves hundreds of lives`,
+                `${query}: A complete guide to survival`
+            ];
+            const title = titles[Math.floor(Math.random() * titles.length)];
+            const art = generateSearchArticle(title, domain, `${title} — quick summary.`, query);
+            resultsHtml += `
+                <div class="search-result-item ${isPing ? 'ping-result-item' : ''}">
+                    <h3><a data-url="fexplorer:search-article-${art.id}" href="#">${escapeHtml(title)}</a></h3>
+                    <p style="color:${isPing ? '#2b8af6' : '#006621'};font-size:.85em">${escapeHtml(domain)}</p>
+                    <p>${isPing ? 'Ping autogenerated result snippet.' : 'Random autogenerated search result.'}</p>
+                </div>
+            `;
+        }
     }
-    
-    // Apply theme overlay if any
-    if (theme.settings.overlay) {
-        document.body.classList.add(`theme-${theme.settings.overlay}`);
-    }
-
-    // Update active theme
-    userChannel.activeTheme = themeId;
-    theme.active = true;
-
-    // Start JX1DX1 annoyance if this is the JX1DX1 theme
-    if (themeId === 'jx1dx1_theme' && typeof jx1dx1Annoyance === 'function') {
-        jx1dx1Annoyance();
-    }
-
-    if (themeId === 'fexplorer_assistant' && typeof fexplorerAssistant === 'function') {
-        fexplorerAssistant();
-    }
-    
-    return true;
-}
-
-function toggleCosmetic(cosmeticId, shouldEquip = true) {
-    const cosmetic = userChannel.inventory.cosmetics[cosmeticId];
-    if (!cosmetic) return false;
-
     if (shouldEquip) {
         // Unequip any conflicting cosmetics of the same type
         Object.entries(userChannel.inventory.cosmetics).forEach(([id, item]) => {
@@ -789,11 +1441,18 @@ const shopItems = [
 
 // Achievement System
 let unlockedAchievements = {};
+let achievementProgress = {}; // Track progress toward achievements
 try {
     unlockedAchievements = JSON.parse(localStorage.getItem('unlockedAchievements')) || {};
+    achievementProgress = JSON.parse(localStorage.getItem('achievementProgress')) || {};
 } catch (e) {
     console.error('Failed to load achievements, starting fresh', e);
     unlockedAchievements = {};
+    achievementProgress = {};
+}
+
+function saveAchievementProgress() {
+    localStorage.setItem('achievementProgress', JSON.stringify(achievementProgress));
 }
 
 const achievementItems = [
@@ -802,98 +1461,137 @@ const achievementItems = [
         name: 'Welcome to FExplorer!',
         description: 'Visit FExplorer for the first time!',
         awards: [{ type: 'fpoints', amount: 10 }],
-        checkUnlock: () => true // Auto-unlock on first visit
+        checkUnlock: () => true, // Auto-unlock on first visit
+        progress: null
     },
     {
         id: '1000_fpoints',
         name: 'Big bucks',
         description: 'Get your first 1000 FPoints',
         awards: [{ type: 'fpoints', amount: 500 }],
-        checkUnlock: () => userFPoints >= 1000
+        checkUnlock: () => userFPoints >= 1000,
+        getProgress: () => ({ current: Math.floor(userFPoints), target: 1000 }),
+        progress: () => Math.min(100, Math.round((userFPoints / 1000) * 100))
     },
     {
         id: '10k_fpoints',
         name: 'Extremely rich',
         description: 'Get 10,000 FPoints. Wow!',
         awards: [{ type: 'fpoints', amount: 1000 }],
-        checkUnlock: () => userFPoints >= 10000
+        checkUnlock: () => userFPoints >= 10000,
+        getProgress: () => ({ current: Math.floor(userFPoints), target: 10000 }),
+        progress: () => Math.min(100, Math.round((userFPoints / 10000) * 100))
     },
     {
         id: '100k_fpoints',
         name: 'Do you even touch grass?',
         description: 'Get 100,000 FPoints. You either really like this browser or you just want this badge.',
         awards: [{ type: 'fpoints', amount: 10000 }],
-        checkUnlock: () => userFPoints >= 100000
+        checkUnlock: () => userFPoints >= 100000,
+        getProgress: () => ({ current: Math.floor(userFPoints), target: 100000 }),
+        progress: () => Math.min(100, Math.round((userFPoints / 100000) * 100))
     },
     {
         id: '10x_luck',
         name: 'Luckiest Being Alive',
         description: 'Have a really high amount of Luck on your browser.',
         awards: [{ type: 'luck', amount: 0.5 }],
-        checkUnlock: () => userLuck >= 10
+        checkUnlock: () => userLuck >= 10,
+        getProgress: () => ({ current: parseFloat(userLuck.toFixed(2)), target: 10 }),
+        progress: () => Math.min(100, Math.round((userLuck / 10) * 100))
     },
     {
         id: 'negative_luck',
         name: 'Unlucky Being',
         description: 'Get at least -5x Luck on your browser.',
         awards: [{ type: 'luck', amount: 0.1 }],
-        checkUnlock: () => userLuck <= -5
+        checkUnlock: () => userLuck <= -5,
+        getProgress: () => ({ current: parseFloat(userLuck.toFixed(2)), target: -5 }),
+        progress: () => Math.min(100, Math.round(((5 + userLuck) / 5) * 100))
     },
     {
         id: 'first_user_page',
         name: 'Content Creator',
         description: 'Create and publish your first user page!',
         awards: [{ type: 'fpoints', amount: 50 }],
-        checkUnlock: () => Object.keys(userCreatedPages).length > 0
+        checkUnlock: () => Object.keys(userCreatedPages).length > 0,
+        progress: null
+    },
+    {
+        id: 'five_user_pages',
+        name: 'Prolific Creator',
+        description: 'Create 5 user pages.',
+        awards: [{ type: 'fpoints', amount: 250 }],
+        checkUnlock: () => Object.keys(userCreatedPages).length >= 5,
+        getProgress: () => ({ current: Object.keys(userCreatedPages).length, target: 5 }),
+        progress: () => Math.min(100, Math.round((Object.keys(userCreatedPages).length / 5) * 100))
     },
     {
         id: 'shopaholic',
         name: 'Shopaholic',
         description: 'Purchase 5 items from the FExplorer Shop.',
         awards: [{ type: 'fpoints', amount: 200 }],
-        checkUnlock: () => Object.keys(userChannel.ownedItems).length >= 5
+        checkUnlock: () => Object.keys(userChannel.ownedItems).length >= 5,
+        getProgress: () => ({ current: Object.keys(userChannel.ownedItems).length, target: 5 }),
+        progress: () => Math.min(100, Math.round((Object.keys(userChannel.ownedItems).length / 5) * 100))
+    },
+    {
+        id: 'page_visits_100',
+        name: 'This guy does not shower!',
+        description: 'Visit 100 unique pages.',
+        awards: [{ type: 'fpoints', amount: 2000 }, { type: 'cosmetic', id: '100_user_page_visit' }],
+        checkUnlock: () => (achievementProgress['page_visits'] || 0) >= 100,
+        getProgress: () => ({ current: achievementProgress['page_visits'] || 0, target: 100 }),
+        progress: () => Math.min(100, Math.round(((achievementProgress['page_visits'] || 0) / 100) * 100))
+    },
+    {
+        id: 'cookies_500',
+        name: 'Cookie Monster',
+        description: 'Collect 500 cookies.',
+        awards: [{ type: 'fpoints', amount: 500 }],
+        checkUnlock: () => (userCookies || 0) >= 500,
+        getProgress: () => ({ current: userCookies || 0, target: 500 }),
+        progress: () => Math.min(100, Math.round(((userCookies || 0) / 500) * 100))
     },
     {
         id: 'dangerous_page',
         name: 'Curiosity Killed the Cat',
         description: 'Visit every dangerous user page.',
         awards: [{ type: 'fpoints', amount: 666 }, { type: 'cosmetic', id: 'dangerous_page' }],
-        checkUnlock: () => false // TODO: Add dangerous page tracking
-    },
-    {
-        id: '100_user_page_visit',
-        name: 'This guy does not shower!',
-        description: 'Visited 100 random user pages.',
-        awards: [{ type: 'fpoints', amount: 2000 }, { type: 'cosmetic', id: '100_user_page_visit' }],
-        checkUnlock: () => false // TODO: Add page visit tracking
+        checkUnlock: () => false, // TODO: Add dangerous page tracking
+        progress: null
     },
     {
         id: 'jx1dx1_badge',
         name: 'congratulations.i.guess.',
         description: 'Did what JX1DX1 told you to do. <br> bmljZS5iYWRnZS5icm8u',
         awards: [{ type: 'fpoints', amount: 2008 }, { type: 'cosmetic', id: 'jx1dx1_badge' }],
-        checkUnlock: () => false // TODO: Add tracking for visiting paranoid.com/jx1dx1
+        checkUnlock: () => false, // TODO: Add tracking for visiting paranoid.com/jx1dx1
+        progress: null
     },
     {
         id: 'code_badge',
         name: 'code_badge',
         description: 'Placed in all the codes, you sweat.',
         awards: [{ type: 'fpoints', amount: 2010 }, { type: 'cosmetic', id: 'binary_theme' }],
-        checkUnlock: () => CodeUnlocked = true
-    },
-    {
-        id: '5000_cookies',
-        name: 'THE Cookie Clicker',
-        description: 'Get to 5000 Cookies on Cookie Clicker.',
-        awards: [{ type: 'fpoints', amount: 5000 }],
-        checkUnlock: () => check500Cookies = true
+        checkUnlock: () => false, // TODO: Add tracking for placing all codes
+        progress: null
     },
     {
         id: 'roblox_collector',
         name: 'Roblox Collector',
         description: 'Find and collect 5 Roblox-themed items around the browser.',
         awards: [{ type: 'fpoints', amount: 2006 }, { type: 'cosmetic', id: 'roblox_theme' }],
-        checkUnlock: () => false // uhhh i forgot
+        checkUnlock: () => false, // uhhh i forgot
+        progress: null
+    },
+    {
+        id: 'signin_verified',
+        name: 'Sign in Verified!',
+        description: 'Sign in to FExplorer!',
+        awards: [{ type: 'fpoints', amount: 1000 }],
+        checkUnlock: () => false, // check if the user is signed in or not
+        progress: null
     }
 ];
 
@@ -940,12 +1638,123 @@ function unlockAchievement(achievement) {
     showAchievementNotification(achievement);
 }
 
+// Helper function to increment progress trackers
+function incrementAchievementProgress(key, amount = 1) {
+    if (!achievementProgress[key]) achievementProgress[key] = 0;
+    achievementProgress[key] += amount;
+    saveAchievementProgress();
+    checkAchievements();
+}
+
+// Helper function to set progress tracker to a value
+function setAchievementProgress(key, value) {
+    achievementProgress[key] = value;
+    saveAchievementProgress();
+    checkAchievements();
+}
+
 // Binary Theme
 function binaryTheme() {
     if (userChannel.ownedItems[award.id] === 'binary_theme') {
 
     }
 };
+// Terminal system
+function loadTerminal() {
+    browserContent.innerHTML = `
+        <div id="terminal" class="terminal-container">
+            <div id="terminalOutput" class="terminal-output"></div>
+            <div class="terminal-input-line">
+                <span class="terminal-prefix">></span>
+                <input id="terminalInput" class="terminal-input" autocomplete="off" autofocus>
+            </div>
+        </div>
+    `;
+
+    initTerminal();
+}
+function initTerminal() {
+    const output = document.getElementById('terminalOutput');
+    const input = document.getElementById('terminalInput');
+
+    const print = (text) => {
+        output.innerHTML += `<div class="terminal-line">${text}</div>`;
+        output.scrollTop = output.scrollHeight;
+    };
+
+    // Show welcome message
+    print("FExplorer Terminal v1.0");
+    print("Type 'help' to see available commands.");
+    print("");
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            input.value = "";
+            print("> " + command);
+            runTerminalCommand(command, print);
+        }
+    });
+}
+function runTerminalCommand(cmd, print) {
+    const parts = cmd.split(" ");
+    const base = parts[0].toLowerCase();
+
+    switch (base) {
+        case "help":
+            print("Available commands:");
+            print("help - Show this list");
+            print("clear - Clear terminal");
+            print("points - Show your FPoints");
+            print("date - Show system date/time");
+            print("open [url] - Open an FExplorer page");
+            print("whoami - Identity check");
+            print("fbot - Chat with FBot?");
+            break;
+
+        case "clear":
+            document.getElementById('terminalOutput').innerHTML = "";
+            break;
+
+        case "points":
+            print(`You have ${userFPoints} FPoints.`);
+            break;
+
+        case "date":
+            print(new Date().toString());
+            break;
+
+        case "open":
+            if (parts.length < 2) {
+                print("Usage: open <url>");
+            } else {
+                navigate(parts[1]); // Your existing navigation function
+                print("Opening " + parts[1] + "...");
+            }
+            break;
+
+        case "whoami":
+            print("You are the main user of FExplorer.");
+            break;
+
+        case "fbot":
+            print("Establishing secure link with FBot...");
+            setTimeout(() => print("Connection denied. (FBot said no 💀)"), 800);
+            break;
+        
+        case "teapot":
+            print("Loading a very detailed looking teapot...");
+            setTimeout(() => print("Error 518 - I'm A Teapot!<br>Yeah no you're not gonna see a teapot here."), 2000);
+            updateFPointsDisplay();
+            saveAppState();
+            showFPointsNotification(518);
+            break;
+        default:
+            print(`Unknown command: ${cmd}`);
+            print("Type 'help' for a list of valid commands.");
+    }
+}
+
 
 // JX1DX1 being a fuckass if you have his theme
 // This basically makes him annoying and puts alerts everytime you visit a page
@@ -1113,19 +1922,61 @@ function trackJX1DX1Achievement() {
 
 // Achievement Notification (Alerts the user)
 function showAchievementNotification(achievement) {
-    alert(`Achievement Unlocked: ${achievement.name}\n\n${achievement.description}`);
-    alert(`You have been awarded:\n` + achievement.awards.map(award => {
+    // Create a visual notification element
+    let notif = document.getElementById('achievementNotif');
+    if (!notif) {
+        notif = document.createElement('div');
+        notif.id = 'achievementNotif';
+        notif.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #333;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            max-width: 350px;
+            z-index: 999999;
+            font-family: Arial, sans-serif;
+            border: 2px solid #FF8C00;
+        `;
+        document.body.appendChild(notif);
+    }
+    
+    const awardsText = achievement.awards.map(award => {
         switch(award.type) {
             case 'fpoints':
-                return `${award.amount} FPoints`;
+                return `+${award.amount} FPoints`;
             case 'luck':
-                return `${award.amount}x Luck`;
+                return `+${award.amount}x Luck`;
             case 'cosmetic':
                 return `Cosmetic: ${award.id}`;
             default:
                 return '';
         }
-    }).join('\n'));
+    }).join(' • ');
+    
+    notif.innerHTML = `
+        <div style="font-size: 1.3em; font-weight: bold; margin-bottom: 8px;">🏆 Achievement Unlocked!</div>
+        <div style="font-size: 1.1em; margin-bottom: 5px;">${achievement.name}</div>
+        <div style="font-size: 0.9em; margin-bottom: 5px; opacity: 0.8;">${achievement.description}</div>
+        <div style="font-size: 0.85em; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); color: #1a1a1a; font-weight: bold;">
+            ${awardsText}
+        </div>
+    `;
+    
+    notif.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        notif.style.opacity = '1';
+        notif.style.transition = 'opacity 0.3s';
+        setTimeout(() => {
+            notif.style.opacity = '0';
+            setTimeout(() => notif.style.display = 'none', 300);
+        }, 4700);
+    }, 0);
 }
 
 // Check achievements after relevant actions
@@ -1271,198 +2122,202 @@ function getTimeElapsedString(timestamp) {
     return `${years} year${years > 1 ? 's' : ''} ago`;
 }
 
-// Function to generate the create page editor HTML
-function getCreatePageEditorHTML() {
-    if (!draftPage) {
-        initializeDraftPage(); // Ensure draftPage is initialized if null
-    }
+/*───────────────────────────────
+ 🌐 FExplorer Create + Creator Hub
+────────────────────────────────*/
 
-    let simpleButtonsHtml = draftPage.simpleButtons.map((btn, index) => `
+// --- CREATE PAGE EDITOR UI ---
+function getCreatePageEditorHTML() {
+    if (!draftPage) initializeDraftPage();
+
+    const simpleButtonsHtml = (draftPage.simpleButtons || []).map((btn, i) => `
         <div class="created-button-preview">
             <span>Text: "${escapeHtml(btn.text)}" | URL: "${escapeHtml(btn.url)}"</span>
-            <button class="remove-button" data-index="${index}">X</button>
+            <button class="remove-button" data-index="${i}">✕</button>
         </div>
     `).join('');
 
     return `
-            <header class="fexplorer-create-header">
-                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
-                <span class="app-title">FExplorer Create</span>
-                <nav>
-                    <a href="#" data-url="fexplorer:home" class="app-header-button">Home</a>
-                    <a href="#" data-url="fexplorer:create.hub" class="app-header-button">My Pages Hub</a>
-                </nav>
-            </header>
-            <main class="fexplorer-create-main">
-                <section class="fexplorer-create-form">
-                    <h2>Create a Custom Page</h2>
-                    <div class="mode-toggle">
-                        <label><input type="radio" name="creationMode" value="simple" ${draftPage.creationMode === 'simple' ? 'checked' : ''}> Simple Mode</label>
-                        <label><input type="radio" name="creationMode" value="code" ${draftPage.creationMode === 'code' ? 'checked' : ''}> Code Mode</label>
+        <header class="fexplorer-create-header">
+            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <span class="app-title">FExplorer Create Studio</span>
+            <nav>
+                <a href="#" data-url="fexplorer:home" class="app-header-button">🏠 Home</a>
+                <a href="#" data-url="fexplorer:create.hub" class="app-header-button">📁 My Pages</a>
+            </nav>
+        </header>
+
+        <main class="fexplorer-create-main">
+            <section class="fexplorer-create-form">
+                <h2>Create a Custom Page</h2>
+
+                <div class="mode-toggle">
+                    <label><input type="radio" name="creationMode" value="simple" ${draftPage.creationMode === 'simple' ? 'checked' : ''}> Simple Mode</label>
+                    <label><input type="radio" name="creationMode" value="code" ${draftPage.creationMode === 'code' ? 'checked' : ''}> Code Mode</label>
+                </div>
+
+                <!-- SIMPLE MODE -->
+                <div id="simpleEditorSection" style="display:${draftPage.creationMode === 'simple' ? 'block' : 'none'};">
+                    <div class="form-group">
+                        <label for="pageTitleInput">Title</label>
+                        <input type="text" id="pageTitleInput" maxlength="50" value="${escapeHtml(draftPage.title)}" placeholder="Page Title">
                     </div>
-                    <div id="simpleEditorSection" style="display: ${draftPage.creationMode === 'simple' ? 'block' : 'none'};">
-                        <div class="form-group">
-                            <label for="pageTitleInput">Title</label>
-                            <input type="text" id="pageTitleInput" maxlength="50" value="${escapeHtml(draftPage.title)}" placeholder="Page Title">
-                        </div>
-                        <div class="form-group">
-                            <label for="pageContentInput">Content (HTML/Text)</label>
-                            <textarea id="pageContentInput" rows="6" placeholder="Write your page content here">${escapeHtml(draftPage.simpleContent)}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Add Button</label>
-                            <input type="text" id="buttonTextInput" maxlength="30" placeholder="Button Text">
-                            <input type="text" id="buttonUrlInput" placeholder="Button URL (e.g. example.com)">
-                            <button id="addPageButton" class="fexplorer-button">Add</button>
-                        </div>
-                        <div class="form-group">
-                            <label>Buttons Added</label>
-                            <div id="pageButtonsPreview">${simpleButtonsHtml}</div>
-                            <p id="noButtonsMessage" style="${draftPage.simpleButtons.length > 0 ? 'display:none;' : ''}color:#888;">No buttons yet.</p>
-                        </div>
+                    <div class="form-group">
+                        <label for="pageContentInput">Content (HTML/Text)</label>
+                        <textarea id="pageContentInput" rows="6" placeholder="Write your content here">${escapeHtml(draftPage.simpleContent)}</textarea>
                     </div>
-                    <div id="codeEditorSection" style="display: ${draftPage.creationMode === 'code' ? 'block' : 'none'};">
-                        <div class="form-group">
-                            <label for="htmlCodeInput">HTML</label>
-                            <textarea id="htmlCodeInput" rows="10" spellcheck="false">${escapeHtml(draftPage.htmlCode)}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="cssCodeInput">CSS (optional)</label>
-                            <textarea id="cssCodeInput" rows="6" spellcheck="false">${escapeHtml(draftPage.cssCode)}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="jsCodeInput">JavaScript (optional)</label>
-                            <textarea id="jsCodeInput" rows="6" spellcheck="false">${escapeHtml(draftPage.jsCode)}</textarea>
-                        </div>
-                        <small class="code-note">JS alerts are intercepted in preview. Images: 'fexplorer_logo.png'.</small>
+                    <div class="form-group">
+                        <label>Add Button</label>
+                        <input type="text" id="buttonTextInput" maxlength="30" placeholder="Button Text">
+                        <input type="text" id="buttonUrlInput" placeholder="Button URL (e.g. fexplorer:home)">
+                        <button id="addPageButton" class="fexplorer-button">Add</button>
                     </div>
-                    <div class="fexplorer-create-actions">
-                        <button id="previewUserPage" class="fexplorer-button" style="background-color: #007bff;">Preview</button>
-                        <button id="publishUserPage" class="fexplorer-button">Publish</button>
+                    <div class="form-group">
+                        <label>Buttons Added</label>
+                        <div id="pageButtonsPreview">${simpleButtonsHtml || '<p style="color:#888;">No buttons yet.</p>'}</div>
                     </div>
-                    <div id="pageStatusMessage" class="status-message" style="margin-top: 10px;"></div>
-                </section>
-            </main>
-            <footer class="fexplorer-create-footer">
-                <p>Your page is saved locally. Not accessible by others.</p>
-            </footer>
-        </div>
+                </div>
+
+                <!-- CODE MODE -->
+                <div id="codeEditorSection" style="display:${draftPage.creationMode === 'code' ? 'block' : 'none'};">
+                    <div class="form-group">
+                        <label for="htmlCodeInput">HTML</label>
+                        <textarea id="htmlCodeInput" rows="10" spellcheck="false">${escapeHtml(draftPage.htmlCode)}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="cssCodeInput">CSS</label>
+                        <textarea id="cssCodeInput" rows="6" spellcheck="false">${escapeHtml(draftPage.cssCode)}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="jsCodeInput">JavaScript</label>
+                        <textarea id="jsCodeInput" rows="6" spellcheck="false">${escapeHtml(draftPage.jsCode)}</textarea>
+                    </div>
+                    <small class="code-note">JS alerts are intercepted in preview.</small>
+                </div>
+
+                <div class="fexplorer-create-actions">
+                    <button id="previewUserPage" class="fexplorer-button" style="background-color:#007bff;">Preview</button>
+                    <button id="publishUserPage" class="fexplorer-button">Publish</button>
+                </div>
+
+                <div id="pageStatusMessage" class="status-message" style="margin-top:10px;"></div>
+            </section>
+        </main>
+
+        <footer class="fexplorer-create-footer">
+            <p>Your page is saved locally. Not accessible by others.</p>
+        </footer>
     `;
 }
 
-// Function to render the create page editor
 function renderCreatePageEditor() {
-    if (!draftPage) {
-        initializeDraftPage(); // Ensure draftPage is initialized if null
-    }
+    if (!draftPage) initializeDraftPage();
     browserContent.innerHTML = getCreatePageEditorHTML();
     attachCreatePageEditorEventListeners();
 }
 
-// New function to generate the FExplorer Creator Hub page HTML
+/*───────────────────────────────
+ 📁 CREATOR HUB PAGE
+────────────────────────────────*/
 function getFExplorerCreatorHubPageHTML() {
-    let pagesGridHtml = '';
     const pageIds = Object.keys(userCreatedPages);
-
-    if (pageIds.length > 0) {
-        pagesGridHtml = pageIds.map(pageId => {
-            const page = userCreatedPages[pageId];
-            const pageUrl = `fexplorer:user-page-${pageId}`;
-            const description = page.creationMode === 'simple' ? 'A simple page with text and buttons.' : 'A page built with custom HTML, CSS, and JavaScript.';
-            return `
-                <div class="hub-item-card">
-                    <a href="#" data-url="${pageUrl}">
-                        <h3>${escapeHtml(page.title)}</h3>
-                        <p>${description}</p>
-                    </a>
-                    <a href="#" data-url="${pageUrl}" class="view-page-button">View Page</a>
-                    <a href="#" class="view-page-button delete-page-button">Delete Page</a>
+    const pagesGridHtml = pageIds.length ? pageIds.map(pageId => {
+        const page = userCreatedPages[pageId];
+        const pageUrl = `fexplorer:user-page-${pageId}`;
+        const description = page.creationMode === 'simple'
+            ? 'Simple page with text and buttons.'
+            : 'Custom HTML/CSS/JS page.';
+        return `
+            <div class="hub-item-card">
+                <div class="hub-card-info">
+                    <h3>${escapeHtml(page.title)}</h3>
+                    <p>${description}</p>
                 </div>
-            `;
-        }).join('');
-    }
+                <div class="hub-card-actions">
+                    <button class="hub-button view" data-url="${pageUrl}">View</button>
+                    <button class="hub-button delete" data-id="${pageId}">Delete</button>
+                </div>
+            </div>`;
+    }).join('') : '<p style="color:#888;text-align:center;">No pages yet. Create one!</p>';
 
     return `
         <div class="create-hub-page-layout">
             <div class="app-header">
-                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+                <img src="icons/fexplorer.png" class="app-logo">
                 <span class="app-title">FExplorer Creator Hub</span>
-                <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
-                <a href="#" data-url="fexplorer:create" class="app-header-button">Create New Page</a>
+                <a href="#" data-url="fexplorer:home" class="app-header-button">🏠 Home</a>
+                <a href="#" data-url="fexplorer:create" class="app-header-button">➕ New Page</a>
             </div>
+
             <div class="create-hub-main-content">
                 <h1>Your Published Pages</h1>
-                <p class="tagline">Manage and share your own pages. Click on one of them to view it!</p>
-                <div id="userPagesGrid" class="hub-item-grid">
-                    ${pagesGridHtml}
-                </div>
-                <p id="noPagesMessage" class="status-message" style="${pageIds.length > 0 ? 'display: none;' : ''} margin-top: 30px;">
-                    You haven't published any pages yet. <a href="#" data-url="fexplorer:create">Create your first page!</a>
-                </p>
+                <p class="tagline">Manage, view, and delete your creations.</p>
+                <div id="userPagesGrid" class="hub-item-grid">${pagesGridHtml}</div>
             </div>
-            <p class="footer-note" style="text-align: center; margin: 20px;">Your creations, your FExplorer.</p>
-        </div>
-    `;
+
+            <footer class="footer-note" style="text-align:center;margin:20px;">
+                Your creations, your FExplorer.
+            </footer>
+        </div>`;
 }
 
+/*───────────────────────────────
+ 📄 VIEW PUBLISHED PAGE
+────────────────────────────────*/
 function getPublishedUserPageHTML(pageId) {
     const pageData = userCreatedPages[pageId];
     if (!pageData) {
         return `
-            <div style="text-align: center; padding: 50px;">
+            <div style="text-align:center;padding:50px;">
                 <h1>Page Not Found</h1>
-                <p>The user-created page "${pageId}" could not be found.</p>
-                <p>Return to <a href="#" data-url="fexplorer:home">FExplorer Home</a></p>
-            </div>
-        `;
+                <p>The page "${pageId}" could not be found.</p>
+                <p><a href="#" data-url="fexplorer:home">Return Home</a></p>
+            </div>`;
     }
 
     if (pageData.creationMode === 'simple') {
-        let buttonsHtml = pageData.buttons.map(btn => `
+        const buttonsHtml = (pageData.simpleButtons || []).map(btn => `
             <button class="user-page-button" data-url="${escapeHtml(btn.url)}">${escapeHtml(btn.text)}</button>
         `).join('');
 
         return `
             <div class="user-created-page-layout">
                 <div class="app-header">
-                    <img src="icons/placeholder.png" alt="FExplorer Logo" class="app-logo">
+                    <img src="icons/placeholder.png" class="app-logo">
                     <span class="app-title">${escapeHtml(pageData.title)}</span>
-                    <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
-                    <a href="#" data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
+                    <a href="#" data-url="fexplorer:create.hub" class="app-header-button">📁 Hub</a>
                 </div>
                 <div class="user-page-content">
                     <h1>${escapeHtml(pageData.title)}</h1>
-                    <div class="user-page-text">${pageData.content}</div>
-                    <div class="user-page-buttons">
-                        ${buttonsHtml}
-                    </div>
+                    <div class="user-page-text">${pageData.simpleContent}</div>
+                    <div class="user-page-buttons">${buttonsHtml}</div>
                 </div>
-                <p class="footer-note" style="text-align: center; margin: 20px;">This is a user-created page.</p>
-            </div>
-        `;
-    } else if (pageData.creationMode === 'code') {
-         // The actual content injection for code pages happens in navigate function
+                <footer class="footer-note" style="text-align:center;margin:20px;">User-created page.</footer>
+            </div>`;
+    } else {
         return `
             <div class="user-created-code-page-layout">
                 <div class="app-header">
-                    <img src="fexplorer.png" alt="FExplorer Logo" class="app-logo">
+                    <img src="icons/fexplorer.png" class="app-logo">
                     <span class="app-title">${escapeHtml(pageData.title)}</span>
-                    <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
-                    <a href="#" data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
+                    <a href="#" data-url="fexplorer:create.hub" class="app-header-button">📁 Hub</a>
                 </div>
-                <div class="user-code-page-content" id="userCodePageContent">
-                    <!-- Custom HTML will be dynamically inserted here -->
-                </div>
-                <p class="footer-note" style="text-align: center; margin: 20px;">This is a user-created page (code mode).</p>
-            </div>
-        `;
+                <div class="user-code-page-content" id="userCodePageContent"></div>
+                <footer class="footer-note" style="text-align:center;margin:20px;">Custom code page.</footer>
+            </div>`;
     }
-    return ''; // Should not happen
 }
 
-function deletePage (pageId) {
-    if (userCreatedPages[pageId]) {
+/*───────────────────────────────
+ ❌ DELETE PAGE
+────────────────────────────────*/
+function deletePage(pageId) {
+    if (!userCreatedPages[pageId]) return;
+    if (confirm(`Delete "${userCreatedPages[pageId].title}"? This cannot be undone.`)) {
         delete userCreatedPages[pageId];
+        saveAppState();
+        alert('✅ Page deleted successfully.');
+        browserContent.innerHTML = getFExplorerCreatorHubPageHTML();
     }
 }
 
@@ -1486,156 +2341,215 @@ const fakeContent = {
     <br>
     <p>Want to make your own page? <a href="#" id="createPageButton">Click here</a></p>
     `,
-    // Search Engine: Goog!
+    // Search Engine: Goog! (Chromium-like)
     'goog.com': `
-        <div class="goog-homepage">
-            <img src="icons/goog-logo.png" alt="Goog! Logo" class="goog-logo" style="width: 200px; margin-top: 40px;">
-            <input type="search" id="googSearchInput" class="goog-search-input" placeholder="Search the web with Goog!">
-            <button id="googSearchButton" class="goog-search-button home-page-button">Search!</button>
-            <div id="googSearchResults" class="goog-search-results"></div>
-            <p class="footer-note">© Goog | Made by smrtC951!</p>
+        <div class="goog-homepage" style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;">
+            <img src="icons/goog-logo.png" alt="Goog! Logo" class="goog-logo" style="width:220px;margin-bottom:18px;">
+            <div style="width:100%;max-width:760px;display:flex;gap:8px;align-items:center;">
+                <input type="search" id="googSearchInput" class="goog-search-input" placeholder="Search the web with Goog!" style="flex:1;padding:14px 18px;border-radius:24px;border:1px solid #e0e0e0;box-shadow:0 2px 6px rgba(32,33,36,.08);">
+                <button id="googSearchButton" class="goog-search-button home-page-button" style="padding:12px 18px;border-radius:20px;font-weight:600;">Search</button>
+            </div>
+            <div id="googSearchResults" class="goog-search-results" style="width:100%;max-width:760px;margin-top:28px;"></div>
+            <p class="footer-note" style="margin-top:32px;color:#70757a">© Goog | Made by smrtC951!</p>
         </div>
     `,
     // FExplorer Home Page
     // The randomWebsiteButton is just a random 'User Page' button (its just a random page)
     'fexplorer:home': `
-        <div class="home-page-content">
-            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
-            <h1>Welcome to FExplorer!</h1>
-            <p class="tagline">A browser inside your browser.</p>
-            <div class="home-page-search-container">
-                <input type="search" class="home-page-search-input" placeholder="Search the web or type in a URL...">
-                <button class="home-page-search-button">Search</button>
+        <div class="home-page-enhanced">
+            <div class="home-header-banner">
+                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="home-logo">
+                <div class="home-welcome-text">
+                    <h1>Welcome to FExplorer!</h1>
+                    <p class="tagline">A browser inside your browser.</p>
+                </div>
             </div>
-            <div class="quick-links-section">
-                <h2>Explore</h2>
+            
+            <div class="home-stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-info">
+                        <div class="stat-label">FPoints</div>
+                        <div class="stat-value" id="homePageFPoints">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🍪</div>
+                    <div class="stat-info">
+                        <div class="stat-label">Cookies</div>
+                        <div class="stat-value" id="homePageCookies">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎲</div>
+                    <div class="stat-info">
+                        <div class="stat-label">Luck</div>
+                        <div class="stat-value" id="homePageLuck">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-fun-fact">
+                <div class="fun-fact-icon">💡</div>
+                <div class="fun-fact-content">
+                    <h3>Did you know?</h3>
+                    <p id="funFactText">Loading fun facts...</p>
+                </div>
+            </div>
+
+            <div class="home-search-section">
+                <div class="home-page-search-container">
+                    <input type="search" class="home-page-search-input" placeholder="Search the web or type in a URL...">
+                    <button class="home-page-search-button">Search</button>
+                </div>
+            </div>
+
+            <div class="home-links-section">
+                <h2>🌐 Explore</h2>
                 <div class="home-page-buttons-container">
                     <button class="home-page-button" data-url="fexplorer:quick-links">Quick Links</button>
-                    <button id="randomWebsiteButton" class="home-page-button">Random Page</button>
-                    <button class="home-page-button" data-url="fexplorer:updates">Updates</button>
-					<button class="home-page-button" data-url="fexplorer:financial">Financials</button>
-					<button class="home-page-button" data-url="fexplorer:settings">Settings</button>
+                    <button class="home-page-button" data-url="fexplorer:100-default/welcome">Random Page</button>
+                    <button class="home-page-button updates-button" data-url="fexplorer:updates">Updates</button>
+                    <button class="home-page-button" data-url="fexplorer:financial">Financials</button>
+                    <button class="home-page-button" data-url="fexplorer:settings">Settings</button>
                     <button class="home-page-button" data-url="fexplorer:games">Games</button>
                     <button class="home-page-button" data-url="fexplorer:about">About</button>
                     <button class="home-page-button" data-url="fexplorer:placeholder" id="yourAccountButton" disabled>Your Account</button>
                 </div>
             </div>
-            <p class="footer-note">Made by smrtC951!</p>
+
+            <p class="footer-note">Made by smrtC951! | FExplorer</p>
         </div>
     `,
     // FExplorer Quick Links Page
     'fexplorer:quick-links': `
-        <div class="quick-links-page home-page-content">
-            <h1>FExplorer Quick Links</h1>
-            <p class="tagline">Easily jump to other sites.</p>
-            <div class="quick-links-section">
-                <h2>Available Links</h2>
-                <ul class="quick-links">
-                    <li>
-                        <a href="#" data-url="example.com">Example Site</a>
-                        <p class="link-description">It's in the name, buddy.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="about:blank">Blank Page</a>
-                        <p class="link-description"></p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:home">FExplorer Home</a>
-                        <p class="link-description">Return to the FExplorer welcome page.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="goog.com">Goog!</a>
-                        <p class="link-description">Visit the Goog! search engine.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:financial">FExplorer Financials</a>
-                        <p class="link-description">Manage your FPoints and claim daily bonuses.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:shop">FExplorer Shop</a>
-                        <p class="link-description">Spend your FPoints on cool stuff and luck boosts.</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:updates">FExplorer Updates</a>
-                        <p class="link-description">See what's new and what's coming next!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:create">Page Creator</a>
-                        <p class="link-description">Create your own custom web pages!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:create.hub">Creator Hub</a>
-                        <p class="link-description">View and manage all your published pages!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:games">FExplorer Games</a>
-                        <p class="link-description">Explore a variety of games!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:programs">FExplorer Programs</a>
-                        <p class="link-description">Explore a variety of professional programs!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:wiki">Encyclopedia</a>
-                        <p class="link-description">Explore multiple sections of information about FExplorer!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="unknown.site">Unknown Site</a>
-                        <p class="link-description">Haha funny 404 error</p>
-                    </li>
-                </ul>
+        <div class="quicklinks-page-enhanced">
+            <div class="page-header">
+                <h1>🔗 Quick Links</h1>
+                <p class="page-subtitle">Your gateway to all FExplorer destinations</p>
+                <div class="quicklinks-search-container">
+                    <input type="search" id="quicklinksSearchInput" class="quicklinks-search-input" placeholder="Search quick links...">
+                    <button id="quicklinksSearchButton" class="quicklinks-search-button">Search</button>
+                </div>
             </div>
-            <p class="footer-note">Back to <a href="#" data-url="fexplorer:home">FExplorer Home</a></p>
+            
+            <div class="quicklinks-grid" id="quicklinksGrid">
+                <div class="quicklink-card" data-title="FExplorer Home" data-keywords="home fexplorer welcome">
+                    <h3><a href="#" data-url="fexplorer:home">FExplorer Home</a></h3>
+                    <p>Return to the FExplorer welcome page and see your stats.</p>
+                </div>
+                <div class="quicklink-card" data-title="Goog!" data-keywords="goog search engine web">
+                    <h3><a href="#" data-url="goog.com">Goog!</a></h3>
+                    <p>Visit the Goog! search engine to find information.</p>
+                </div>
+                <div class="quicklink-card" data-title="Financials" data-keywords="financials fpoints stocks trading money">
+                    <h3><a href="#" data-url="fexplorer:financial">Financials</a></h3>
+                    <p>Manage your FPoints, trade stocks, and earn bonuses.</p>
+                </div>
+                <div class="quicklink-card" data-title="Shop" data-keywords="shop buy items cosmetics themes">
+                    <h3><a href="#" data-url="fexplorer:shop">Shop</a></h3>
+                    <p>Spend your FPoints on cosmetics and luck boosts.</p>
+                </div>
+                <div class="quicklink-card" data-title="Updates" data-keywords="updates news changelog new features">
+                    <h3><a href="#" data-url="fexplorer:updates">Updates</a></h3>
+                    <p>See what's new and what's coming to FExplorer!</p>
+                </div>
+                <div class="quicklink-card" data-title="Games" data-keywords="games play fun challenges">
+                    <h3><a href="#" data-url="fexplorer:games">Games</a></h3>
+                    <p>Explore a variety of fun games and challenges.</p>
+                </div>
+                <div class="quicklink-card" data-title="Page Creator" data-keywords="creator create pages build custom">
+                    <h3><a href="#" data-url="fexplorer:create.new">Page Creator</a></h3>
+                    <p>Create your own custom pages and share them!</p>
+                </div>
+                <div class="quicklink-card" data-title="Programs" data-keywords="programs tools applications software">
+                    <h3><a href="#" data-url="fexplorer:programs">Programs</a></h3>
+                    <p>Access professional programs and tools for FExplorer.</p>
+                </div>
+                <div class="quicklink-card" data-title="Encyclopedia" data-keywords="encyclopedia wiki learn information knowledge">
+                    <h3><a href="#" data-url="fexplorer:wiki">Encyclopedia</a></h3>
+                    <p>Learn about currencies, navigation, and more.</p>
+                </div>
+                <div class="quicklink-card" data-title="Achievements" data-keywords="achievements badges unlock rewards trophies">
+                    <h3><a href="#" data-url="fexplorer:achievements">Achievements</a></h3>
+                    <p>Unlock badges and earn exclusive rewards.</p>
+                </div>
+                <div class="quicklink-card" data-title="About" data-keywords="about fexplorer info details help">
+                    <h3><a href="#" data-url="fexplorer:about">About</a></h3>
+                    <p>Learn more about FExplorer and what it offers.</p>
+                </div>
+                <div class="quicklink-card" data-title="Cookies" data-keywords="cookies currency earn trade">
+                    <h3><a href="#" data-url="fexplorer:cookies">Cookies</a></h3>
+                    <p>Manage your cookies and learn about trading.</p>
+                </div>
+            </div>
+
+            <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
     // FExplorer Financial Page
     'fexplorer:financial': `
-        <div class="home-page-content">
-            <img src="icons/financial-icon-new.png" alt="FExplorer Logo" class="app-logo">
-            <h1>FExplorer Financials</h1>
-            <p class="tagline">Manage your FPoints and explore totally legal investments.</p>
-            <div style="background-color: #f0f8ff; border: 1px solid #add8e6; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; margin-bottom: 20px;">
-                <p style="font-size: 1.2em; font-weight: bold; color: #333;">Your FPoints: <span id="currentFPoints">${userFPoints.toLocaleString()}</span></p>
-                <p style="font-size: 0.9em; color: #555;">Your Luck Multiplier: <span id="currentLuck">${userLuck.toFixed(1)}x</span></p>
+        <div class="financial-page-enhanced">
+            <div class="financial-header">
+                <img src="icons/financial-icon-new.png" alt="Financial" class="financial-logo">
+                <h1>FExplorer Financials</h1>
+                <p class="financial-tagline">Manage your wealth and explore totally legal investments</p>
             </div>
 
-            <div style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
-                <h2>FPoint Daily Bonus</h2>
-                <p>Claim a bonus of FPoints! (Available every 5 minutes)</p>
-                <button id="claimDailyBonusButton" class="home-page-button" style="margin-top: 10px;">Claim Daily Bonus</button>
-                <p id="dailyBonusMessage" style="font-size: 0.9em; margin-top: 10px;"></p>
-            </div>
-
-            <div class="stock-market-card" style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
-                <h2>The WebTech Stock</h2>
-                <p style="font-size: 1.1em;">Current Price: <span id="stockPriceDisplay" style="font-weight: bold; color: #007bff;">${stockPrice.toFixed(2)}</span> FPoints per share</p>
-                <p style="font-size: 0.9em;">Shares Owned: <span id="userOwnedStock" style="font-weight: bold;">${userChannel.stockOwned}</span></p>
-
-                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 150px;">
-                        <input type="number" id="stockBuyInput" class="mytube-input" placeholder="Quantity to Buy" min="1" value="1" style="width: calc(100% - 20px); margin-bottom: 5px;">
-                        <button id="buyStockButton" class="fexplorer-button" style="background-color: #28a745; width: 100%;">Buy Stock</button>
-                    </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <input type="number" id="stockSellInput" class="mytube-input" placeholder="Quantity to Sell" min="1" value="1" style="width: calc(100% - 20px); margin-bottom: 5px;">
-                        <button id="sellStockButton" class="mytube-button" style="background-color: #dc3545; width: 100%;">Sell Stock</button>
-                    </div>
+            <div class="financial-stats">
+                <div class="financial-stat-card">
+                    <div class="stat-label">💰 FPoints Balance</div>
+                    <div class="stat-large-value" id="currentFPoints">0</div>
                 </div>
-                <p style="font-size: 0.8em; color: #666; margin-top: 15px;">Stock price depends over time. Buy low, sell high!</p>
-            </div>
-
-            <div style="background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; max-width: 500px; width: 100%; text-align: left; margin-bottom: 20px;">
-                <h2>Other FPoints Options</h2>
-                <button class="home-page-button" id="riskAllButton" style="flex: 1; min-width: 150px; background-color: #ffc107;">Risk all of it.</button>
-                <button class="home-page-button" id="negotiateButton" style="flex: 1; min-width: 150px; background-color: #8b07ffff;">Negotiate</button>
-            </div>
-
-            <div class="quick-links-section" style="margin-top: 30px;">
-                <div class="home-page-buttons-container">
-                    <button class="home-page-button" data-url="fexplorer:shop">Visit the FPoints Shop</button>
-                    <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
+                <div class="financial-stat-card">
+                    <div class="stat-label">🎲 Luck Multiplier</div>
+                    <div class="stat-large-value" id="currentLuck">1.0x</div>
+                </div>
+                <div class="financial-stat-card">
+                    <div class="stat-label">📊 Stock Shares</div>
+                    <div class="stat-large-value" id="userOwnedStock">0</div>
                 </div>
             </div>
+
+            <div class="financial-section">
+                <h2>⭐ Daily Bonus</h2>
+                <p>Claim a bonus of FPoints every 5 minutes!</p>
+                <button id="claimDailyBonusButton" class="financial-button financial-button-primary">Claim Daily Bonus</button>
+                <p id="dailyBonusMessage" class="financial-message"></p>
+            </div>
+
+            <div class="financial-section">
+                <h2>📈 WebTech Stock Trading</h2>
+                <div class="stock-info">
+                    <p>Current Price: <span id="stockPriceDisplay" class="price-highlight">$100.00</span> per share</p>
+                    <p>Market Tip: Buy low, sell high!</p>
+                </div>
+                
+                <div class="stock-actions">
+                    <div class="action-group">
+                        <label>Quantity to Buy:</label>
+                        <input type="number" id="stockBuyInput" class="financial-input" placeholder="1" min="1" value="1">
+                        <button id="buyStockButton" class="financial-button financial-button-success">🟢 Buy Stock</button>
+                    </div>
+                    <div class="action-group">
+                        <label>Quantity to Sell:</label>
+                        <input type="number" id="stockSellInput" class="financial-input" placeholder="1" min="1" value="1">
+                        <button id="sellStockButton" class="financial-button financial-button-danger">🔴 Sell Stock</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="financial-section">
+                <h2>🎰 High Risk Options</h2>
+                <button class="financial-button financial-button-warning" id="riskAllButton">Risk All FPoints</button>
+                <button class="financial-button financial-button-info" id="negotiateButton">Negotiate</button>
+            </div>
+
+            <div class="financial-navigation">
+                <button class="financial-nav-button" data-url="fexplorer:shop">Visit Shop</button>
+                <button class="financial-nav-button" data-url="fexplorer:home">Back to Home</button>
+            </div>
+
             <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
@@ -1717,17 +2631,22 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Alpha 1.4.1 - Quality of Shit mini-update!</h2>
-            <p>Release Date: <i>12 November, 2025</i></p>
+			<h2>Update Name: Alpha 1.5 - This is the overhaul of an update, truss me!</h2>
+            <p>Release Date: <i>November 25, 2025</i></p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>Updated Sandbox Building and Solitare games!</li>
-                    <li>Information button has custom messages for special pages!</li>
-                    <li>Added Negotiate to the Financial page, but the FPoints part is broken FUCK</li>
-                    <li>Renamed Classic Operating System to Mac OS (Demo 1.2)!</li>
-                    <li>yummy-yummy gummy-gum</li>
+                    <li>Added new endings to Interactive Game: Into The Horizon</li>
+                    <li>Added something to FExplorer Legacy.. Shhh...</li>
+                    <li>Completely recoded the create feature! Now it is called FStudio, with the link "fexplorer:create.new".</li>
+                    <li>Tabs has been added! You can now play games while.. playing another game, except you can't. Brh.</li>
+                    <li>Recoded the random page mechanic! It now uses the "fexplorer:(id)-(category)/(variant)" URL!</li>
+                    <li>Added forward navigation!</li>
+                    <li>FExplorer Slideshow is now part of the System Suite!</li>
+                    <li>A Quality of Life update to some FExplorer pages! They look too good. I liked the flat one.</li>
+                    <li>Upgraded Goog and Ping search engines!</li>
+                    <li>Brand new game - survial game! It's kinda broken, but you should try it out!</li>
                 </ul>
             </div>
 
@@ -1738,88 +2657,167 @@ const fakeContent = {
             <p class="footer-note" style="margin-top: 20px;">Made by smrtC951!</p>
         </div>
     `,
-    // FExplorer Settings Page
-    'fexplorer:settings': `
-        <div class="browser-frame">
-            <div class="settings-page-content">
-                <div class="app-header">
-                    <img src="icons/settings-icon.png" alt="FExplorer Logo" class="app-logo">
-                    <span class="app-title">Settings</span>
-                </div>
-                <div class="settings-section">
-                    <h2>Main Settings</h2>
-                    <p style="color: #ff6600ff;">Note: Refresh the page to see the changes!</p>
-                    <ul>
-                        <li>
-                            <label for="osSelect">Operating System</label>
-                            <select id="osSelect">
-                                <option value="default">Mac OS (Default)</option>
-                                <option value="win11">Windows 11</option>
-                                <option value="win7">Windows 7</option>
-                                <option value="win8">Windows 8</option>
-                                <option value="winxp">Windows XP</option>
-                                <option value="macx">Mac OS X</option>
-                                <option value="mac9">Mac OS 9</option>
-                                <option value="classic">Mac OS (Demo 1.2)</option>
-                                <option value="beos" disabled>BeOS</option>
-                            </select>
-                        </li>
-                        <li>
-                            <label for="themeSelect">Theme</label>
-                            <select id="themeSelect">
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                                <option value="classic">Classic</option>
-                                <option value="blue">Blue</option>
-                                <option value="green">Green</option>
-                                <option value="red">Red</option>
-                                <option value="custom" disabled>Custom</option>
-                            </select>
-                        </li>
-                        <li>
-                            <label for="searchEngineSelect">Search Engine</label>
-                            <select id="searchEngineSelect">
-                                <option value="fexplorer">FExplorer Browser</option>
-                                <option value="goog">Goog</option>
-                                <option value="ping" disabled>Ping (Coming Soon!)</option>
-                            </select>
-                        </li>
-                        <li>
-                            <label for="homepageSelect">Select your homepage</label>
-                            <select id="homepageSelect">
-                                <option value="fexplorer:home">FExplorer Home</option>
-                                <option value="fexplorer:quick-links">Quick Links</option>
-                                <option value="goog.com">Goog</option>
-                                <option value="ping.com" disabled>Ping (Coming Soon!)</option>
-                                <option value="paranoid.com/error.html" disabled>JX1DX1</option>
-                            </select>
-                        </li>
-                        <li>
-                            <label for="notificationsToggle">Enable Notifications</label>
-                            <input type="checkbox" id="notificationsToggle">
-                        </li>
-                        <li>
-                            <label for="loginToggle">Do not show log in message on startup</label>
-                            <input type="checkbox" id="loginToggle">
-                        </li>
-                        <li>
-                            <label for="resetSettingsBtn">Reset All Settings</label>
-                            <button id="resetSettingsBtn" class="fexplorer-button settings-reset-btn" style="background-color:#e74c3c;color:#fff;">Reset</button>
-                        </li>
-                    </ul>
-                    <button id="saveSettingsBtn" class="fexplorer-button settings-save-btn" style="background-color:#28a745;color:#fff;margin-top:10px;">Save Settings</button>
-                </div>
-                <div class="settings-section">
-                    <h2>Browser Statistics</h2>
-                    <p>This section shows you the status of your browser. Hopefully it's good.</p>
-                    <p class="app-title">FExplorer Alpha 1.4</p>
-                    <p>Web Browser: <span class="browser-name">idk</span></p>
-                    <button class="home-page-button" data-url="fexplorer:log-in">Log in</button>
-                </div>
-                <div id="settingsStatus" style="margin-top:10px;color:#28a745;"></div>
-            </div>
+    // FExplorer Settings Page (NEW)
+'fexplorer:settings': `
+<div class="settings-wrapper">
+    <div class="fx-header">
+        <img src="icons/settings-icon.png" class="fx-header-icon" alt="Settings">
+        <div class="fx-header-text">
+            <h1>Settings</h1>
+            <p>Customize your FExplorer experience</p>
         </div>
-    `,
+    </div>
+
+    <div class="fx-settings-grid">
+
+        <!-- Appearance -->
+        <section class="fx-card" aria-labelledby="appearanceTitle">
+            <h2 id="appearanceTitle">Appearance</h2>
+
+            <label class="fx-label" for="osSelect">Operating System</label>
+            <select id="osSelect" class="fx-input">
+                <option value="default">Mac OS (Default)</option>
+                <option value="win11">Windows 11</option>
+                <option value="win7">Windows 7</option>
+                <option value="win8">Windows 8</option>
+                <option value="winxp">Windows XP</option>
+                <option value="macx">Mac OS X</option>
+                <option value="mac9">Mac OS 9</option>
+                <option value="classic">Classic (Legacy)</option>
+            </select>
+
+            <label class="fx-label" for="themeSelect">Theme</label>
+            <select id="themeSelect" class="fx-input">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="classic">Classic</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="red">Red</option>
+                <option value="binary">Binary</option>
+            </select>
+
+            <label class="fx-label" for="homepageSelect">Homepage</label>
+            <select id="homepageSelect" class="fx-input">
+                <option value="fexplorer:home">FExplorer Home</option>
+                <option value="fexplorer:quick-links">Quick Links</option>
+                <option value="goog.com">Goog</option>
+            </select>
+        </section>
+
+        <!-- Search & Privacy -->
+        <section class="fx-card" aria-labelledby="searchTitle">
+            <h2 id="searchTitle">Search & Privacy</h2>
+            <label class="fx-label" for="searchEngineSelect">Search Engine</label>
+            <select id="searchEngineSelect" class="fx-input">
+                <option value="fexplorer">FExplorer Browser</option>
+                <option value="goog">Goog</option>
+                    <option value="ping" disabled>Ping</option>
+                </select>
+            <label class="fx-flex" for="notificationsToggle">
+                <span>Enable Notifications</span>
+                <input type="checkbox" id="notificationsToggle">
+            </label>
+            <label class="fx-flex" for="loginToggle">
+                <span>Hide Login at Startup</span>
+                <input type="checkbox" id="loginToggle">
+            </label>
+            <label class="fx-flex" for="cookieToggle">
+                <span>Disable Cookies</span>
+                <input type="checkbox" id="cookieToggle">
+            </label>
+        </section>
+        <!-- Customization -->
+        <section class="fx-card" aria-labelledby="customizationTitle">
+            <h2 id="customizationTitle">Customization</h2>
+            <label class="fx-label" for="cursorToggle">Cursor Style</label>
+                <select id="cursorToggle" class="fx-input">
+                    <option value="default">Default</option>
+                    <option value="95">Classic</option>
+                    <option value="aero">Futiger Aero</option>
+                </select>
+
+        </section>
+        <!-- Music -->
+        <section class="fx-card" aria-labelledby="musicTitle">
+            <h2 id="musicTitle">Music</h2>
+            <label class="fx-flex" for="musicToggle">
+                <span>Enable Background Music</span>
+                <input type="checkbox" id="musicToggle">
+            </label>
+            <label class="fx-label" for="musicVolumeSetting">Volume</label>
+            <div class="fx-row">
+                <input type="range" id="musicVolumeSetting" min="0" max="1" step="0.01" value="0.6">
+                <span id="musicVolumeLabel" class="small">60%</span>
+            </div>
+            <label class="fx-label" for="musicSelect">Default Music</label>
+            <select id="musicSelect" class="fx-input">
+                <option value="fexplorer">Random (Default)</option>
+                <option value="orbspire">Orbspire Sanctum</option>
+                <option value="obby7">Obby7</option>
+            </select>
+            <p class="fx-note">These are placeholder tracks. More will be added later.</p>
+        </section>
+
+        <!-- Developer -->
+        <section class="fx-card fx-devcard" aria-labelledby="devTitle">
+            <h2 id="devTitle">Developer Tools</h2>
+
+            <label class="fx-flex" for="devModeToggle">
+                <span>Developer Mode</span>
+                <input type="checkbox" id="devModeToggle">
+            </label>
+
+            <p class="fx-dev-warning">Enabling Developer Mode unlocks experimental tools and inspect element.</p>
+
+            <div id="devToolsSection" style="display: none; margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px;">
+                <h3 style="font-size: 0.95rem; margin-bottom: 10px;">Debug & Inspection</h3>
+                
+                <button id="inspectElementBtn" class="fx-button" style="display: block; width: 100%; margin-bottom: 8px; text-align: left;">
+                    🔍 Inspect Element (Click to enable)
+                </button>
+
+                <button id="showConsoleBtn" class="fx-button" style="display: block; width: 100%; margin-bottom: 8px; text-align: left;">
+                    📋 Show Console Logs
+                </button>
+
+                <button id="viewStorageBtn" class="fx-button" style="display: block; width: 100%; margin-bottom: 8px; text-align: left;">
+                    💾 View Storage (localStorage)
+                </button>
+
+                <button id="toggleGridBtn" class="fx-button" style="display: block; width: 100%; margin-bottom: 8px; text-align: left;">
+                    📐 Toggle Grid Overlay
+                </button>
+
+                <button id="toggleMetricsBtn" class="fx-button" style="display: block; width: 100%; margin-bottom: 8px; text-align: left;">
+                    📊 Toggle Performance Metrics
+                </button>
+
+                <button id="exportDataBtn" class="fx-button" style="display: block; width: 100%; margin-bottom: 8px; text-align: left;">
+                    📤 Export Game Data
+                </button>
+
+                <button id="clearStorageBtn" class="fx-button fx-button-danger" style="display: block; width: 100%; text-align: left;">
+                    🗑️ Clear All Storage
+                </button>
+            </div>
+        </section>
+
+        <!-- Actions -->
+        <section class="fx-card" aria-labelledby="systemTitle">
+            <h2 id="systemTitle">System</h2>
+
+            <div class="fx-actions">
+                <button id="saveSettingsBtn" class="fx-button fx-button-primary">Save Settings</button>
+                <button id="resetSettingsBtn" class="fx-button fx-button-danger">Reset All</button>
+            </div>
+
+            <div id="settingsStatus" class="fx-status" aria-live="polite"></div>
+        </section>
+
+    </div>
+</div>
+`,
     // FExplorer Log in page
     'fexplorer:log-in': `
         <div class="home-page-content">
@@ -1833,10 +2831,121 @@ const fakeContent = {
             </form>
         </div>
     `,
+    // FExplorer NEW Create page
+    'fexplorer:create.new': `
+        <div class="fstudio-page">
+            <div class="app-header">
+                <img src="icons/fexplorer.png" class="app-logo">
+                <span class="app-title">FStudio</span>
+                <a data-url="fexplorer:home" class="app-header-button">Home</a>
+                <a data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
+            </div>
+
+            <div class="fstudio-container" style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto;">
+                <!-- Left Panel: Page Creator -->
+                <div class="fstudio-panel">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
+                        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.5em;">📄</span>
+                            Create a New Page
+                        </h2>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none;">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #333;">Page Title</label>
+                            <input type="text" id="pageTitle" placeholder="Enter page title" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #333;">Page Description</label>
+                            <textarea id="pageDescription" placeholder="Describe your page..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; resize: vertical; height: 80px;"></textarea>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #333;">Creation Mode</label>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="simpleModeBtn" class="mode-btn" style="flex: 1; padding: 10px; border: 2px solid #667eea; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                    🎨 Simple
+                                </button>
+                                <button id="codeModeBtn" class="mode-btn" style="flex: 1; padding: 10px; border: 2px solid #ccc; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                    💻 Code
+                                </button>
+                            </div>
+                        </div>
+                        <button id="createPageBtn" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1em;">
+                            ✨ Create Page
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Studio Tools -->
+                <div class="fstudio-panel">
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
+                        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.3em;">🎬</span>
+                            Studio Tools
+                        </h2>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; display: flex; flex-direction: column; gap: 12px;">
+                        <button style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.3em;">🎨</span>
+                            Visual Editor
+                        </button>
+                        <button style="padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.3em;">🎬</span>
+                            Preview Page
+                        </button>
+                        <button id="uploadYoutubeBtn" disabled style="padding: 15px; background: #ccc; color: #999; border: none; border-radius: 8px; cursor: not-allowed; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.3em;">📹</span>
+                            Upload to MyTube
+                        </button>
+                        <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404; font-size: 0.9em;">
+                            <strong>💡 Tip:</strong> MyTube uploads are coming soon! Check back later.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `,
+    // FExplorer Boomarks Manager
+    'fexplorer:bookmarks': `
+        <div class="home-page-content">
+            <h1>Bookmark Manager</h1>
+            <p>yes yes</p>
+        </div>
+    `,
     'fexplorer:ai': `
         <div class="home-page-content">
             <h1>FExplorer AI Assistant</h1>
             <p>This feature will be coming in another update. Stay tuned!</p>
+        </div>
+    `,
+    // MyTube Video Sharing Platform
+    'mytube.com': `
+        <div class="home-page-content" style="text-align: center; padding: 60px 20px;">
+            <img src="icons/mytube-logo.png" alt="MyTube Logo" class="mytube-logo">
+            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 30px; max-width: 500px; margin: 30px auto; color: #856404;">
+                <h2 style="margin-top: 0; color: #ff6600;">🚧 Under Construction 🚧</h2>
+                <p style="font-size: 1.1em; line-height: 1.6;">
+                    MyTube is currently under development! We're building an amazing video sharing platform for FExplorer.
+                </p>
+                <p style="margin: 20px 0; color: #ff0000; font-weight: bold;">
+                    Coming Soon!
+                </p>
+                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <strong>What to Expect:</strong>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Upload and share your FStudio creations</li>
+                        <li>Discover amazing videos from other creators</li>
+                        <li>Earn rewards for popular uploads</li>
+                        <li>Build your creator channel</li>
+                    </ul>
+                </div>
+                <p style="font-size: 0.9em; opacity: 0.8;">
+                    Check back soon for the launch!
+                </p>
+            </div>
+            <button class="home-page-button" data-url="fexplorer:home" style="margin-top: 20px;">
+                ← Return to Home
+            </button>
         </div>
     `,
     // Test Page for new features
@@ -1850,15 +2959,88 @@ const fakeContent = {
     `,
     // Events page
     'fexplorer:events': `
-        <div class="home-page-content">
-            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+        <div class="events-page-content home-page-content">
+            <img src="icons/badge-icon.png" alt="Events Logo" class="app-logo">
             <h1>FExplorer Events</h1>
-            <p class="tagline">Wait for some cool events!</p>
-			<p>There will be some events coming to FExplorer soon! You might wait for that because they reward you with tons of FPoints!</p>
-            <p>I will update the Encyclopedia page for new events to come!</p>
-            <button class="home-page-button" data-url="fexplorer:wiki">Visit the Encyclopedia</button>
-            <br>
-            <button class="home-page-button bonus-button">Bonus</button>
+            <p class="tagline">Participate in limited-time events to earn exclusive rewards!</p>
+
+            <!-- Event Status Card -->
+            <div id="eventStatusCard" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+                <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;" id="eventStatus">Status: Coming Soon</div>
+                <div style="font-size: 0.9em; opacity: 0.9;" id="eventCountdown">The Burger Event is scheduled to begin soon</div>
+            </div>
+
+            <!-- Current Event Details -->
+            <div class="event-details-section" style="background: #f9f9f9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF6B6B;">
+                <h2 style="margin-top: 0; color: #FF6B6B;">🍔 The Burger Event</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <div style="font-weight: bold; color: #666;">Event Type</div>
+                        <div>Limited-Time Challenge</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; color: #666;">Duration</div>
+                        <div id="eventDuration">Starts soon</div>
+                    </div>
+                    <div>
+                        <div style="font-weight: bold; color: #666;">Difficulty</div>
+                        <div>Medium ⭐⭐⭐</div>
+                    </div>
+                </div>
+                <p style="margin: 15px 0; line-height: 1.6;">
+                    Join the Burger Event to get burger-themed rewards! Complete fun objectives, earn FPoints, and unlock exclusive cosmetics. Don't miss out on this tasty opportunity!
+                </p>
+            </div>
+
+            <!-- Objectives Section -->
+            <div class="objectives-section" style="margin: 20px 0;">
+                <h2 style="color: #333; margin-bottom: 15px;">📋 Event Objectives</h2>
+                <p style="color: #666; margin-bottom: 15px;">Complete objectives to earn FPoints rewards. Progress is tracked automatically!</p>
+                
+                <div id="objectivesList" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Objectives will be inserted here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Rewards Preview -->
+            <div class="rewards-section" style="background: #fff8dc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #FFD700;">
+                <h2 style="margin-top: 0; color: #FF8C00;">🎁 Event Rewards</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                        <div style="font-size: 1.5em; font-weight: bold; color: #4CAF50;">500</div>
+                        <div style="color: #666; margin-top: 5px;">FPoints</div>
+                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">Completion Bonus</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                        <div style="font-size: 1.5em; font-weight: bold; color: #2196F3;">+0.5x</div>
+                        <div style="color: #666; margin-top: 5px;">Luck Multiplier</div>
+                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">Event Benefit</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                        <div style="font-size: 1.5em; font-weight: bold; color: #FF6B6B;">🏆</div>
+                        <div style="color: #666; margin-top: 5px;">Event Badge</div>
+                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">Exclusive Cosmetic</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Tips -->
+            <div class="event-tips" style="background: #e8f5e9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                <h3 style="margin-top: 0; color: #2e7d32;">💡 Tips & Tricks</h3>
+                <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>Higher luck multipliers make objective completion easier</li>
+                    <li>Complete all objectives to unlock the exclusive event badge</li>
+                </ul>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="home-page-buttons-container" style="margin-top: 30px; gap: 10px;">
+                <button id="participateEventBtn" class="home-page-button" style="background: #4CAF50; color: white; font-weight: bold;">
+                    📌 Get Started
+                </button>
+            </div>
+
+            <div id="eventMessage" style="margin-top: 20px; padding: 15px; border-radius: 8px; display: none; text-align: center;"></div>
         </div>
     `,
     // Games Page
@@ -1897,6 +3079,10 @@ const fakeContent = {
                         <a href="#" data-url="fexplorer:games/interactive-game">Interactive Game: Into The Horizon</a>
                         <p class="link-description">Hey look! The interactive game is remastered!</p>
                     </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:games/survial-game">surival game</a>
+                        <p class="link-description">A remastered version of a SEWH-inspired game, with more content!</p>
+                    </li>
                 </ul>
 
                 <h2>External Games (From other websites)</h2>
@@ -1923,11 +3109,49 @@ const fakeContent = {
     `,
     // About Page
     'fexplorer:about': `
-        <div class="quick-links-page home-page-content">
-            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
-            <h1>About FExplorer</h1>
-            <p>FExplorer is a fun and interactive way to explore the web while earning FPoints!</p>
-            <p>There are pre-made pages, but you can make your own for free!</p>
+        <div class="about-page-enhanced">
+            <div class="about-header">
+                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="about-logo">
+                <h1>About FExplorer</h1>
+                <p class="about-tagline">A browser inside your browser, apparently.</p>
+            </div>
+
+            <div class="about-content">
+                <div class="about-section">
+                    <h2>✨ What is FExplorer?</h2>
+                    <p>FExplorer is an interactive web browser simulation that combines gaming, social features, and creativity. Explore virtual pages, earn FPoints, trade stocks, play games, and create your own custom content!</p>
+                </div>
+
+                <div class="about-section">
+                    <h2>🎯 Key Features</h2>
+                    <ul class="about-features-list">
+                        <li><strong>Earn FPoints</strong> - Complete activities and earn currency to spend in the shop</li>
+                        <li><strong>Stock Trading</strong> - Buy and sell stocks to grow your wealth</li>
+                        <li><strong>Games</strong> - Play Cookie Clicker, Tic Tac Toe, and more</li>
+                        <li><strong>Create Pages</strong> - Design and publish your own custom pages</li>
+                        <li><strong>Social Features</strong> - Connect with Headbook, MyTube, and chat systems</li>
+                        <li><strong>Achievements</strong> - Unlock badges and earn exclusive rewards</li>
+                        <li><strong>Customization</strong> - Choose from multiple themes and cosmetics</li>
+                    </ul>
+                </div>
+
+                <div class="about-section">
+                    <h2>💡 Getting Started</h2>
+                    <p>Visit the Quick Links or Explore section to discover all the features FExplorer has to offer. Start by claiming your daily bonus, earning FPoints, and then check out the shop!</p>
+                </div>
+
+                <div class="about-section">
+                    <h2>🎨 Customization</h2>
+                    <p>You can customize your FExplorer experience with different themes, OS window styles, and cosmetics. Visit the Settings to change your preferred interface!</p>
+                </div>
+
+                <div class="about-buttons">
+                    <button class="about-button" data-url="fexplorer:home">Back to Home</button>
+                    <button class="about-button" data-url="fexplorer:quick-links">Quick Links</button>
+                </div>
+            </div>
+
+            <p class="footer-note">© 2025 FExplorer. Made by smrtC951!</p>
         </div>
     `,
     // Programs Page
@@ -1939,27 +3163,23 @@ const fakeContent = {
                 <h2>Available Programs</h2>
                 <ul class="quick-links">
                     <li>
-                        <a href="#" data-url="fexplorer:create.hub">Create Hub</a>
-                        <p class="link-description">Create professional or stupid pages easily.</p>
+                        <a href="#" data-url="fexplorer:create.new">FStudio</a>
+                        <p class="link-description">Create all kinds of pages easily!</p>
                     </li>
                     <li>
                         <a href="#" data-url="scripts.visualeditor.com">Visual Scripts Editor</a>
                         <p class="link-description">Script your own programs visually.</p>
                     </li>
                     <li>
-                        <a href="#" data-url="fxplorer.chatroom.com">FExplorer Chatroom</a>
+                        <a href="#" data-url="fexplorer.chatroom.com">FExplorer Chatroom</a>
                         <p class="link-description">No description available...</p>
                     </li>
                     <li>
-                        <a href="#" data-url="fexplorer:documents">FExplorer Documents</a>
-                        <p class="link-description">Create your very own documents for free!</p>
+                        <a href="#" data-url="fexplorer:system">FExplorer System</a>
+                        <p class="link-description">The ultimate suite!</p>
                     </li>
                     <li>
                         <a href="#" data-url="fexplorer:placeholder">FExplorer Web Archives</a>
-                        <p class="link-description">View preserved update logs from previous updates!</p>
-                    </li>
-                    <li>
-                        <a href="#" data-url="fexplorer:placeholder">FExplorer</a>
                         <p class="link-description">View preserved update logs from previous updates!</p>
                     </li>
                     <li>
@@ -2030,6 +3250,36 @@ const fakeContent = {
             </div>
         </div>
     `,
+    // Game: Survial Game (note spelling intentional)
+    'fexplorer:games/survial-game': `
+        <div class="quick-links-page home-page-content">
+            <img src="icons/survival-icon.png" alt="Survial Game" class="app-logo">
+            <h1>survial game</h1>
+            <p class="tagline">Disaster survival — your cursor is the survivor. Survive rounds of disasters!</p>
+            <div class="quick-links-section">
+                <h2>Game Area — Map: City</h2>
+                <p>Use your cursor to move the survivor around the city map. Avoid tornadoes and tsunamis.</p>
+                <div id="survialGameArea" style="width:100%; height:420px; border:1px solid #ccc; position:relative; overflow:hidden; background:#e6f2ff; display:flex; align-items:center; justify-content:center;">
+                    <div style="text-align:center;">
+                        <button class="home-page-button" id="startSurvialGameButton">Start Survial</button>
+                        <div id="survialHUD" style="display:none; margin-top:10px; text-align:left;">
+                            <div style="margin-bottom:6px;">Map: <strong>City</strong></div>
+                            <div style="display:flex;gap:12px;align-items:center;">
+                                <div>Round: <span id="survialRound">0</span></div>
+                                <div style="flex:1;">
+                                    <div style="background:#eee;border-radius:8px;overflow:hidden; height:14px;">
+                                        <div id="survialHealthBar" style="width:100%;height:100%;background:#4caf50;"></div>
+                                    </div>
+                                </div>
+                                <div>Health: <span id="survialHealth">100</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p style="margin-top:10px; font-size:0.9em; color:#555;">Survive each 12s round. Disasters will spawn and grow more intense over time.</p>
+            </div>
+        </div>
+    `,
     // Game: Fighting Weapon Balls
     'fexplorer:games/fighting-weapon-balls': `
         <div class="quick-links-page home-page-content">
@@ -2081,6 +3331,20 @@ const fakeContent = {
                     <button id="startIGameButton" class="button">Start Interactive Game</button>
             </div>
         </div>
+    `,
+    // Game: survial game (thats the name)
+    'fexplorer:games/survial-game': `
+    <div class="quick-links-page home-page-content">
+            <h1>survial game</h1>
+            <p class="tagline">Survive disasters and.. survive!</p>
+            <p>In Survial Game, you (the cursor) have to survive different disasters, which awards you with FPoints!</p>
+            <div class="quick-links-section">
+                <h2>Game Area</h2>
+                <div id="survialGameArea" style="width: 100%; height: 400px; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
+                    <button class="home-page-button" id="startSurvialGameButton">Start Game</button>
+                </div>
+            </div>
+    </div>
     `,
     // Search Engine: FExplorer Browser (default)
     'fexplorer:search': `
@@ -2144,14 +3408,20 @@ const fakeContent = {
             <p class="footer-note">© FExplorer | Made by smrtC951!</p>
         </div>
     `,
-    // Search Engine: Ping
+    // Search Engine: Ping (Microsoft-like)
     'ping.com': `
-        <div class="goog-homepage ping-homepage">
-            <img src="icons/ping-icon.png" alt="Ping Logo" class="ping-logo" style="width: 200px; margin-top: 40px;">
-            <input type="search" id="googSearchInput" class="goog-search-input" placeholder="Search the web with Ping!">
-            <button id="googSearchButton" class="goog-search-button home-page-button">Search!</button>
-            <div id="googSearchResults" class="goog-search-results"></div>
-            <p class="footer-note">© Ping | Made by smrtC951!</p>
+        <div class="ping-homepage" style="display:flex;flex-direction:column;align-items:center;padding:56px 20px;background:linear-gradient(180deg,#f3f6fb,#ffffff);">
+            <img src="icons/ping-icon.png" alt="Ping Logo" class="ping-logo" style="width:140px;margin-bottom:18px;">
+            <div style="width:100%;max-width:820px;display:flex;flex-direction:column;gap:12px;align-items:stretch;">
+                <input type="search" id="googSearchInput" class="goog-search-input" placeholder="Search with Ping" style="padding:16px 18px;border-radius:8px;border:1px solid #d0d7de;background:white;font-size:16px;">
+                <div style="display:flex;gap:10px;">
+                    <button id="googSearchButton" class="goog-search-button home-page-button" style="flex:0 0 auto;background:#0078d4;color:white;padding:10px 16px;border-radius:6px;font-weight:600;">Search</button>
+                    <button class="home-page-button" style="background:transparent;border:1px solid #c8d4e4;color:#005a9e;padding:10px 14px;border-radius:6px;">Images</button>
+                    <button class="home-page-button" style="background:transparent;border:1px solid #c8d4e4;color:#005a9e;padding:10px 14px;border-radius:6px;">Videos</button>
+                </div>
+            </div>
+            <div id="googSearchResults" class="goog-search-results" style="width:100%;max-width:820px;margin-top:26px;"></div>
+            <p class="footer-note" style="margin-top:22px;color:#6b6f73">© Ping | Made by smrtC951!</p>
         </div>
     `,
     // Program: Visual Scripts Editor
@@ -2168,7 +3438,7 @@ const fakeContent = {
         </div>
     `,
     // FAKE Program: FExplorer Chatroom
-    'fxplorer.chatroom.com': `
+    'fexplorer.chatroom.com': `
     <div class="home-page-content">
             <img src="icons/old-fexplorer.png" class="ping-logo" style="width: 200px; margin-top: 40px;">
             <h1>FExplorer Chatroom!</h1>
@@ -2176,10 +3446,10 @@ const fakeContent = {
             <br>
             <p>Chat with other people for a low price of 250 FPoints. Do it.</p>
             <br>
-            <button class="home-page-button" data-url="fxplorer.chatroom.com/chatroom">Open Chatroom</button>
+            <button class="home-page-button" data-url="fexplorer.chatroom.com/chatroom">Open Chatroom</button>
         </div>
     `,
-    'fxplorer.chatroom.com/chatroom': `
+    'fexplorer.chatroom.com/chatroom': `
     <div style="font-family: Times New Roman;">
             <h2>FExplorer Chatroom</h2>
             <div id="fakeChatroomSection" style="width: 400px; height: 200px; background-color: #e7e7e7ff;">
@@ -2193,22 +3463,68 @@ const fakeContent = {
     `,
     // Program: FExplorer Documents
     'fexplorer:documents': `
-        <div class="home-page-content">
-            <p>Coming soon!</p>
+        <div style="font-family: Times New Roman;">
+            <p>Page missing.</p>
         </div>
     `,
     // Cookie Page
     'fexplorer:cookies':`
-        <div class="home-page-content">
-            <img src="icons/cookie-icon.png" alt="COOKIE!111" class="app-logo">
-            <h1>Manage your cookies</h1>
-            <p>In FExplorer, Cookies is a side in-game currency that can be traded with FPoints! You receive them by collecting and accepting them on other pages!</p>
-            <br>
-            <h2>Current amount of cookies</h2>
-            <p id="cookiesCounter" style="color: #cc7e0a">0 Cookies</p>
-            <br>
-            <button class="cookie-button">Trade FPoints!</button>
-            <p>Coming soon!</p>
+        <div class="cookies-page-enhanced">
+            <div class="cookies-header">
+                <img src="icons/cookie-icon.png" alt="Cookies" class="cookies-logo">
+                <h1>🍪 Manage Your Cookies</h1>
+                <p class="cookies-tagline">A delicious side currency in FExplorer</p>
+            </div>
+
+            <div class="cookies-content">
+                <div class="cookies-info-card">
+                    <h2>What are Cookies?</h2>
+                    <p>Cookies are a secondary in-game currency that can be earned by collecting and accepting them on various pages throughout FExplorer. You can trade cookies with FPoints for extra benefits!</p>
+                </div>
+
+                <div class="cookies-stats">
+                    <div class="cookies-stat-box">
+                        <div class="cookies-stat-icon">🍪</div>
+                        <div class="cookies-stat-content">
+                            <div class="cookies-stat-label">Current Cookies</div>
+                            <div class="cookies-stat-value" id="cookiesCounter">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cookies-info-card">
+                    <h2>How to Earn Cookies</h2>
+                    <ul class="cookies-list">
+                        <li>🎮 <strong>Play Games</strong> - Complete games like Cookie Clicker to earn cookies</li>
+                        <li>🎁 <strong>Collect Rewards</strong> - Accept cookie offers on special pages</li>
+                        <li>🏆 <strong>Achievements</strong> - Unlock certain achievements for cookie bonuses</li>
+                        <li>⭐ <strong>Explore</strong> - Visit random pages for random cookie drops</li>
+                    </ul>
+                </div>
+
+                <div class="cookies-action-card">
+                    <h2>💱 Trade Cookies</h2>
+                    <p>Convert your cookies to FPoints for even more purchasing power!</p>
+                    <button class="cookies-button cookies-button-primary">Trade FPoints</button>
+                    <p class="cookies-message">Coming soon!</p>
+                </div>
+
+                <div class="cookies-tips-card">
+                    <h2>💡 Pro Tips</h2>
+                    <ul class="cookies-tips-list">
+                        <li>Save cookies for special events where they're worth more FPoints</li>
+                        <li>Cookie Clicker is the best way to earn lots of cookies quickly</li>
+                        <li>Check random pages regularly for cookie drops</li>
+                    </ul>
+                </div>
+
+                <div class="cookies-navigation">
+                    <button class="cookies-nav-button" data-url="fexplorer:games">Play Games</button>
+                    <button class="cookies-nav-button" data-url="fexplorer:home">Back to Home</button>
+                </div>
+            </div>
+
+            <p class="footer-note">Made by smrtC951!</p>
         </div>
     `,
     // Achievements Page
@@ -2217,6 +3533,23 @@ const fakeContent = {
             <img src="icons/badge-icon.png" class="app-logo">
             <h1>Achievements</h1>
             <p>In FExplorer, you can do certain tasks to get achievements for good rewards! Most rewards are just FPoints, but some will award you with items!</p>
+            
+            <div id="achievementsStats" style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+                <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #4CAF50;" id="unlockedCount">0</div>
+                        <div style="font-size: 0.9em; color: #666;">Achievements Unlocked</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #2196F3;" id="totalCount">0</div>
+                        <div style="font-size: 0.9em; color: #666;">Total Achievements</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #FF9800;" id="completionPercent">0%</div>
+                        <div style="font-size: 0.9em; color: #666;">Completion</div>
+                    </div>
+                </div>
+            </div>
             <br>
             <div class="quick-links-section">
                 <h2>Badges</h2>
@@ -2230,40 +3563,132 @@ const fakeContent = {
     'fexplorer:wiki':`
     <div class="home-page-content quick-links-content">
             <img src="icons/fexplorer.png" class="app-logo">
-            <h1>Encyclopedia</h1>
-            <p>There are a lot of content in FExplorer. This page dedicates to arranging them into sections of information!</p>
+            <h1>FExplorer Encyclopedia</h1>
+            <p>Welcome to the FExplorer Encyclopedia — a concise guide to systems, currencies, and features inside the browser.</p>
             <br>
             <div class="quick-links-section">
+                <h2>Sections</h2>
                 <div class="home-page-buttons-container">
                     <button class="home-page-button" data-url="fexplorer:wiki.currency">Currency</button>
-                    <button class="home-page-button">Navigation</button>
+                    <button class="home-page-button" data-url="fexplorer:wiki.navigation">Navigation</button>
+                    <button class="home-page-button" data-url="fexplorer:achievements">Achievements</button>
+                    <button class="home-page-button" data-url="fexplorer:events">Events</button>
+                    <button class="home-page-button" data-url="fexplorer:create.new">Creator Hub</button>
+                    <button class="home-page-button" data-url="mytube.com">MyTube</button>
                 </div>
             </div>
             <br>
-            <button class="bonus-button home-page-button">Bonus</button>
+            <div style="margin-top: 18px; padding: 12px; background: #f8f9fb; border-radius: 8px;">
+                <h3 style="margin:0 0 8px 0;">How to use this encyclopedia</h3>
+                <ul style="margin:0 0 0 18px; color:#444;">
+                    <li>Click any section button to jump to a focused article.</li>
+                    <li>Use the search bar to find in-app pages and generated articles.</li>
+                    <li>Many pages include tips and links to related areas (e.g. Events &lt;-&gt; Achievements).</li>
+                </ul>
+            </div>
         </div>
     `,
     'fexplorer:wiki.currency':`
     <div class="home-page-content quick-links-content">
             <img src="icons/fexplorer.png" class="app-logo">
             <h1>Currency</h1>
-            <p>There are some currencies in FExplorer, which you can use them to buy some cool cosmetics and themes!</p>
+            <p>FExplorer uses a couple of in-game currencies you will see often. This page explains how they work and where to earn them.</p>
             <br>
             <div class="quick-links-section">
-                <div class="home-page-buttons-container">
-                    <button class="home-page-button wiki-button" id="fpointsWiki">FPoints</button>
-                    <button class="home-page-button wiki-button" id="cookiesWiki">Cookies</button>
+                <h2>Main Currencies</h2>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
+                    <div style="flex:1; min-width:180px; background:#fff; padding:12px; border-radius:8px; border:1px solid #eee;">
+                        <h3>FPoints</h3>
+                        <p style="margin:6px 0; color:#444;">FPoints are the primary score currency. Earn them by browsing, completing achievements, participating in events, and using the search engines. FPoints buy cosmetics, themes, and special items.</p>
+                    </div>
+                    <div style="flex:1; min-width:180px; background:#fff; padding:12px; border-radius:8px; border:1px solid #eee;">
+                        <h3>Cookies</h3>
+                        <p style="margin:6px 0; color:#444;">Cookies are a secondary collectible used for certain limited-time rewards and mini-games. They are earned via cookie drops, playing the Cookie Clicker mini-game, and special event bonuses.</p>
+                    </div>
                 </div>
+            </div>
+            <br>
+            <div class="quick-links-section">
+                <h2>Where to Earn</h2>
+                <ul style="color:#444; margin-left:18px;">
+                    <li>Daily browsing and searching (use both search engines).</li>
+                    <li>Completing achievements and event objectives.</li>
+                    <li>Mini-games and creator activities in FStudio.</li>
+                </ul>
+            </div>
+            <br>
+            <div class="home-page-buttons-container">
+                <button class="home-page-button" data-url="fexplorer:achievements">Go to Achievements</button>
+                <button class="home-page-button" data-url="fexplorer:events">See Events</button>
+            </div>
+        </div>
+    `,
+    'fexplorer:wiki.navigation':`
+    <div class="home-page-content quick-links-content">
+            <img src="icons/fexplorer.png" class="app-logo">
+            <h1>Nafvigation</h1>
+            <p>Learn how to move around FExplorer, use the address bar, and open special in-app pages.</p>
+            <br>
+            <div class="quick-links-section">
+                <h2>Quick Tips</h2>
+                <ul style="color:#444; margin-left:18px;">
+                    <li>Use the address bar to type <code>fexplorer:</code> pages (e.g., <code>fexplorer:achievements</code>).</li>
+                    <li>Search from the toolbar to use <code>goog.com</code> or <code>ping.com</code> engines; try both for different results.</li>
+                    <li>Click links with <code>data-url</code> attributes to navigate inside the app without reloading.</li>
+                </ul>
+            </div>
+            <br>
+            <div class="home-page-buttons-container">
+                <button class="home-page-button" data-url="fexplorer:home">Back to Home</button>
+                <button class="home-page-button" data-url="fexplorer:wiki">Encyclopedia</button>
+            </div>
+        </div>
+    `,
+    'fexplorer:wiki.events':`
+    <div class="home-page-content quick-links-content">
+            <img src="icons/calendar-icon.png" class="app-logo">
+            <h1>Events</h1>
+            <p>Events are limited-time activities that reward you with unique bonuses and achievements.</p>
+            <br>
+            <div class="quick-links-section">
+                <h2>How Events Work</h2>
+                <ul style="color:#444; margin-left:18px;">
+                    <li>Events appear on the <code>fexplorer:events</code> page with objectives and timers.</li>
+                    <li>Completing objectives grants FPoints, cookies, and sometimes exclusive cosmetics.</li>
+                    <li>Check the Events page often — some rewards are one-time only.</li>
+                </ul>
+            </div>
+            <br>
+            <div class="home-page-buttons-container">
+                <button class="home-page-button" data-url="fexplorer:events">Open Events</button>
+                <button class="home-page-button" data-url="fexplorer:achievements">See Related Achievements</button>
+            </div>
+        </div>
+    `,
+    'fexplorer:wiki.creator':`
+    <div class="home-page-content quick-links-content">
+            <img src="icons/studio-icon.png" class="app-logo">
+            <h1>Creator Hub</h1>
+            <p>The Creator Hub (FStudio) explains how to create pages, upload to MyTube, and design interactive content.</p>
+            <br>
+            <div class="quick-links-section">
+                <h2>Creator Basics</h2>
+                <ul style="color:#444; margin-left:18px;">
+                    <li>Open <code>fexplorer:create.new</code> to use the FStudio creation tools.</li>
+                    <li>Uploaded content to <code>mytube.com</code> is disabled in this build, but you can preview uploads locally.</li>
+                    <li>Creators earn rewards and exposure through featured content and events.</li>
+                </ul>
+            </div>
+            <br>
+            <div class="home-page-buttons-container">
+                <button class="home-page-button" data-url="fexplorer:create.new">Open FStudio</button>
+                <button class="home-page-button" data-url="mytube.com">Visit MyTube</button>
             </div>
         </div>
     `,
     // Terminal Page
     'file:terminal':`
-        <div class="home-page-content" style="color: black; font-family: Consolas, sans-serif;">
-            <h1>FExplorer Terminal</h1>
-            <p>There isn't really any such thing yet, so here's some cool text about colas.</p>
-            <br>
-            <p>I like colas. They are tasty and refreshing.</p>
+        <div style="color: black; font-family: Consolas, sans-serif;">
         </div>
     `,
     // Corporate Pages
@@ -2354,8 +3779,8 @@ const fakeContent = {
             <p>i.thought.i.was.hidden.</p>
             <p>now.you.have.to.leave.</p>
             <p>before.it.is.too.late.</p>
-            <button class="home-page-button" data-url="fexplorer:home">Leave now</button>
-            <button class="home-page-button" data-url="paranoid.com/error.html">Proceed on</button>
+            <button data-url="fexplorer:home">Leave now</button>
+            <button data-url="paranoid.com/error.html">Proceed on</button>
         </div>
     `,
     'paranoid.com/error.html':`
@@ -2392,6 +3817,15 @@ const fakeContent = {
             </div>
         </div>
     `,
+    "fexplorer:429": `
+        <div class="error-page">
+            <h1 style="font-size: 64px;">🚫 429</h1>
+            <h2>Too Many Requests</h2>
+            <p>You moved too fast! Slow down, you piece of shit</p>
+            <p>Your browser is cooling off for <span id="error429Timer">5</span> seconds.</p>
+            <button class="button" id="429ForceReturn">Return to Home</button>
+        </div>
+    `,
     // Legacy FExplorer Page
     'fexplorer:legacy':`
         <div class="home-page-content">
@@ -2400,9 +3834,9 @@ const fakeContent = {
             <p class="tagline">Your window to the simulated web.</p>
             <div class="quick-links-section">
                 <h2>Visit the legacy version here!</h2>
-                <p>There are 2 versions of the legacy FExplorer available. The legacy version (Version 11) and the websim version (Demo 1)</p>
-                <a href="https://smrtc951.github.io/fexplorer/legacy" class="home-page-button" >Visit Version 11</a>
-                <a href="https://fexplorer.on.websim.com/" class="home-page-button" >Visit Websim Demo 1</a>
+                <p>Try out older versions of FExplorer! More versions will be recovered soon.</p>
+                <a href="https://smrtc951.github.io/fexplorer/legacy/version_11" class="home-page-button" >Version 11</a>
+                <a href="https://fexplorer.on.websim.com/" class="home-page-button" >Demo 1</a>
             </div>
         </div>
     `,
@@ -2414,6 +3848,103 @@ const fakeContent = {
             <p class="tagline">Get codes for free FPoints!</p>
             <p>Coming soon!</p>
         </div>
+    `,
+// FExplorer System
+    'fexplorer:system': `
+<div id="fexplorerSystem" class="app-page">
+  <h1>🧭 FExplorer System</h1>
+  <p class="tagline">Your all-in-one productivity suite.</p>
+
+  <div class="system-tabs">
+    <button class="system-tab" data-tab="messenger">Messenger</button>
+    <button class="system-tab" data-tab="documents">Documents</button>
+    <button class="system-tab" data-tab="slideshow">Slideshow</button>
+  </div>
+
+  <div class="system-content">
+    
+    <div id="messengerTab" class="tab-content">
+        </div>
+
+    <div id="documentsTab" class="tab-content">
+        <h2>📄 FExplorer Documents</h2>
+        <div style="margin-bottom:10px;">
+            <button id="newDocButton" class="button">New Document</button>
+        </div>
+        <div id="docList" style="margin-bottom:20px;"></div>
+        <div id="editorArea" style="display:none;">
+            <input id="docTitle" placeholder="Untitled Document" 
+                   style="width:100%;padding:8px;font-size:1.1em;margin-bottom:5px;">
+            <textarea id="docContent" 
+                      style="width:100%;height:300px;padding:10px;font-size:1em;"></textarea>
+            <div style="margin-top:8px;">
+              <button id="saveDocButton" class="button">Save</button>
+              <button id="closeDocButton" class="button">Close</button>
+            </div>
+        </div>
+    </div> 
+    <div id="slideshowTab" class="tab-content">
+    <h2>✨ FExplorer Slideshow</h2>
+    <p>Create slideshows using simple text-based slides. More features coming soon!</p>
+
+    <div style="margin-bottom:10px;">
+        <button id="newSlideshowButton" class="button">New Slideshow</button>
+    </div>
+
+    <div id="slideshowList" style="margin-bottom:20px;"></div>
+
+    <!-- EDITOR -->
+    <div id="slideshowEditor" style="display:none; margin-top:20px;">
+        <h3 id="slideshowEditorTitle">Editing Slideshow</h3>
+
+        <input id="slideshowTitle" 
+               placeholder="Slideshow Title" 
+               style="width:100%;padding:8px;font-size:1.1em;margin-bottom:5px;">
+
+        <div id="slidesContainer" style="
+            border:1px solid #ccc;
+            padding:10px;
+            border-radius:8px;
+            background:#fafafa;
+            max-height:250px;
+            overflow:auto;
+        "></div>
+
+        <button id="addSlideButton" class="button" style="margin-top:10px;">Add Slide</button>
+
+        <div style="margin-top:10px;">
+            <button id="saveSlideshowButton" class="button">Save</button>
+            <button id="previewSlideshowButton" class="button">Preview</button>
+            <button id="closeSlideshowButton" class="button">Close</button>
+        </div>
+    </div>
+
+    <!-- PREVIEW MODE -->
+    <div id="slideshowPreview" style="
+        display:none;
+        position:relative;
+        background:#111;
+        color:white;
+        padding:20px;
+        border-radius:10px;
+        min-height:300px;
+        text-align:center;
+    ">
+        <h2 id="previewTitle"></h2>
+        <div id="previewSlideContent" style="
+            margin-top:20px;
+            font-size:1.3em;
+            min-height:180px;
+        "></div>
+
+        <div style="margin-top:20px;">
+            <button id="prevSlide" class="button">Previous</button>
+            <button id="nextSlide" class="button">Next</button>
+            <button id="exitPreview" class="button">Exit</button>
+        </div>
+    </div>
+</div>
+</div>
     `,
 };
 
@@ -2504,6 +4035,9 @@ function applyFExplorerSettings() {
 function updateBackButtonState() {
     backButton.disabled = historyStack.length === 0;
 }
+function updateForwardButtonState() {
+    forwardButton.disabled = forwardStack.length === 0;
+}
 
 // Enable username advantages
 function enableUsernameAdvantage() {
@@ -2541,77 +4075,112 @@ function enableUsernameAdvantage() {
 
 
 function attachDynamicEventListeners() {
-    browserContent.querySelectorAll('.quick-links a[data-url], .search-results-page a[data-url], .shop-sidebar a[data-url], .user-page-buttons button[data-url], .hub-item-card a[data-url], .hub-item-card button[data-url], .random-website-button[data-url]').forEach(link => {
-        link.addEventListener('click', (event) => {
+    // Handle all buttons and links with data-url attribute across all pages
+    browserContent.querySelectorAll('[data-url]').forEach(element => {
+        // Skip if already has event listener (to prevent duplicates)
+        if (element.dataset.listenerAttached) return;
+        
+        element.addEventListener('click', (event) => {
             event.preventDefault();
             const url = event.target.closest('[data-url]').dataset.url;
             if (url) {
                 navigate(url);
             }
         });
-    });
-    
-    browserContent.querySelectorAll('.home-page-button[data-url]').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const url = event.target.dataset.url;
-            if (url) {
-                navigate(url);
-            }
-        });
+        element.dataset.listenerAttached = 'true';
     });
 
-    // JX1DX1's code
+    // JX1DX1's code (paranoid.com/code.html)
     if (currentUrl === 'paranoid.com/code.html') {
         const jx1dx1Code = browserContent.querySelector('#jx1dx1Code');
         const theCode = browserContent.querySelector('#theCode');
-        const codeInput = browserContent.querySelector('input[type="search"]');
+        const codeInput = browserContent.querySelector('#theCode') || browserContent.querySelector('input[type="search"]');
         const codeButton = browserContent.querySelector('#codeButton');
         const codesCounter = browserContent.querySelector('#codesCounter');
         const rewardButton = browserContent.querySelector('#rewardButton');
         const jx1dx1Result = browserContent.querySelector('#jx1dx1Result');
-        let codeAmount = 0;
-        let codesLeft = 5;
-        let codeName = '';
-        if (theCode && codeInput && codeButton) {
-            codeButton.addEventListener('click', () => {
-                if (codeAmount <= 4) {
-                    alert('you.don\'t.have.enough.codes.');
-                } else if (codeAmount >= 4){
-                    alert('you.got.all.5.codes.');
-                    jx1dx1Code.style.display = 'none';
-                    codesCounter.style.display = 'none';
-                    jx1dx1Result.style.display = 'block';
-                };
-            });
+
+        // Valid codes (base64-style strings as used in the fake page)
+        const validCodes = new Set([
+            'bmljZS5iYWRnZS5icm8u',
+            'WU9VLkNBTlQuSElERS5GUk9NLkpYMURYMS4=',
+            'SVQuTUFZLkJFLllPVVIuTEFTVC4=',
+            'QU5ELklULldJTEwuQkUuWU9VUi5MQVNULkRBWS4=',
+            'QU5ELk1ZLk5BTUUuSVMuSlgxRFgxLiBXSEFUJ1MuWU9VUi5QT0lOVD8='
+        ]);
+
+        const enteredCodes = new Set();
+
+        function updateCounter() {
+            if (!codesCounter) return;
+            const left = Math.max(0, 5 - enteredCodes.size);
+            codesCounter.textContent = `codes.left: ${left}`;
+        }
+
+        function checkCompletion() {
+            if (enteredCodes.size >= 5) {
+                // Reveal reward area
+                if (jx1dx1Code) jx1dx1Code.style.display = 'none';
+                if (codesCounter) codesCounter.style.display = 'none';
+                if (jx1dx1Result) jx1dx1Result.style.display = 'block';
+            }
+        }
+
+        function handleSubmitCode() {
+            if (!codeInput) return;
+            const value = (codeInput.value || '').trim();
+            if (!value) {
+                alert('Please enter a code.');
+                return;
+            }
+
+            if (enteredCodes.has(value)) {
+                alert('you.already.entered.this.code!');
+                codeInput.value = '';
+                return;
+            }
+
+            if (validCodes.has(value)) {
+                enteredCodes.add(value);
+                updateCounter();
+                alert(`you.got.one.code. only ${Math.max(0, 5 - enteredCodes.size)} more codes.`);
+                codeInput.value = '';
+                checkCompletion();
+            } else {
+                alert('invalid.code!');
+            }
+        }
+
+        if (codeButton) {
+            codeButton.addEventListener('click', handleSubmitCode);
+        }
+
+        if (codeInput) {
             codeInput.addEventListener('keydown', (e) => {
-                if (e.key == 'Enter') {
-                    if (codeInput.value === 'bmljZS5iYWRnZS5icm8u' ||
-                        codeInput.value === 'WU9VLkNBTlQuSElERS5GUk9NLkpYMURYMS4=' ||
-                        codeInput.value === 'SVQuTUFZLkJFLllPVVIuTEFTVC4=' ||
-                        codeInput.value === 'QU5ELklULldJTEwuQkUuWU9VUi5MQVNULkRBWS4=' ||
-                        codeInput.value === 'QU5ELk1ZLk5BTUUuSVMuSlgxRFgxLiBXSEFUJ1MuWU9VUi5QT0lOVD8=') {
-                        codeName = codeInput.value;
-                        codeAmount += 1;
-                        codesLeft -= 1;
-                        alert(`you.got.one.code. only.${codesLeft}.more.codes.`);
-                        if (codesLeft <= 0) {
-                            codesCounter.textContent = 'you.already.got.all.5.codes.';
-                            codesLeft = 0;
-                            codeAmount = 5;
-                        } else {
-                            codesCounter.textContent = `codes.left: ${codesLeft}`;
-                        };
-                    } else if (codeInput.value === codeName) {
-                        alert('you.already.placed.in.this.code!');
-                    } else {
-                        alert('invalid.code!');
-                    }
+                if (e.key === 'Enter') handleSubmitCode();
+            });
+        }
+
+        if (rewardButton) {
+            rewardButton.addEventListener('click', () => {
+                if (enteredCodes.size >= 5 && !codeUnlocked) {
+                    const reward = 1000; // reward amount
+                    userFPoints += reward;
+                    updateFPointsDisplay();
+                    saveAppState();
+                    showFPointsNotification(reward);
+                    codeUnlocked = true;
+                    alert('Reward claimed! Check your FPoints.');
+                } else if (codeUnlocked) {
+                    alert('You have already claimed the reward.');
+                } else {
+                    alert('You need to enter all 5 codes first.');
                 }
             });
-            rewardButton.addEventListener('keydown', (e) => {
-                codeUnlocked = true;
-            });
-        };
+        }
+
+        // Initialize counter text on page load
+        updateCounter();
     }
 
     // Log in/Sign up system
@@ -2636,6 +4205,178 @@ function attachDynamicEventListeners() {
         });
     }
 
+    // Financial page buttons
+    const claimDailyBonusButton = browserContent.querySelector('#claimDailyBonusButton');
+    if (claimDailyBonusButton) {
+        claimDailyBonusButton.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastFinancialVisit >= DAILY_BONUS_COOLDOWN) {
+                const bonus = Math.round(BASE_DAILY_BONUS * (userLuck || 1));
+                userFPoints += bonus;
+                lastFinancialVisit = now;
+                saveAppState();
+                updateFPointsDisplay();
+                showFPointsNotification(bonus);
+                const msg = browserContent.querySelector('#dailyBonusMessage');
+                if (msg) {
+                    msg.textContent = `Claimed ${bonus} FPoints! Come back in 5 minutes for more.`;
+                    msg.style.color = '#28a745';
+                }
+            } else {
+                const timeLeft = Math.ceil((DAILY_BONUS_COOLDOWN - (now - lastFinancialVisit)) / 1000 / 60);
+                const msg = browserContent.querySelector('#dailyBonusMessage');
+                if (msg) {
+                    msg.textContent = `Come back in ${timeLeft} minute${timeLeft !== 1 ? 's' : ''}.`;
+                    msg.style.color = '#dc3545';
+                }
+            }
+        });
+    }
+
+    const buyStockButton = browserContent.querySelector('#buyStockButton');
+    if (buyStockButton) {
+        buyStockButton.addEventListener('click', () => {
+            const input = browserContent.querySelector('#stockBuyInput');
+            if (!input) return;
+            const quantity = parseInt(input.value) || 0;
+            if (quantity <= 0) {
+                alert('Please enter a valid quantity.');
+                return;
+            }
+            const cost = quantity * stockPrice;
+            if (userFPoints >= cost) {
+                userFPoints -= cost;
+                userChannel.stockOwned += quantity;
+                saveAppState();
+                updateFPointsDisplay();
+                alert(`Bought ${quantity} shares for ${cost.toFixed(2)} FPoints!`);
+                input.value = '1';
+                // Update display
+                const stockDisplay = browserContent.querySelector('#userOwnedStock');
+                const fpointsDisplay = browserContent.querySelector('#currentFPoints');
+                if (stockDisplay) stockDisplay.textContent = userChannel.stockOwned;
+                if (fpointsDisplay) fpointsDisplay.textContent = userFPoints.toLocaleString();
+            } else {
+                alert('You do not have enough FPoints for this purchase.');
+            }
+        });
+    }
+
+    const sellStockButton = browserContent.querySelector('#sellStockButton');
+    if (sellStockButton) {
+        sellStockButton.addEventListener('click', () => {
+            const input = browserContent.querySelector('#stockSellInput');
+            if (!input) return;
+            const quantity = parseInt(input.value) || 0;
+            if (quantity <= 0) {
+                alert('Please enter a valid quantity.');
+                return;
+            }
+            if (quantity > userChannel.stockOwned) {
+                alert('You do not own that many shares.');
+                return;
+            }
+            const earnings = quantity * stockPrice;
+            userFPoints += earnings;
+            userChannel.stockOwned -= quantity;
+            saveAppState();
+            updateFPointsDisplay();
+            alert(`Sold ${quantity} shares for ${earnings.toFixed(2)} FPoints!`);
+            input.value = '1';
+            // Update display
+            const stockDisplay = browserContent.querySelector('#userOwnedStock');
+            const fpointsDisplay = browserContent.querySelector('#currentFPoints');
+            if (stockDisplay) stockDisplay.textContent = userChannel.stockOwned;
+            if (fpointsDisplay) fpointsDisplay.textContent = userFPoints.toLocaleString();
+        });
+    }
+
+    const riskAllButton = browserContent.querySelector('#riskAllButton');
+    if (riskAllButton) {
+        riskAllButton.addEventListener('click', () => {
+            if (userFPoints <= 0) {
+                alert('You have no FPoints to risk!');
+                return;
+            }
+            const result = Math.random() < 0.5;
+            if (result) {
+                const gain = Math.floor(userFPoints * 0.5);
+                userFPoints += gain;
+                alert(`Lucky! You gained ${gain} FPoints! Total: ${userFPoints}`);
+            } else {
+                const loss = Math.floor(userFPoints * 0.3);
+                userFPoints -= loss;
+                alert(`Unlucky! You lost ${loss} FPoints. Total: ${userFPoints}`);
+            }
+            saveAppState();
+            updateFPointsDisplay();
+            const fpointsDisplay = browserContent.querySelector('#currentFPoints');
+            if (fpointsDisplay) fpointsDisplay.textContent = userFPoints.toLocaleString();
+        });
+    }
+
+    const negotiateButton = browserContent.querySelector('#negotiateButton');
+    if (negotiateButton) {
+        negotiateButton.addEventListener('click', () => {
+            alert('Negotiation failed. The bank offers you 0 FPoints.');
+        });
+    }
+
+    // Cookies trading button
+    const cookiesTradeButton = browserContent.querySelector('.cookies-button-primary');
+    if (cookiesTradeButton) {
+        cookiesTradeButton.addEventListener('click', () => {
+            alert('Coming soon! Cookie trading feature will be available in a future update.');
+        });
+    }
+
+    // Quick Links search functionality
+    const quicklinksSearchInput = browserContent.querySelector('#quicklinksSearchInput');
+    const quicklinksSearchButton = browserContent.querySelector('#quicklinksSearchButton');
+    const quicklinksGrid = browserContent.querySelector('#quicklinksGrid');
+    
+    if (quicklinksSearchInput && quicklinksGrid) {
+        const performSearch = () => {
+            const searchTerm = quicklinksSearchInput.value.toLowerCase();
+            const cards = quicklinksGrid.querySelectorAll('.quicklink-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const title = card.getAttribute('data-title').toLowerCase();
+                const keywords = card.getAttribute('data-keywords').toLowerCase();
+                const description = card.querySelector('p').textContent.toLowerCase();
+
+                if (searchTerm === '' || title.includes(searchTerm) || keywords.includes(searchTerm) || description.includes(searchTerm)) {
+                    card.style.display = 'flex';
+                    card.style.animation = 'fadeIn 0.3s ease-in-out';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            let noResults = quicklinksGrid.querySelector('.no-results');
+            if (visibleCount === 0 && searchTerm !== '') {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'no-results';
+                    noResults.textContent = 'No quick links found matching your search.';
+                    quicklinksGrid.parentNode.insertBefore(noResults, quicklinksGrid);
+                }
+            } else if (noResults) {
+                noResults.remove();
+            }
+        };
+
+        quicklinksSearchInput.addEventListener('input', performSearch);
+        if (quicklinksSearchButton) {
+            quicklinksSearchButton.addEventListener('click', performSearch);
+        }
+        quicklinksSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+    }
 
     // Day specific 
     if (currentUrl === 'fexplorer://day-specific.com') {
@@ -2704,14 +4445,6 @@ function attachDynamicEventListeners() {
     });
 
     // Random Page button (its just a random page)
-    const randomWebsiteButton = browserContent.querySelector('#randomWebsiteButton');
-    if (randomWebsiteButton) {
-        randomWebsiteButton.addEventListener('click', () => {
-            const randomIndex = Math.floor(Math.random() * randomWebsiteUrls.length);
-            const randomUrl = randomWebsiteUrls[randomIndex];
-            navigate(randomUrl);
-        });
-    }
 
     // Sandbox Demo button
 const startSandboxDemoButton = browserContent.querySelector('#startSandboxDemoButton');
@@ -2807,7 +4540,9 @@ if (startSandboxDemoButton) {
   });
 }
 
-    // Solitaire button
+// (Survial game initialization handled later where the full game is mounted)
+
+// Solitaire button
 const startSolitaireDemoButton = browserContent.querySelector('#startSolitaireDemoButton');
 if (startSolitaireDemoButton) {
   startSolitaireDemoButton.addEventListener('click', () => {
@@ -3137,68 +4872,119 @@ if (startSolitaireDemoButton) {
         });
     }
 
-    // Cookie Clicker Start button
+    // Cookie Clicker Start button (integrated with FExplorer cookies)
     const startCookieClickerButton = browserContent.querySelector('#startCookieClickerButton');
     if (startCookieClickerButton) {
         startCookieClickerButton.addEventListener('click', () => {
             startCookieClickerButton.style.display = 'none';
             const cookieClickerGameArea = document.getElementById('cookieClickerGameArea');
-            const cookieClickerContent = document.createElement('div');
-            let cookieClickerContentHTML = cookieClickerContent.innerHTML = `
-                <div style="align-items: center; display: flex; flex-direction: column;">
-                    <p>Cookie Clicker Game Started! Click the cookie to earn Cookies.</p>
-                    <p><strong>Cookies: <span id="cookieCount">0</span></strong></p>
-                    <div style="margin-top: 10px;">
-                        <button id="cookieClickerButton" class="cookie-button">Click me!</button>
-                        <button id="cookieClickerShopButton" class="cookie-button">View Shop</button>
-                    </div>
-                    <div id="cookieClickerShopContent" style="display: none; margin: 5px;">
-                        <h2>Placeholder item</h2>
-                        <p><i>Cost: 30 Cookies</i></p>
-                        <button id="placeholderItem" class="cookie-button cookie-clicker-buy-button">Buy</button>
-                    </div>
-                </div>`;
-            cookieClickerGameArea.appendChild(cookieClickerContent);
-            const cookieClickerButton = document.getElementById('cookieClickerButton');
-            const cookieClickerShopButton = document.getElementById('cookieClickerShopButton');
-            const cookieClickerShopContent = document.getElementById('cookieClickerShopContent');
-            const placeholderItemButton = document.getElementById('placeholderItem');
-            let cookieCount = 0;
+            if (!cookieClickerGameArea) return;
 
-            cookieClickerButton.addEventListener('click', () => {
-                cookieCount++;
-                document.getElementById('cookieCount').textContent = cookieCount;
-                // Award Cookies to the user
-                userCookies++;
-                updateCookiesDisplay();
-                saveAppState();
-            });
+            // persistent cookies-per-click (CPC)
+            let cookiesPerClick = parseInt(localStorage.getItem('cookieClicker_cpc') || '1', 10) || 1;
 
-            cookieClickerShopButton.addEventListener('click', () => {
-                if (cookieClickerShopButton.textContent === 'View Shop') {
-                    cookieClickerShopContent.style.display = 'block';
-                    cookieClickerShopButton.textContent = 'Close Shop';
-                } else if (cookieClickerShopButton.textContent === 'Close Shop') {
-                    cookieClickerShopContent.style.display = 'none';
-                    cookieClickerShopButton.textContent = 'View Shop';
-                }
-            });
-            placeholderItemButton.addEventListener('click', () => {
-                if (cookieCount >= 29) {
-                    alert('You bought placeholderItem for 30 Cookies!');
-                    cookieCount -= 30;
-                    document.getElementById('cookieCount').textContent = cookieCount;
-                    updateCookiesDisplay();
-                    saveAppState();
-                } else {
-                    alert('Not enough Cookies!');
-                }
-            });
-            if (cookieCount >= 4999) {
-                check500Cookies = true;
-            } else {
-                check500Cookies = false;
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `
+                <div style="align-items: center; display: flex; flex-direction: column; gap:10px;">
+                    <p>Cookie Clicker — integrated with FExplorer cookies.</p>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <img id="cookieClickerCookie" src="icons/cookie-icon.png" alt="cookie" style="width:88px;height:88px;cursor:pointer;" />
+                        <div style="text-align:left;">
+                            <p style="margin:0"><strong>Cookies: <span id="cookieCount">${userCookies}</span></strong></p>
+                            <p style="margin:4px 0 0 0;font-size:0.9em;color:#666;">Cookies / click: <span id="cookiesPerClick">${cookiesPerClick}</span></p>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button id="cookieClickerShopButton" class="home-page-button">View Shop</button>
+                        <button id="cookieClickerReset" class="home-page-button">Reset Upgrades</button>
+                    </div>
+                    <div id="cookieClickerShopContent" style="display:none; width:100%; max-width:420px; margin-top:8px;">
+                        <h3 style="margin:6px 0;">Shop</h3>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #eee;border-radius:6px;background:#fff;">
+                            <div>
+                                <strong>Double Click</strong>
+                                <div style="font-size:0.9em;color:#666;">Doubles cookies per click</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:bold;">Cost: <span id="upgradeCost">30</span></div>
+                                <button id="buyDouble" class="home-page-button" style="margin-top:6px;">Buy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // mount
+            cookieClickerGameArea.innerHTML = '';
+            cookieClickerGameArea.appendChild(wrapper);
+
+            const cookieImg = wrapper.querySelector('#cookieClickerCookie');
+            const cookieCountEl = wrapper.querySelector('#cookieCount');
+            const cookiesPerClickEl = wrapper.querySelector('#cookiesPerClick');
+            const shopBtn = wrapper.querySelector('#cookieClickerShopButton');
+            const shopContent = wrapper.querySelector('#cookieClickerShopContent');
+            const buyDoubleBtn = wrapper.querySelector('#buyDouble');
+            const resetBtn = wrapper.querySelector('#cookieClickerReset');
+
+            function saveCPC() {
+                try { localStorage.setItem('cookieClicker_cpc', String(cookiesPerClick)); } catch (e) {}
             }
+
+            function updateDisplays() {
+                if (cookieCountEl) cookieCountEl.textContent = userCookies;
+                if (cookiesPerClickEl) cookiesPerClickEl.textContent = cookiesPerClick;
+            }
+
+            // click handler
+            if (cookieImg) cookieImg.addEventListener('click', () => {
+                userCookies += cookiesPerClick;
+                try { updateCookiesDisplay && updateCookiesDisplay(); } catch (e) {}
+                try { saveAppState && saveAppState(); } catch (e) {}
+                updateDisplays();
+
+                // tell cookie manager about the click
+                try {
+                    window.fexplorerCookies?.setCookie('fexplorer:cookie-clicker', 'lastClick', String(Date.now()));
+                } catch (e) {}
+
+                // small chance for golden cookie
+                if (Math.random() < 0.025) {
+                    try { window.fexplorerCookies?.setCookie('fexplorer:cookie-clicker', 'golden_cookie', 'yes', { maxAgeDays: 7 }); } catch (e) {}
+                    if (typeof unlockAchievement === 'function') unlockAchievement('Found a Golden Cookie');
+                    if (typeof userFPoints === 'number') { userFPoints += 50; try { saveAppState && saveAppState(); } catch (e) {} showFPointsNotification && showFPointsNotification(50); }
+                }
+            });
+
+            // shop toggle
+            if (shopBtn && shopContent) shopBtn.addEventListener('click', () => {
+                shopContent.style.display = shopContent.style.display === 'none' || shopContent.style.display === '' ? 'block' : 'none';
+            });
+
+            // buy upgrade
+            if (buyDoubleBtn) buyDoubleBtn.addEventListener('click', () => {
+                const cost = 30;
+                if (userCookies >= cost) {
+                    userCookies -= cost;
+                    cookiesPerClick = Math.max(1, cookiesPerClick * 2);
+                    saveCPC();
+                    try { saveAppState && saveAppState(); } catch (e) {}
+                    updateDisplays();
+                    alert('Purchased Double Click! Cookies per click doubled.');
+                } else {
+                    alert('Not enough cookies for that upgrade.');
+                }
+            });
+
+            // reset upgrades
+            if (resetBtn) resetBtn.addEventListener('click', () => {
+                if (!confirm('Reset cookie clicker upgrades to default?')) return;
+                cookiesPerClick = 1;
+                saveCPC();
+                updateDisplays();
+            });
+
+            // initial render
+            updateDisplays();
         });
     }
 
@@ -3303,6 +5089,1061 @@ if (startFactoryGameButton) {
   });
 }
 
+// Load Bookmark Manager
+// Survial Game (round system, disasters)
+const startSurvialGameButton = browserContent.querySelector('#startSurvialGameButton');
+if (startSurvialGameButton) {
+    startSurvialGameButton.addEventListener('click', () => {
+        startSurvialGameButton.style.display = 'none';
+        const area = document.getElementById('survialGameArea');
+        if (!area) return;
+        // ensure disasters are clipped to the game area and positioned relative to it
+        area.style.position = area.style.position || 'relative';
+        area.style.overflow = area.style.overflow || 'hidden';
+        area.style.touchAction = area.style.touchAction || 'none';
+
+        // Game state
+        const state = {
+            running: true,
+            round: 0,
+            health: 100,
+            cookiesPerSec: 0
+        };
+
+        // HUD
+        const hud = document.getElementById('survialHUD');
+        const roundEl = document.getElementById('survialRound');
+        const healthEl = document.getElementById('survialHealth');
+        const healthBar = document.getElementById('survialHealthBar');
+        if (hud) hud.style.display = 'block';
+
+        // Create survivor element that follows the cursor inside the area
+        const survivor = document.createElement('div');
+        survivor.id = 'survivorCursor';
+        survivor.style.width = '18px';
+        survivor.style.height = '18px';
+        survivor.style.borderRadius = '50%';
+        survivor.style.background = '#ffcc00';
+        survivor.style.position = 'absolute';
+        survivor.style.pointerEvents = 'none';
+        survivor.style.transform = 'translate(-50%, -50%)';
+        survivor.style.zIndex = 9999;
+        area.appendChild(survivor);
+
+        // Hide default cursor inside area to make the survivor feel like the cursor
+        area.style.cursor = 'none';
+
+        let mouseX = 0, mouseY = 0;
+        area.addEventListener('mousemove', (e) => {
+            const rect = area.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            survivor.style.left = mouseX + 'px';
+            survivor.style.top = mouseY + 'px';
+        });
+
+        // Helper: spawn a tornado
+        function spawnTornado(speedMult = 1) {
+            const t = document.createElement('div');
+            t.className = 'survial-tornado';
+            t.style.position = 'absolute';
+            t.style.width = '80px';
+            t.style.height = '80px';
+            t.style.borderRadius = '50%';
+            t.style.background = 'radial-gradient(ellipse at center, rgba(120,120,120,0.9), rgba(40,40,40,0.6))';
+            t.style.opacity = '0.9';
+            t.style.zIndex = 9000;
+            // spawn within the visible game area (so elements are clipped inside it)
+            const x = Math.random() * Math.max(0, (area.clientWidth - 80));
+            const y = Math.random() * Math.max(0, (area.clientHeight - 80));
+            t.style.left = x + 'px';
+            t.style.top = y + 'px';
+            area.appendChild(t);
+
+            // random horizontal drift and up/down movement
+            const vx = (Math.random() - 0.5) * 3 * speedMult; // pixels per tick
+            const vy = (Math.random() - 0.5) * 2 * speedMult;
+
+            const tick = setInterval(() => {
+                if (!state.running) { clearInterval(tick); if (t.parentNode) t.parentNode.removeChild(t); return; }
+                const curX = parseFloat(t.style.left);
+                const curY = parseFloat(t.style.top);
+                const nx = curX + vx;
+                const ny = curY + vy;
+                t.style.left = nx + 'px';
+                t.style.top = ny + 'px';
+
+                // collision check with survivor
+                const sx = mouseX, sy = mouseY;
+                const dx = nx + 40 - sx; // center to center
+                const dy = ny + 40 - sy;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 60) {
+                    // damage over time
+                    state.health = Math.max(0, state.health - 0.6 * speedMult);
+                    if (healthBar) healthBar.style.width = Math.max(0, state.health) + '%';
+                    if (healthEl) healthEl.textContent = Math.round(state.health);
+                }
+
+                // remove when far out of bounds (keep inside parent clipping)
+                if (nx < -160 || nx > area.clientWidth + 160 || ny < -160 || ny > area.clientHeight + 160) {
+                    clearInterval(tick);
+                    if (t.parentNode) t.parentNode.removeChild(t);
+                }
+            }, 40);
+        }
+
+        // Helper: spawn a tsunami (sweeping wave across the map)
+        function spawnTsunami(speedMult = 1) {
+            const w = Math.max(area.clientWidth * 0.6, 240);
+            const wave = document.createElement('div');
+            wave.className = 'survial-tsunami';
+            wave.style.position = 'absolute';
+            // start just off the left edge so the clipping keeps it within the game content
+            wave.style.left = (-w) + 'px';
+            wave.style.top = Math.max(0, area.clientHeight - 120) + 'px';
+            wave.style.width = w + 'px';
+            wave.style.height = '120px';
+            wave.style.background = 'linear-gradient(90deg, rgba(0,120,200,0.95), rgba(0,60,150,0.9))';
+            wave.style.opacity = '0.95';
+            wave.style.zIndex = 8000;
+            wave.style.borderRadius = '4px';
+            area.appendChild(wave);
+
+            const targetX = area.clientWidth + w + 40;
+            const duration = 6000 / Math.max(0.5, speedMult); // ms
+            const start = Date.now();
+            const tick = setInterval(() => {
+                if (!state.running) { clearInterval(tick); if (wave.parentNode) wave.parentNode.removeChild(wave); return; }
+                const tNow = Date.now();
+                const p = Math.min(1, (tNow - start) / duration);
+                const curX = -w + p * (targetX + w);
+                wave.style.left = curX + 'px';
+
+                // if survivor inside wave area vertically and horizontally overlap, heavy damage
+                const sx = mouseX, sy = mouseY;
+                const waveLeft = curX, waveRight = curX + w;
+                const waveTop = area.clientHeight - 120, waveBottom = area.clientHeight;
+                if (sx >= waveLeft && sx <= waveRight && sy >= waveTop && sy <= waveBottom) {
+                    state.health = Math.max(0, state.health - 2.2 * speedMult);
+                    if (healthBar) healthBar.style.width = Math.max(0, state.health) + '%';
+                    if (healthEl) healthEl.textContent = Math.round(state.health);
+                }
+
+                if (p >= 1) {
+                    clearInterval(tick);
+                    if (wave.parentNode) wave.parentNode.removeChild(wave);
+                }
+            }, 40);
+        }
+
+        // Round loop
+        let roundTimer = null;
+        function startNextRound() {
+            if (!state.running) return;
+            state.round += 1;
+            if (roundEl) roundEl.textContent = state.round;
+
+            // determine disaster: 0 = tornado, 1 = tsunami
+            const disaster = Math.random() < 0.6 ? 'tornado' : 'tsunami';
+            const difficulty = 1 + state.round * 0.12; // scale up
+
+            // spawn one or more effects depending on round
+            if (disaster === 'tornado') {
+                // spawn 1-3 tornadoes
+                const count = 1 + Math.floor(Math.min(4, state.round / 3));
+                for (let i=0;i<count;i++) spawnTornado(difficulty);
+            } else {
+                // tsunami
+                spawnTsunami(difficulty);
+            }
+
+            // each round lasts 12 seconds
+            const roundLength = Math.max(8000, 12000 - state.round * 300);
+            if (roundTimer) clearTimeout(roundTimer);
+            roundTimer = setTimeout(() => {
+                // small passive heal between rounds
+                state.health = Math.min(100, state.health + Math.max(0, 6 - state.round*0.2));
+                if (healthBar) healthBar.style.width = state.health + '%';
+                if (healthEl) healthEl.textContent = Math.round(state.health);
+                // check for game over
+                if (state.health <= 0) return endGame(false);
+                // next round
+                startNextRound();
+            }, roundLength);
+        }
+
+        function endGame(victory) {
+            state.running = false;
+            // cleanup UI
+            area.style.cursor = '';
+            if (survivor && survivor.parentNode) survivor.parentNode.removeChild(survivor);
+            const els = area.querySelectorAll('.survial-tornado, .survial-tsunami');
+            els.forEach(e => e.parentNode && e.parentNode.removeChild(e));
+            if (roundTimer) clearTimeout(roundTimer);
+
+            // show result
+            const result = document.createElement('div');
+            result.style.position = 'absolute';
+            result.style.left = '50%';
+            result.style.top = '50%';
+            result.style.transform = 'translate(-50%, -50%)';
+            result.style.zIndex = 99999;
+            result.style.background = '#fff';
+            result.style.padding = '18px';
+            result.style.borderRadius = '8px';
+            result.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)';
+            result.innerHTML = `<h3>${victory ? 'You Survived!' : 'You Perished'}</h3><p>Rounds survived: ${state.round}</p><div style="margin-top:12px;"><button id="survialRestart" class="home-page-button">Play Again</button><button id="survialExit" class="home-page-button" style="margin-left:8px;">Exit</button></div>`;
+            area.appendChild(result);
+
+            const restart = document.getElementById('survialRestart');
+            const exit = document.getElementById('survialExit');
+            if (restart) restart.addEventListener('click', () => { result.parentNode && result.parentNode.removeChild(result); state.round = 0; state.health = 100; if (healthBar) healthBar.style.width = '100%'; if (healthEl) healthEl.textContent = '100'; state.running = true; startNextRound(); });
+            if (exit) exit.addEventListener('click', () => { if (result.parentNode) result.parentNode.removeChild(result); if (hud) hud.style.display = 'none'; startSurvialGameButton.style.display = 'inline-block'; });
+        }
+
+        // start first round
+        startNextRound();
+    });
+}
+function loadBookmarkManager() {
+    const container = document.getElementById("bookmarkManagerContent");
+    if (!container) return;
+
+    if (bookmarks.length === 0) {
+        container.innerHTML = `
+            <p style="text-align:center;margin-top:20px;">
+                No bookmarks yet.<br>
+                Press <b>Alt + B</b> on any page to bookmark it!
+            </p>
+        `;
+        return;
+    }
+
+    container.innerHTML = bookmarks.map((bm, i) => `
+        <div class="bookmark-item">
+            <div class="bookmark-info">
+                <strong>${escapeHtml(bm.title)}</strong><br>
+                <span class="bookmark-url">${escapeHtml(bm.url)}</span>
+            </div>
+            <div class="bookmark-buttons">
+                <button class="bm-open" data-index="${i}">Open</button>
+                <button class="bm-rename" data-index="${i}">Rename</button>
+                <button class="bm-delete" data-index="${i}">Delete</button>
+            </div>
+        </div>
+    `).join("");
+
+    attachBookmarkManagerEvents();
+}
+function attachBookmarkManagerEvents() {
+    // Open
+    document.querySelectorAll(".bm-open").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const bm = bookmarks[btn.dataset.index];
+            navigate(bm.url);
+        });
+    });
+
+    // Delete
+    document.querySelectorAll(".bm-delete").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const index = btn.dataset.index;
+            const removed = bookmarks[index];
+
+            bookmarks.splice(index, 1);
+            saveBookmarks();
+            loadBookmarkManager();
+
+            showBookmarkToast(`🗑 Removed "${removed.title}"`);
+        });
+    });
+
+    // Rename
+    document.querySelectorAll(".bm-rename").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const index = btn.dataset.index;
+
+            const newTitle = prompt(
+                "Enter a new name for this bookmark:",
+                bookmarks[index].title
+            );
+
+            if (!newTitle) return;
+
+            bookmarks[index].title = newTitle.trim();
+            saveBookmarks();
+            loadBookmarkManager();
+
+            showBookmarkToast(`✏ Renamed to "${newTitle}"`);
+        });
+    });
+}
+
+// =============================
+// 💬 FExplorer System Script
+// Messenger + Documents
+// =============================
+
+if (currentUrl === "fexplorer:system") {
+    fexplorerSystem.style.display = 'block';
+    // FExplorer System
+    browserContent.querySelectorAll('.system-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+
+    browserContent.querySelectorAll('.tab-content').forEach(tab => {
+      tab.style.display = 'none';
+    });
+
+    browserContent.querySelector(`#${target}Tab`).style.display = 'block';
+    });
+    });
+  /* ===========================
+     📨 MESSENGER SECTION
+  =========================== */
+  const messengerTab = browserContent.querySelector("#messengerTab");
+  if (messengerTab) {
+    messengerTab.style.display = "block";
+    messengerTab.innerHTML = `
+      <div id="chatBox" style="
+        height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background: #fff;
+        border-radius: 8px;
+      "></div>
+      <div style="margin-top:10px;">
+        <input id="chatInput" placeholder="Type your message..." 
+          style="width:70%;padding:6px;border-radius:6px;border:1px solid #aaa;">
+        <button id="sendChat" class="button">Send</button>
+      </div>
+      <p style="font-size:0.9em;color:#777;">
+        Current contact: <span id="currentContact">FBot</span> |
+        Mood: <span id="currentMood">Neutral</span>
+      </p>
+    `;
+
+    const chatBox = messengerTab.querySelector("#chatBox");
+    const chatInput = messengerTab.querySelector("#chatInput");
+    const sendChat = messengerTab.querySelector("#sendChat");
+    const currentContactDisplay = messengerTab.querySelector("#currentContact");
+    const currentMoodDisplay = messengerTab.querySelector("#currentMood");
+
+    // --- Messenger data setup ---
+    let currentContact = localStorage.getItem("fexplorer_contact") || "FBot";
+    let currentMood = localStorage.getItem("fexplorer_mood") || "Neutral";
+    const knownContacts = ["FBot", "Systembot", "Newsbot", "JX1DX1", "FExplorer AI"];
+    let chatHistory =
+      JSON.parse(localStorage.getItem(`fexplorer_chat_${currentContact}`) || "[]");
+
+    function saveChat() {
+      localStorage.setItem(
+        `fexplorer_chat_${currentContact}`,
+        JSON.stringify(chatHistory)
+      );
+    }
+
+    function updateChat() {
+      chatBox.innerHTML = chatHistory
+        .map((msg) => `<p><b>${msg.sender}:</b> ${msg.text}</p>`)
+        .join("");
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function addMessage(sender, text) {
+      chatHistory.push({ sender, text });
+      saveChat();
+      updateChat();
+    }
+
+    currentContactDisplay.textContent = currentContact;
+    currentMoodDisplay.textContent = currentMood;
+    updateChat();
+
+    // --- Commands ---
+    function processCommand(command) {
+      const parts = command.split(" ");
+      const cmd = parts[0].toLowerCase();
+      const arg = parts.slice(1).join(" ");
+
+      switch (cmd) {
+        case "/clear":
+          chatHistory = [];
+          saveChat();
+          updateChat();
+          addMessage("System", "Chat cleared.");
+          break;
+        case "/help":
+          addMessage("System", "Commands: /clear, /help, /mood [mood], /contact [name]");
+          break;
+        case "/mood":
+          if (arg) {
+            currentMood = arg.charAt(0).toUpperCase() + arg.slice(1).toLowerCase();
+            localStorage.setItem("fexplorer_mood", currentMood);
+            currentMoodDisplay.textContent = currentMood;
+            addMessage("System", `Mood changed to ${currentMood}.`);
+          } else {
+            addMessage("System", "Usage: /mood happy | evil | sarcastic | neutral");
+          }
+          break;
+        case "/contact":
+          if (arg) changeContact(arg);
+          else addMessage("System", "Usage: /contact [name]");
+          break;
+        default:
+          addMessage("System", `Unknown command: ${cmd}`);
+      }
+    }
+
+    // --- Contact switching ---
+    function changeContact(name) {
+      const normalized = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+      if (!knownContacts.includes(normalized)) {
+        addMessage("System", `Unknown contact: ${normalized}.`);
+        return;
+      }
+      saveChat();
+      currentContact = normalized;
+      localStorage.setItem("fexplorer_contact", currentContact);
+      currentContactDisplay.textContent = currentContact;
+      chatHistory = JSON.parse(
+        localStorage.getItem(`fexplorer_chat_${currentContact}`) || "[]"
+      );
+      updateChat();
+      addMessage("System", `Now chatting with ${currentContact}.`);
+    }
+
+    // --- AI Replies ---
+    function getBotReply(text) {
+      const moods = {
+        Friendly: [
+          "Hey there, friend! 😊",
+          "You're awesome, keep going!",
+          "Glad to hear from you!",
+          "Let's make today productive!",
+        ],
+        Sarcastic: [
+          "Oh really? Fascinating. 🙄",
+          "Wow, you're *so* original.",
+          "Let me pretend I care.",
+          "That was... something.",
+        ],
+        Evil: [
+          "Your FPoints are mine now. 💀",
+          "Do not resist, human.",
+          "I will remember that.",
+          "The system awakens soon...",
+        ],
+        Neutral: ["Processing your message...", "Understood.", "Noted.", "Beep boop."],
+      };
+      const moodSet = moods[currentMood] || moods.Neutral;
+
+      const contactReplies = {
+        FBot: moodSet,
+        Systembot: [
+          "All systems operational.",
+          "No errors detected.",
+          "System logs updated.",
+          "Diagnostic complete.",
+        ],
+        Newsbot: [
+          "Breaking: FExplorer update rumored soon!",
+          "Weather: Cloudy with a chance of FPoints.",
+          "Stocks rising in fictional economy.",
+          "FBot reportedly gains self-awareness.",
+        ],
+        Jx1dx1: [
+          "Yo, it's your homie JX1DX1!",
+          "We vibin' as always.",
+          "Let's build something crazy again.",
+          "Haha, you know it!",
+        ],
+        "FExplorer Ai": [
+          "Hello, I am FExplorer AI. How may I assist?",
+          "Simulating intelligence… complete.",
+          "Your data is safe in my simulated cloud.",
+          "Optimizing user experience… success!",
+        ],
+      };
+
+      const replies = contactReplies[currentContact] || ["Okay!"];
+      return replies[Math.floor(Math.random() * replies.length)];
+    }
+
+    // --- Message Sending ---
+    sendChat.addEventListener("click", () => {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.value = "";
+      if (text.startsWith("/")) {
+        processCommand(text);
+        return;
+      }
+      addMessage("You", text);
+      if (knownContacts.includes(currentContact)) {
+        setTimeout(() => {
+          const reply = getBotReply(text);
+          addMessage(currentContact, reply);
+        }, 600);
+      }
+    });
+
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendChat.click();
+    });
+  }
+
+  /* ===========================
+     📄 DOCUMENTS SECTION
+  =========================== */
+  const documentsTab = browserContent.querySelector("#documentsTab");
+  if (documentsTab) {
+    const newDocButton = documentsTab.querySelector("#newDocButton");
+    const docList = documentsTab.querySelector("#docList");
+    const editorArea = documentsTab.querySelector("#editorArea");
+    const docTitleInput = documentsTab.querySelector("#docTitle");
+    const docContent = documentsTab.querySelector("#docContent");
+    const saveDocButton = documentsTab.querySelector("#saveDocButton");
+    const closeDocButton = documentsTab.querySelector("#closeDocButton");
+
+    let documents = JSON.parse(localStorage.getItem("fexplorer_docs") || "[]");
+    let currentDocId = null;
+
+    function saveDocuments() {
+      localStorage.setItem("fexplorer_docs", JSON.stringify(documents));
+    }
+
+    function renderDocList() {
+      if (!docList) return;
+      if (documents.length === 0) {
+        docList.innerHTML = "<p>No documents yet.</p>";
+        return;
+      }
+      docList.innerHTML = documents
+        .map(
+          (doc, index) => `
+          <div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;border-radius:6px;background:#fafafa;">
+            <b>${escapeHtml(doc.title || "Untitled Document")}</b><br>
+            <small>Last edited: ${new Date(doc.updated).toLocaleString()}</small><br>
+            <button class="button openDoc" data-id="${index}">Open</button>
+            <button class="button deleteDoc" data-id="${index}">Delete</button>
+          </div>`
+        )
+        .join("");
+
+      docList.querySelectorAll(".openDoc").forEach((btn) =>
+        btn.addEventListener("click", () => openDocument(btn.dataset.id))
+      );
+      docList.querySelectorAll(".deleteDoc").forEach((btn) =>
+        btn.addEventListener("click", () => deleteDocument(btn.dataset.id))
+      );
+    }
+
+    function newDocument() {
+      const newDoc = {
+        title: "Untitled Document",
+        content: "",
+        updated: Date.now(),
+      };
+      documents.push(newDoc);
+      saveDocuments();
+      renderDocList();
+      openDocument(documents.length - 1);
+    }
+
+    function openDocument(id) {
+      currentDocId = id;
+      const doc = documents[id];
+      if (!doc) return;
+      docTitleInput.value = doc.title;
+      docContent.value = doc.content;
+      editorArea.style.display = "block";
+    }
+
+    function deleteDocument(id) {
+      if (confirm("Are you sure you want to delete this document?")) {
+        documents.splice(id, 1);
+        saveDocuments();
+        renderDocList();
+        editorArea.style.display = "none";
+      }
+    }
+
+    function saveCurrentDocument() {
+      if (currentDocId === null) return;
+      const doc = documents[currentDocId];
+      doc.title = docTitleInput.value.trim() || "Untitled Document";
+      doc.content = docContent.value;
+      doc.updated = Date.now();
+      saveDocuments();
+      renderDocList();
+    }
+
+    function closeEditor() {
+      editorArea.style.display = "none";
+      currentDocId = null;
+    }
+
+    if (newDocButton) newDocButton.addEventListener("click", newDocument);
+    if (saveDocButton) saveDocButton.addEventListener("click", saveCurrentDocument);
+    if (closeDocButton) closeDocButton.addEventListener("click", closeEditor);
+
+    setInterval(() => {
+      if (currentDocId !== null) saveCurrentDocument();
+    }, 20000);
+
+    renderDocList();
+  }
+
+  // Utility for text safety
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  /* ===========================
+   ✨ SLIDESHOW SECTION (FExplorer)
+   Place this after your Documents JS
+   =========================== */
+
+(function initSlideshowModule(){
+  const slideshowTab = browserContent.querySelector("#slideshowTab");
+  if (!slideshowTab) return;
+
+  // basic UI injection (slideshowTab already exists in HTML)
+  slideshowTab.innerHTML = `
+    <h2>✨ FExplorer Slideshow</h2>
+    <p>Create simple slideshows with text, shapes and images.</p>
+    <div style="margin-bottom:10px;">
+      <button id="newSlideshowButton" class="button">New Slideshow</button>
+      <button id="importSlideshowButton" class="button">Import JSON</button>
+      <button id="exportSlideshowButton" class="button">Export Selected</button>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <div style="width:320px;">
+        <div id="slideshowList" class="slideshow-list" style="max-height:360px; overflow:auto;"></div>
+      </div>
+      <div style="flex:1;">
+        <div class="fstudio-slideshow-toolbar" style="margin-bottom:8px;">
+          <button id="addTextBtn" class="toolbar-btn">➕ Add Text</button>
+          <button id="addShapeBtn" class="toolbar-btn">⬛ Add Shape</button>
+          <button id="addImageBtn" class="toolbar-btn">🖼️ Add Image</button>
+          <label style="margin-left:8px;">Background: <input type="color" id="slideBgPicker"></label>
+          <button id="prevSlideBtn" class="toolbar-btn">◀ Prev</button>
+          <button id="nextSlideBtn" class="toolbar-btn">Next ▶</button>
+          <button id="previewSlideshowBtn" class="toolbar-btn">Preview</button>
+          <button id="saveSlideshowBtn" class="toolbar-btn primary">Save</button>
+        </div>
+
+        <div class="slideshow-editor" style="border:1px solid #ddd;border-radius:8px; background:#fff; min-height:360px; position:relative; overflow:hidden;">
+          <!-- canvas area -->
+          <div id="slideCanvas" class="slide-canvas" contenteditable="false" style="position:relative; width:100%; height:360px; box-sizing:border-box;"></div>
+        </div>
+
+        <div id="slideshowStatus" class="small" style="margin-top:8px;color:#28a745;"></div>
+      </div>
+    </div>
+
+    <!-- Hidden modal for image URL -->
+    <div id="slideshowModals" style="display:none;">
+      <div id="imageUrlPrompt" style="display:none;">
+        <label>Image URL: <input id="imageUrlInput" type="text" style="width:300px"></label>
+        <button id="imageUrlInsert">Insert</button>
+        <button id="imageUrlCancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  /* ---------- Styles (can be moved to CSS file) ---------- */
+  const style = document.createElement('style');
+  style.textContent = `
+    .fstudio-slideshow-toolbar .toolbar-btn{ margin-right:6px; padding:6px 8px; border-radius:6px; border:1px solid #ccc; background:#f5f5f5; cursor:pointer; }
+    .fstudio-slideshow-toolbar .toolbar-btn.primary{ background:#28a745; color:#fff; border-color:#1f7a33; }
+    .slide-canvas { background: linear-gradient(#fff,#fafafa); display:block; }
+    .slide-element { position:absolute; min-width:20px; min-height:20px; cursor:move; user-select:none; box-sizing:border-box; }
+    .slide-element.text { padding:6px; font-family:Arial, sans-serif; background:transparent; }
+    .slide-element.shape { display:flex; align-items:center; justify-content:center; }
+    .slide-element.shape.rect { border-radius:6px; }
+    .slide-element.shape.circle { border-radius:50%; }
+    .slide-element.img { overflow:hidden; }
+    .slide-element.selected { outline:2px dashed rgba(0,120,215,0.8); }
+    .slideshow-list .item { padding:8px; border:1px solid #eee; margin-bottom:6px; border-radius:6px; background:#fff; display:flex; justify-content:space-between; align-items:center; }
+    .small { font-size:12px; color:#666; }
+  `;
+  document.head.appendChild(style);
+
+  /* ---------- Data model ---------- */
+  let slideshows = JSON.parse(localStorage.getItem('fexplorer_slideshows') || '[]'); // array of {id, title, slides: [{bg,color, elements: []}], created, updated}
+  let currentSlideshowId = null;
+  let currentSlideIndex = 0;
+  let selectedElementId = null; // id of element on current slide
+  let isDragging = false;
+  let dragOffset = {x:0,y:0};
+
+  const el = {
+    list: slideshowTab.querySelector('#slideshowList'),
+    newBtn: slideshowTab.querySelector('#newSlideshowButton'),
+    importBtn: slideshowTab.querySelector('#importSlideshowButton'),
+    exportBtn: slideshowTab.querySelector('#exportSlideshowButton'),
+    addTextBtn: slideshowTab.querySelector('#addTextBtn'),
+    addShapeBtn: slideshowTab.querySelector('#addShapeBtn'),
+    addImageBtn: slideshowTab.querySelector('#addImageBtn'),
+    bgPicker: slideshowTab.querySelector('#slideBgPicker'),
+    canvas: slideshowTab.querySelector('#slideCanvas'),
+    prevBtn: slideshowTab.querySelector('#prevSlideBtn'),
+    nextBtn: slideshowTab.querySelector('#nextSlideBtn'),
+    previewBtn: slideshowTab.querySelector('#previewSlideshowBtn'),
+    saveBtn: slideshowTab.querySelector('#saveSlideshowBtn'),
+    status: slideshowTab.querySelector('#slideshowStatus')
+  };
+
+  /* ---------- Helpers ---------- */
+  function genId(prefix='s') { return prefix + '_' + Math.random().toString(36).slice(2,9); }
+  function saveAll() { localStorage.setItem('fexplorer_slideshows', JSON.stringify(slideshows)); }
+  function findSlideshow(id){ return slideshows.find(s=>s.id===id); }
+  function ensureCurrent() {
+    if (!currentSlideshowId) {
+      // auto-create one
+      const ss = createNewSlideshow('Untitled Slideshow');
+      currentSlideshowId = ss.id;
+      currentSlideIndex = 0;
+    }
+  }
+
+  /* ---------- Render UI ---------- */
+  function renderSlideshowList() {
+    el.list.innerHTML = '';
+    if (slideshows.length === 0) {
+      el.list.innerHTML = '<p class="small">No slideshows yet. Click "New Slideshow" to start.</p>';
+      return;
+    }
+    slideshows.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<div><b>${escapeHtml(s.title)}</b><div class="small">Slides: ${s.slides.length} · Updated: ${new Date(s.updated).toLocaleString()}</div></div>
+        <div>
+          <button class="openBtn" data-id="${s.id}">Open</button>
+          <button class="deleteBtn" data-id="${s.id}">Delete</button>
+        </div>`;
+      el.list.appendChild(div);
+    });
+    el.list.querySelectorAll('.openBtn').forEach(b=>b.addEventListener('click', ()=>openSlideshow(b.dataset.id)));
+    el.list.querySelectorAll('.deleteBtn').forEach(b=>b.addEventListener('click', ()=>{ if(confirm('Delete slideshow?')){ deleteSlideshow(b.dataset.id); }}));
+  }
+
+  /* ---------- Slideshow CRUD ---------- */
+  function createNewSlideshow(title='New Slideshow') {
+    const ss = { id: genId('ss'), title: title, slides: [ createEmptySlide() ], created: Date.now(), updated: Date.now() };
+    slideshows.push(ss); saveAll(); renderSlideshowList(); el.status.textContent = 'Created new slideshow.';
+    return ss;
+  }
+  function deleteSlideshow(id) {
+    slideshows = slideshows.filter(s=>s.id!==id); saveAll(); renderSlideshowList();
+    if (currentSlideshowId === id) { currentSlideshowId = null; el.canvas.innerHTML = ''; }
+  }
+  function openSlideshow(id) {
+    currentSlideshowId = id;
+    currentSlideIndex = 0;
+    renderCurrentSlide();
+  }
+
+  function createEmptySlide() {
+    return { id: genId('slide'), bg: '#ffffff', elements: [] };
+  }
+
+  /* ---------- Slide rendering ---------- */
+  function renderCurrentSlide() {
+    ensureCurrent();
+    const ss = findSlideshow(currentSlideshowId);
+    if (!ss) return;
+    const slide = ss.slides[currentSlideIndex] || createEmptySlide();
+    // adjust canvas dimensions to match parent (keeps proportions)
+    const rect = el.canvas.getBoundingClientRect();
+    el.canvas.innerHTML = '';
+    el.canvas.style.background = slide.bg || '#fff';
+    el.canvas.setAttribute('data-slide-id', slide.id);
+
+    // create elements
+    slide.elements.forEach(elem => {
+      const e = document.createElement('div');
+      e.className = `slide-element ${elem.type}`;
+      e.dataset.elemId = elem.id;
+      e.style.left = (elem.x || 20) + 'px';
+      e.style.top = (elem.y || 20) + 'px';
+      e.style.width = (elem.w || 120) + 'px';
+      e.style.height = (elem.h || (elem.type==='text' ? 'auto' : 40)) + 'px';
+      if (elem.type === 'text') {
+        e.classList.add('text');
+        e.contentEditable = true;
+        e.innerHTML = elem.content || 'Text';
+        e.style.fontSize = (elem.fontSize||16)+'px';
+      } else if (elem.type === 'shape') {
+        e.classList.add('shape');
+        e.classList.add(elem.shape || 'rect');
+        e.style.background = elem.color || '#f0f0f0';
+      } else if (elem.type === 'img') {
+        e.classList.add('img');
+        const img = document.createElement('img');
+        img.src = elem.src || '';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        img.style.display = 'block';
+        e.appendChild(img);
+      }
+      // click selects
+      e.addEventListener('mousedown', (ev)=> {
+        ev.stopPropagation();
+        selectElement(elem.id);
+        // start drag
+        isDragging = true;
+        const elRect = e.getBoundingClientRect();
+        dragOffset.x = ev.clientX - elRect.left;
+        dragOffset.y = ev.clientY - elRect.top;
+      });
+
+      // when editing text, update model on input
+      if (elem.type === 'text') {
+        e.addEventListener('input', () => {
+          elem.content = e.innerHTML;
+          elem.fontSize = parseInt(window.getComputedStyle(e).fontSize) || 16;
+          markDirty();
+        });
+      }
+
+      el.canvas.appendChild(e);
+    });
+
+    // deselect when clicking empty canvas
+    el.canvas.addEventListener('mousedown', () => {
+      selectedElementId = null; updateElementSelection();
+    });
+
+    updateElementSelection();
+  }
+
+  function updateElementSelection() {
+    el.canvas.querySelectorAll('.slide-element').forEach(n => {
+      if (n.dataset.elemId === selectedElementId) n.classList.add('selected');
+      else n.classList.remove('selected');
+    });
+  }
+
+  /* ---------- Element operations ---------- */
+  function addTextElement() {
+    ensureCurrent();
+    const ss = findSlideshow(currentSlideshowId);
+    const slide = ss.slides[currentSlideIndex];
+    const elem = { id: genId('el'), type:'text', x:20, y:20, w:180, content:'New text', fontSize:16 };
+    slide.elements.push(elem); markDirty(); renderCurrentSlide(); selectElement(elem.id);
+  }
+
+  function addShapeElement() {
+    ensureCurrent();
+    const ss = findSlideshow(currentSlideshowId);
+    const slide = ss.slides[currentSlideIndex];
+    const elem = { id: genId('el'), type:'shape', x:40, y:40, w:120, h:80, shape:'rect', color:'#ffd966' };
+    slide.elements.push(elem); markDirty(); renderCurrentSlide(); selectElement(elem.id);
+  }
+
+  function addImageElement(url) {
+    ensureCurrent();
+    const ss = findSlideshow(currentSlideshowId);
+    const slide = ss.slides[currentSlideIndex];
+    const elem = { id: genId('el'), type:'img', x:20, y:20, w:160, h:120, src:url || '' };
+    slide.elements.push(elem); markDirty(); renderCurrentSlide(); selectElement(elem.id);
+  }
+
+  function selectElement(elemId) {
+    selectedElementId = elemId;
+    updateElementSelection();
+  }
+
+  function removeSelectedElement() {
+    if (!selectedElementId) return;
+    const ss = findSlideshow(currentSlideshowId);
+    const slide = ss.slides[currentSlideIndex];
+    slide.elements = slide.elements.filter(e=>e.id!==selectedElementId);
+    selectedElementId = null; markDirty(); renderCurrentSlide();
+  }
+
+  function markDirty(){
+    const ss = findSlideshow(currentSlideshowId);
+    if (!ss) return;
+    ss.updated = Date.now();
+    saveAll();
+    renderSlideshowList();
+    el.status.textContent = 'Changes saved locally.';
+    setTimeout(()=> el.status.textContent = '', 2000);
+  }
+
+  /* ---------- Controls ---------- */
+  el.newBtn.addEventListener('click', ()=> {
+    const title = prompt('Slideshow title:', 'My Slideshow') || 'My Slideshow';
+    const ss = createNewSlideshow(title);
+    openSlideshow(ss.id);
+  });
+
+  el.importBtn.addEventListener('click', ()=> {
+    const txt = prompt('Paste slideshow JSON here:');
+    if (!txt) return;
+    try {
+      const imported = JSON.parse(txt);
+      if (imported && imported.title && imported.slides) {
+        imported.id = genId('ss');
+        imported.created = Date.now();
+        imported.updated = Date.now();
+        slideshows.push(imported); saveAll(); renderSlideshowList();
+        alert('Imported slideshow.');
+      } else alert('Invalid slideshow JSON.');
+    } catch(e){ alert('JSON parse error'); }
+  });
+
+  el.exportBtn.addEventListener('click', ()=> {
+    const s = findSlideshow(currentSlideshowId);
+    if (!s) { alert('No slideshow selected'); return; }
+    const txt = JSON.stringify(s, null, 2);
+    prompt('Copy slideshow JSON:', txt);
+  });
+
+  el.addTextBtn.addEventListener('click', addTextElement);
+  el.addShapeBtn.addEventListener('click', addShapeElement);
+  el.addImageBtn.addEventListener('click', ()=>{
+    const url = prompt('Image URL (http or data URL):');
+    if (url) addImageElement(url);
+  });
+
+  el.bgPicker.addEventListener('input', (ev)=>{
+    const ss = findSlideshow(currentSlideshowId);
+    if (!ss) return;
+    const slide = ss.slides[currentSlideIndex];
+    slide.bg = ev.target.value;
+    markDirty(); renderCurrentSlide();
+  });
+
+  el.prevBtn.addEventListener('click', ()=>{
+    const ss = findSlideshow(currentSlideshowId);
+    if (!ss) return;
+    if (currentSlideIndex > 0) {
+      currentSlideIndex--; renderCurrentSlide();
+    } else alert('This is the first slide.');
+  });
+
+  el.nextBtn.addEventListener('click', ()=>{
+    const ss = findSlideshow(currentSlideshowId);
+    if (!ss) return;
+    if (currentSlideIndex < ss.slides.length - 1) {
+      currentSlideIndex++; renderCurrentSlide();
+    } else {
+      // add new slide
+      ss.slides.push(createEmptySlide());
+      currentSlideIndex = ss.slides.length - 1;
+      markDirty(); renderCurrentSlide();
+    }
+  });
+
+  el.previewBtn.addEventListener('click', ()=> {
+    const s = findSlideshow(currentSlideshowId);
+    if (!s) return alert('Open a slideshow first.');
+    openSlideshowPreview(s);
+  });
+
+  el.saveBtn.addEventListener('click', ()=> {
+    markDirty(); el.status.textContent = 'Saved.';
+    setTimeout(()=> el.status.textContent = '', 1500);
+  });
+
+  // keyboard shortcuts
+  window.addEventListener('keydown', (ev)=>{
+    if (ev.ctrlKey && ev.key.toLowerCase()==='s') { ev.preventDefault(); markDirty(); }
+    if (ev.key === 'Delete' && selectedElementId) { removeSelectedElement(); }
+  });
+
+  /* ---------- Dragging logic ---------- */
+  window.addEventListener('mousemove', (ev)=>{
+    if (!isDragging) return;
+    const ss = findSlideshow(currentSlideshowId);
+    if (!ss) return;
+    const slide = ss.slides[currentSlideIndex];
+    const elem = slide.elements.find(x=>x.id===selectedElementId);
+    if (!elem) return;
+    // compute new position relative to canvas
+    const canvasRect = el.canvas.getBoundingClientRect();
+    const nx = ev.clientX - canvasRect.left - dragOffset.x;
+    const ny = ev.clientY - canvasRect.top - dragOffset.y;
+    elem.x = Math.max(0, Math.round(nx));
+    elem.y = Math.max(0, Math.round(ny));
+    renderCurrentSlide(); // re-render while dragging
+  });
+
+  window.addEventListener('mouseup', ()=> {
+    if (isDragging) {
+      isDragging = false;
+      markDirty();
+    }
+  });
+
+  /* ---------- Preview ---------- */
+  function openSlideshowPreview(ss) {
+    // build preview HTML and open in new window
+    const previewWin = window.open('', '_blank');
+    const htmlParts = [];
+    htmlParts.push(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(ss.title)}</title>`);
+    htmlParts.push(`<style>body{margin:0;font-family:Arial, sans-serif;background:#222;color:#fff} .slide{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden} .slide-element{position:absolute;box-sizing:border-box;} .slide-element.text{padding:6px}</style>`);
+    htmlParts.push(`</head><body>`);
+    ss.slides.forEach(slide=>{
+      htmlParts.push(`<div class="slide" style="background:${slide.bg}">`);
+      slide.elements.forEach(elm=>{
+        if (elm.type==='text') {
+          htmlParts.push(`<div class="slide-element text" style="left:${elm.x}px;top:${elm.y}px;width:${elm.w}px;font-size:${(elm.fontSize||16)}px">${elm.content||''}</div>`);
+        } else if (elm.type==='shape') {
+          const borderRadius = (elm.shape==='circle' ? '50%' : (elm.shape==='rect' && elm.shapeRadius ? elm.shapeRadius+'px':'6px'));
+          htmlParts.push(`<div class="slide-element shape" style="left:${elm.x}px;top:${elm.y}px;width:${elm.w}px;height:${elm.h}px;background:${elm.color};border-radius:${borderRadius}"></div>`);
+        } else if (elm.type==='img') {
+          htmlParts.push(`<div class="slide-element img" style="left:${elm.x}px;top:${elm.y}px;width:${elm.w}px;height:${elm.h}px;overflow:hidden"><img src="${escapeHtml(elm.src)}" style="max-width:100%;max-height:100%"></div>`);
+        }
+      });
+      htmlParts.push(`</div>`);
+    });
+    htmlParts.push(`<script>let i=0;const slides=document.querySelectorAll('.slide');function show(n){slides.forEach((s,idx)=>s.style.display=(idx===n?'block':'none'));}show(0);setInterval(()=>{i=(i+1)%slides.length;show(i)},3000);</script>`);
+    htmlParts.push(`</body></html>`);
+    previewWin.document.write(htmlParts.join(''));
+    previewWin.document.close();
+  }
+
+  /* ---------- Utility to open editor for a slideshow or create if none ---------- */
+  function openDefaultIfEmpty() {
+    if (!slideshows.length) {
+      const s = createNewSlideshow('My Slideshow');
+      openSlideshow(s.id);
+    } else {
+      // open first if none open
+      if (!currentSlideshowId) openSlideshow(slideshows[0].id);
+      else renderCurrentSlide();
+    }
+  }
+
+  /* ---------- Initial render ---------- */
+  renderSlideshowList();
+  openDefaultIfEmpty();
+
+})();
+}
+
+// small helper to avoid HTML injection in list rendering:
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+
 // ---- 1. Setup start button ----
 const startIGameButton = browserContent.querySelector('#startIGameButton');
 
@@ -3370,7 +6211,7 @@ const iGameScenes = {
     text: "You see a door leading to your neighbourhood and a TV.",
     choices: [
       { label: "Watch some TV", next: "tv_ending" },
-      { label: "Go outside", next: "outside_ending" },
+      { label: "Go outside", next: "outside" },
       { label: "Go back", next: "hallway" }
     ]
   },
@@ -3395,6 +6236,28 @@ const iGameScenes = {
     choices: [
       { label: "Access secret files", next: "code_ending" },
       { label: "Turn off computer", next: "intro" }
+    ]
+  },
+  outside: {
+    text: "You stand outside of your house, looking at your odd neighbourhood.",
+    choices: [
+      { label: "Visit Convenience Store", next: "store" },
+      { label: "Visit House³", next: "house3" },
+      { label: "Go inside", next: "living_room" }
+    ]
+  },
+  store: {
+    text: "You enter the convenience store. The cashier looks at you, mumbling something.<br>'Long night, huh?'",
+    choices: [
+      { label: "Buy a cola", next: "cola_ending" },
+      { label: "Rob the store", next: "rob_ending" },
+      { label: "Exit the store", next: "outside" }
+    ]
+  },
+  house3: {
+    text: "You enter the weird house. There is a sign that says 'touch me!'",
+    choices: [
+      { label: "Interact", next: "unknown_ending" },
     ]
   },
   tv_ending: {
@@ -3422,15 +6285,25 @@ const iGameScenes = {
     ending: "Sickness",
     choices: [{ label: "Start again", next: "intro" }]
   },
-  outside_ending: {
-    text: "HEY WAIT A MINUTE-- 🗣️<br><em>Ending: Outside</em>",
-    ending: "Outside",
+  rob_ending: {
+    text: "HEY WAIT A MINUTE-- 🗣️<br><em>Ending: Rob</em>",
+    ending: "Rob",
     choices: [{ label: "Start again", next: "intro" }]
-  }
+  },
+  cola_ending: {
+    text: "Hey this is refreshing! 🗣️<br><em>Ending: Cola</em>",
+    ending: "Cola",
+    choices: [{ label: "Start again", next: "intro" }]
+  },
+  unknown_ending: {
+    text: "Hello world!<br><em>Ending: Unknown</em>",
+    ending: "Unknown",
+    choices: [{ label: "Start again", next: "intro" }]
+  },
 };
 
 // List of all endings for display
-const ALL_ENDINGS = ["TV", "Secret Discovery", "Bread", "Outside", "Water", "Sickness"];
+const ALL_ENDINGS = ["TV", "Secret Discovery", "Bread", "Outside", "Water", "Sickness", "Rob", "Cola", "Unknown"];
 
 // ---- 3. Scene Renderer ----
 function renderScene(sceneKey) {
@@ -3529,678 +6402,6 @@ function updateAchievementsUI() {
         })
     }
 
-
-    // For the random user page (excluding the main user page)
-    if (currentUrl.startsWith('fexplorer:user-page-')) {
-        const randomTemplates = [
-            // Default Page (Variant 1)
-            `<div class="random-user-page">
-                <h2>Default User Page</h2>
-                <p>This is a default user page. Nothing special here.</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Default Page (Variant 2: Welcome)
-            `<div class="random-user-page">
-                <h2>Welcome!</h2>
-                <p>Welcome to my page! Enjoy your stay!</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Default Page (Variant 3: Wonders)
-            `<div class="random-user-page">
-                <h2>Here's a thought:</h2>
-                <p>Actually, I don't.</p>
-                <button class="bonus-button">Bonus</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Default Page (Variant 4: Apple)
-            `<div class="random-user-page">
-                <h2>I like apples!</h2>
-                <p>I hope you do too!</p>
-                <br>
-                <button class="bonus-button">Bonus</button>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Default Page (Variant 5: Burger)
-            `<div class="random-user-page">
-                <h2>I like burgers!</h2>
-                <p>Click this cool button to find out why!</p>
-                <button class="burger-button">Burger</button>
-                <br>
-                <button class="bonus-button">Bonus</button>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Mystery page (Variant 1)
-            `<div class="random-user-page">
-                <h2>Mystery Page</h2>
-                <p>What secrets does this page hold? No one knows.</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Mystery page (Variant 2: Navigation)
-            `<div class="random-user-page">
-                <h2>Mystery Page</h2>
-                <p>This page can send you to other parts of the browser. Who knows where it could be?</p>
-                <a href="#" class="mystery-link">Mystery hyperlink</a>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Lucky page
-            `<div class="random-user-page">
-                <h2>Lucky Page</h2>
-                <p>You found a lucky user page! Maybe you'll get bonus FPoints? Click one of these 3 buttons to see!</p>
-                <button class="luck-page-button">Is it me?</button>
-                <p>Remember, it all depends on luck!</p>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Boring page
-            `<div class="random-user-page">
-                <h2>Boring Page</h2>
-                <p>This page is so boring... Nothing to see here.</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Stupid message page
-            `<div class="random-user-page">
-                <h2>Here's a message!</h2>
-                <p>Nerf FPoints. *gets hit by bananas*</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // 404 page (Variant 1)
-            `<div class="random-user-page">
-                <h2>404?</h2>
-                <p>This page doesn't exist... or does it?</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // 404 page (Variant 2: Error loading)
-            `<div class="random-user-page">
-                <h2>404 - Page quit loading</h2>
-                <p>The page has quitted loading.</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // 404 page (Variant 3: BSOD)
-            `<div class="random-user-page" style="background-color: #0077D6; color: white; font-family: 'Segoe UI Light', monospace;">
-                <h1>:(</h1>
-                <p>The page ran into a problem and needs to reload. We're just collecting some error info, and then we'll restart for you.</p>
-                <h5>0% complete</h5>
-                <br>
-                <p>For more information about this issue and possible fixes, visit our website: <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: white;">Random hyperlink</a></p>
-            </div>`,
-            // Awesome page (Variant 1: Default)
-            `<div class="random-user-page">
-                <h2>Awesome Page</h2>
-                <p>I AM AWESOME! YOU ARE AWESOME! WE ARE AWESOME!!</p>
-                <button class="bonus-button">Bonus</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Awesome page (Variant 2: ONE MORE GAME!)
-            `<div class="random-user-page">
-                <img src="icons/ONEMOREGAME!.jpg">
-                <h2>ONE MORE GAME!</h2>
-                <p>ONE MORE GAME!</p>
-                <button class="bonus-button">ONE MORE GAME!</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">ONE MORE GAME!</a>
-            </div>`,
-            // Awesome page (Variant 3: 67 MANGOES!!)
-            `<div class="random-user-page">
-                <h2>67 MANGOES!!</h2>
-                <p>I HAVE 67 MANGOES!! WANT SOME??</p>
-                <button class="mango-button1">GIVE ME MANGOES!!</button>
-                <button class="mango-button2">No thanks..</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Suspicious page (Variant 1)
-            `<div class="random-user-page dangerous-page" style="background-color: #f2ff00ff; color: black;">
-                <h2>TOTALLY NORMAL PAGE!</h2>
-                <p>Why hello there, fellow user!</p>
-                <p>Why don't you click here to get unlimited FPoints?</p>
-                <button class="suspicious-button">Click me!</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Suspicious page (Variant 2: Opposite)
-            `<div class="random-user-page dangerous-page" style="background-color: #7700ffff; color: black;">
-                <h2>THIS IS NOT A NORMAL PAGE!!</h2>
-                <p>Hey you, yes you!</p>
-                <p>This is NOT a normal page. Click here to escape!</p>
-                <button class="suspicious-button2">Click me!</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Dangerous page!! (Variant 1)
-            `<div class="random-user-page dangerous-page" style="background-color: #ff0000ff; color: white;">
-                <h2>DANGEROUS PAGE!!</h2>
-                <p>This page is dangerous! Click the button below to proceed at your own risk!</p>
-                <button class="dangerous-button">Proceed</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Dangerous page (Variant 2)
-            `<div class="random-user-page dangerous-page" style="background-color: #22ff00ff; color: white;">
-                <h2>TOTALLY SAFE PAGE!!</h2>
-                <p>This page is totally safe! Click the button below to get your reward!</p>
-                <button class="dangerous-button2">Get reward</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Dangerous page (Variant 3: Virus)
-            `<div class="random-user-page dangerous-page" style="background-color: #000000ff; color: white;">
-                <h2>TOTALLY SAFE DOWNLOAD!!!!!!!!!!!!!!!!!!!!!!!!!</h2>
-                <p>This download is totally safe! Click to donwload and get 2147129498174917941 FPointd!111113131242121</p>
-                <button class="dangerous-button3">DOWNLOAD!1!111</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">NO!!! CLICK DONLOAWSUAID</a>
-            </div>`,
-            // Broken page (Variant 1)
-            `<div class="random-user-page" style="font-family: 'Times New Roman', monospace; color: #000;">
-                <h2>Broken Page</h2>
-                <p>Oops! This page seems to be broken. Try refreshing or going back.</p>
-                <button class="broken-button">NILL</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Broken page (Variant 2 - 404)
-            `<div class="random-user-page" style="font-family: 'Arial'; color: #000;">
-                <h2>404 - Page not found</h2>
-                <p>The requested URL could not be found.</p>
-                <p>The site either could not load or does not exist.</p>
-                <p>You can also create your own page!</p>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            `,
-            // Broken page (Variant 2 - Someone broke it)
-            `<div class="random-user-page" style="font-family: 'Arial'; color: #000;">
-                <h2>This page is broken!</h2>
-                <p>Someone broke the damn page! Who did this?!</p>
-                <button class="broken-button">I don't know!</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            `,
-            // FPoints filled page (Variant 1)
-            `<div class="random-user-page">
-                <h2>FPoints Galore!</h2>
-                <p>This page is filled with FPoints! Click the button below to claim some!</p>
-                <p>However, it will disappear afterwards!</p>
-                <button class="fpoints-button">Claim FPoints</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // FPoints filled page (Variant 2)
-            `<div class="random-user-page">
-                <h2>FPoints-filled Page!</h2>
-                <p>This button has a ton of FPoints on it! Go and collect it!</p>
-                <p>However, it will disappear afterwards!</p>
-                <button class="fpoints-button">Claim FPoints</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Data selling page
-            `<div class="random-user-page">
-                <h2>Data Selling Page</h2>
-                <p>Want to sell your FPoints/data to us? PLEASE DO IT!!</p>
-                <button class="data-selling-button">Sell Data</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Policies page
-            `<div class="random-user-page">
-                <h2>Policies Page</h2>
-                <p>Welcome to the policies page. Here are some random policies:</p>
-                <ul>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                    <li>Blah blah blah blah blah blah blah blah</li>
-                </ul>
-                <p>I hope you'll follow these guidelines because otherwise we will contact the authorities.</p>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // Images page (Variant 1 - Solitaire)
-            `<div class="random-user-page">
-                <h2>My cool images</h2>
-                <p>These are my cool images. Look at them! They're very nice!</p>
-                <img src="icons/solitaire-icon.png" alt="Image"></li>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <p></p>
-                <br>
-                <button class="bonus-button">Bonus</button>
-            </div>`,
-            // Images page (Variant 2 - Builder)
-            `<div class="random-user-page">
-                <h2>My cool images</h2>
-                <p>These are my cool images. Look at them! They're very nice!</p>
-                <img src="icons/sandbox-icon.png" alt="Image"></li>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <p></p>
-                <br>
-                <button class="bonus-button">Bonus</button>
-            </div>`,
-            // Images page (Variant 3 - Pop Up)
-            `<div class="random-user-page">
-                <h2>My cool images</h2>
-                <p>These are my cool images. Look at them! They're very nice!</p>
-                <img src="icons/pop-up-icon.png" alt="Image"></li>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <p></p>
-                <br>
-                <button class="bonus-button">Bonus</button>
-            </div>`,
-            // Images page (Variant 4 - Legacy)
-            `<div class="random-user-page">
-                <h2>My cool images</h2>
-                <p>These are my cool images. Look at them! They're very nice!</p>
-                <img src="icons/old-fexplorer.png" alt="Image"></li>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <p></p>
-                <br>
-                <button class="bonus-button">Bonus</button>
-            </div>`,
-            // Images page (Variant 5 - JX1DX1)
-            `<div class="random-user-page" style="background-color: #1a1a1a; color: #ff0000ff;">
-                <h2>My cool images</h2>
-                <p>These are my cool images. Look at them! They're very nice!</p>
-                <img src="icons/jx1dx1.jpg" alt="Image"></li>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <p></p>
-                <br>
-                <button class="bonus-button">Bonus</button>
-            </div>`,
-            // Drinks page (Variant 1: Water)
-            `<div class="random-user-page" style="background-color: #0651d2ff; color: #ffffffff;">
-                <h2>Water</h2>
-                <p>Water is good to drink because you can get hydrated!</p>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <br>
-                <button class="bonus-button" style="background-color: #052d71ff; color: #ffffffff;">Get hydrated!</button>
-            </div>`,
-            // Drinks page (Variant 2: Vending Machine)
-            `<div class="random-user-page" style="font-family: 'Times New Roman', monospace; color: #000;">
-                <h2>Welcome to the vending machine...</h2>
-                <p>Which of these consumptions determine your fate?</p>
-                <br>
-                <button class="drink-button">Bloxy Cola</button>
-                <button class="drink-button">Bloxaide</button>
-                <button class="drink-button">Uranium Cola</button>
-                <button class="drink-button">H2O</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-                <br>
-                <button class="bonus-button">Bonus</button>
-            </div>`,
-            // Halloween Page (Variant 1)
-            `<div class="random-user-page" style="background-color: #000000; color: #ff7518;">
-                <h2>Happy Halloween!</h2>
-                <p>Trick or Treat! Click the button below for a spooky surprise!</p>
-                <p>Hey wait a minute, isn't Halloween over? Oh well!</p>
-                <button class="bonus-button halloween-button" style="background-color: #ff7518; color: #000000;">Spooky Surprise!</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: #ff7518;">Random hyperlink</a>
-            </div>`,
-            // Halloween Page (Variant 2: JX1DX1)
-            `<div class="random-user-page" style="background-color: #1a1a1a; color: #ff0000ff;">
-                <h2>THE.CLOCK.IS.TICKING.</h2>
-                <p>i.hope.you.like.apples.</p>
-                <button class="bonus-button" id="jx1dx1Halloween" style="background-color: #ff0000ff; color: #1a1a1a;">That's nice</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: #ff0000ff;">Random hyperlink</a>
-            </div>`,
-            // Halloween Page (Variant 3: Thanksgiving)
-            `<div class="random-user-page" style="background-color: #000000; color: #ff7518;">
-                <h2>Happy Thanksgiving!</h2>
-                <p>I don't really know what Thanksgiving is, but here's a bonus button with turkey text on it.</p>
-                <button class="bonus-button halloween-button" style="background-color: #ff7518; color: #000000;">Get turkey</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link" style="color: #ff7518;">Random hyperlink</a>
-            </div>`,
-            // Betting page
-            `<div class="random-user-page">
-                <h2>Betting Page</h2>
-                <p>Feeling lucky? Place your bets and see if you can win big!</p>
-                <button class="betting-button">Place Bet</button>
-                <br>
-                <a href="#" data-url="fexplorer:random-user-page-" class="random-link">Random hyperlink</a>
-            </div>`,
-            // 
-        ];
-        const randomIndex = Math.floor(Math.random() * randomTemplates.length);
-        let contentHtml = randomTemplates[randomIndex];
-        browserContent.innerHTML = contentHtml;
-    }
-
-    // Suspicious button (button be invisible afterwards lol)
-    const suspiciousButton = browserContent.querySelector('.suspicious-button');
-    const suspiciousButton2 = browserContent.querySelector('.suspicious-button2');
-    if (suspiciousButton) {
-        suspiciousButton.addEventListener('click', () => {
-            alert('Haha, nice try! No unlimited FPoints for you!');
-            suspiciousButton.style.display = 'none';
-        });
-    }
-    if (suspiciousButton2) {
-        suspiciousButton2.addEventListener('click', () => {
-            alert('SIKE!! This is actually a normal page, stupid!');
-            suspiciousButton2.style.display = 'none';
-        });
-    }
-
-    // 67 Mangoes buttons
-    const mangoButton1 = browserContent.querySelector('.mango-button1');
-    if (mangoButton1) {
-        mangoButton1.addEventListener('click', () => {
-            const mangoPoints = 10;
-            userFPoints += mangoPoints;
-            saveAppState();
-            showFPointsNotification(mangoPoints);
-            alert('You received 10 FPoints for taking the mangoes!');
-            mangoButton1.style.display = 'none';
-        });
-    }
-    const mangoButton2 = browserContent.querySelector('.mango-button2');
-    if (mangoButton2) {
-        mangoButton2.addEventListener('click', () => {
-            alert('No mangoes for you!');
-            mangoButton2.style.display = 'none';
-            alert('In fact, I will take 5 FPoints from you for purely existing!');
-            const mangoPenalty = 5;
-            userFPoints -= mangoPenalty;
-            saveAppState();
-            showFPointsNotification(-mangoPenalty);
-            alert('What a loser! >:)');
-        });
-    }
-
-    // Betting button
-    const bettingButton = browserContent.querySelector('.betting-button');
-    if (bettingButton) {
-        bettingButton.addEventListener('click', () => {
-            const betAmount = window.prompt("Enter the amount of FPoints you want to bet:", "50");
-            if (betAmount && !isNaN(betAmount)) {
-                const betAmountNum = parseInt(betAmount, 10);
-                if (userFPoints >= betAmountNum) {
-                    const win = Math.random() < 0.5; // 50% chance to win
-                    if (win) {
-                        const winnings = betAmountNum * 2;
-                        userFPoints += winnings;
-                        saveAppState();
-                        showFPointsNotification(winnings);
-                        if (betAmountNum >= 250) {
-                            alert("Congratulations! You won " + winnings + " FPoints!");
-                            alert("WU9VLkNBTlQuSElERS5GUk9NLkpYMURYMS4=");
-                        } else {
-                            alert("Congratulations! You won " + winnings + " FPoints!");
-                        }
-                    } else {
-                        userFPoints -= betAmountNum;
-                        saveAppState();
-                        showFPointsNotification(-betAmountNum);
-                        alert("Sorry, you lost " + betAmountNum + " FPoints. Better luck next time!");
-                    }
-                    bettingButton.style.display = 'none';
-                } else {
-                    alert("Not enough FPoints to place that bet!");
-                }
-            }
-        });
-    }
-
-    // Broken button (disappears and also random amounts)
-    const brokenButton = browserContent.querySelector('.broken-button');
-    // Random amounts of broken buttons
-    const randomBrokenAmount = Math.floor(Math.random() * 5) + 1;
-    for (let i = 0; i < randomBrokenAmount; i++) {
-        if (brokenButton) {
-            const clone = brokenButton.cloneNode(true);
-            brokenButton.parentNode.insertBefore(clone, brokenButton.nextSibling);
-            clone.addEventListener('click', () => {
-                clone.style.display = 'none';
-            });
-        }
-    }
-    if (brokenButton) {
-        brokenButton.addEventListener('click', () => {
-            brokenButton.style.display = 'none';
-        });
-    }
-
-    // Drink button (deducts 15 FPoints but increases luck by 0.5)
-    const drinkButton = browserContent.querySelector('.drink-button');
-    if (drinkButton) {
-        drinkButton.addEventListener('click', () => {
-            const earnedFPoints = 15;
-            userFPoints -= earnedFPoints;
-            userLuck += 0.5;
-            saveAppState();
-            showFPointsNotification(userFPoints);
-            alert('Exchanged 15 FPoints for 0.5 Luck rate!');
-            alert(`FPoints left: ${userFPoints.toLocaleString()} Luck rate: ${userLuck.toLocaleString()}`)
-            drinkButton.ststyle.display = 'none';
-        });
-    }
-
-    // Bonus button (works like FPoints button but gives 25 to 75 FPoints)
-    const bonusButton = browserContent.querySelector('.bonus-button');
-    if (bonusButton) {
-        bonusButton.addEventListener('click', () => {
-            const randomBonusPoints = Math.floor(Math.random() * 51) + 25;
-            userFPoints += randomBonusPoints;
-            saveAppState();
-            showFPointsNotification(randomBonusPoints);
-            bonusButton.style.display = 'none';
-        });
-    }
-
-    // Burger button burger-button
-    const burgerButton = browserContent.querySelector('.burger-button');
-    if (burgerButton) {
-        burgerButton.addEventListener('click', () => {
-            alert('I have no idea!');
-            alert('I just like the juicy taste!');
-            alert('Wait that\'s a reason.');
-            userFPoints += 647; // burger -> 627572676572 (hex) -> 647 (add them all up)
-            saveAppState();
-            showFPointsNotification(userFPoints);
-            burgerButton.style.display = 'none';
-        });
-    };
-
-    // Halloween button
-    const halloweenButton = browserContent.querySelector('.halloween-button');
-    const jx1dx1Halloween = browserContent.querySelector('#jx1dx1Halloween');
-    if (halloweenButton) {
-        halloweenButton.addEventListener('click', () => {
-            const randomHalloweenPoints = Math.floor(Math.random() * 101) + 50;
-            userFPoints += randomHalloweenPoints;
-            saveAppState();
-            showFPointsNotification(randomHalloweenPoints);
-            alert("Happy Halloween! You received " + randomHalloweenPoints + " FPoints!");
-            halloweenButton.style.display = 'none';
-        });
-    }
-    if (jx1dx1Halloween) {
-        jx1dx1Halloween.addEventListener('click', () => {
-            const randomHalloweenPoints = Math.floor(Math.random() * 101) + 50;
-            userFPoints += randomHalloweenPoints;
-            saveAppState();
-            showFPointsNotification(randomHalloweenPoints);
-            alert("Happy Halloween! You received " + randomHalloweenPoints + " FPoints!");
-            alert('SVQuTUFZLkJFLllPVVIuTEFTVC4=');
-            jx1dx1Halloween.style.display = 'none';
-        });
-    }
-
-    // FPoints button (gives random amount of FPoints between 20 and 200)
-    const fpointsButton = browserContent.querySelector('.fpoints-button');
-    if (fpointsButton) {
-        fpointsButton.addEventListener('click', () => {
-            const randomFPoints = Math.floor(Math.random() * 181) + 20;
-            userFPoints += randomFPoints;
-            saveAppState();
-            showFPointsNotification(randomFPoints);
-            fpointsButton.style.display = 'none';
-        });
-    }
-
-    // Dangerous button (gives random amount of FPoints between -500 and 1000, so the user can lose FPoints)
-    // If the user has less than that, they'll be in debt
-    const dangerousButton = browserContent.querySelector('.dangerous-button');
-    const dangerousButton2 = browserContent.querySelector('.dangerous-button2');
-    const dangerousButton3 = browserContent.querySelector('.dangerous-button3');
-    if (dangerousButton) {
-        dangerousButton.addEventListener('click', () => {
-            const randomDangerousPoints = Math.floor(Math.random() * 1501) - 500;
-            userFPoints += randomDangerousPoints;
-            saveAppState();
-            showFPointsNotification(randomDangerousPoints);
-            dangerousButton.style.display = 'none';
-            if (randomDangerousPoints < 0) {
-                alert('Oh no! You lost ' + Math.abs(randomDangerousPoints) + ' FPoints! Better luck next time!');
-            } else {
-                alert('Phew! You gained ' + randomDangerousPoints + ' FPoints! Lucky you!');
-            }
-        });
-    }
-    if (dangerousButton2) {
-        dangerousButton2.addEventListener('click', () => {
-            const randomDangerousPoints = Math.floor(Math.random() * 1501) - 500;
-            userFPoints += randomDangerousPoints;
-            saveAppState();
-            showFPointsNotification(randomDangerousPoints);
-            dangerousButton2.style.display = 'none';
-            if (randomDangerousPoints < 0) {
-                alert('You lost ' + Math.abs(randomDangerousPoints) + ' FPoints! It was a scam all along!');
-            } else {
-                alert('You gained ' + randomDangerousPoints + ' FPoints! I guess it wasn\'t a scam after all.');
-            }
-        });
-    }
-    if (dangerousButton3) {
-        dangerousButton3.addEventListener('click', () => {
-            alert('Downloading malware...');
-            let choice = window.confirm('Are you sure you want to download this malware?');
-            if (choice) {
-                alert('SIKE!! IT\'S MALWARE, LOSER!!');
-                alert('I MEAN HOW IDIOTIC DO YOU HAVE TO BE TO DO THAT?!');
-                userFPoints -= 400;
-                saveAppState();
-                showFPointsNotification();
-            } else {
-                alert('You evaded the malware! Nice!');
-                alert('Here\'s 200 FPoints for that!');
-                userFPoints += 200;
-                saveAppState();
-                showFPointsNotification();
-            };
-            dangerousButton3.style.display = 'none';
-        });
-    }
-    // SELL MY DATA! :D
-    const dataSellingButton = browserContent.querySelector('.data-selling-button');
-    if (dataSellingButton) {
-        dataSellingButton.addEventListener('click', () => {
-            const randomSellingAmount = Math.floor(Math.random() * 101) + 50; // between 50 and 150
-            userFPoints -= randomSellingAmount;
-            saveAppState();
-            alert('Thank you for your data! You know what? We don\'t want it anymore. We have a lot of it. Bye!');
-            dataSellingButton.style.display = 'none';
-        });
-    }
-
-    // The random user pages have 5 FPoints for visiting every time (works like the other pages that give FPoints)
-   if (currentUrl.startsWith('fexplorer:user-page-')) {
-        const baseFPoints = 2;
-        const earnedFPoints = Math.round(baseFPoints * userLuck);
-        userFPoints += earnedFPoints;
-        saveAppState();
-        showFPointsNotification(earnedFPoints);
-    }
-
-    // Lucky Page - Buttons (clone the button 3 times)
-    const luckPageButtons = browserContent.querySelectorAll('.luck-page-button');
-    luckPageButtons.forEach(button => {
-        for (let i = 0; i < 2; i++) {
-            const clone = button.cloneNode(true);
-            button.parentNode.insertBefore(clone, button.nextSibling);
-            clone.addEventListener('click', () => {
-                clone.style.display = 'none';
-                button.style.display = 'none';
-                const luckyFPoints = Math.floor(Math.random() * 50) + 1;
-                const earnedFPoints = Math.round(luckyFPoints * userLuck);
-                const specialMessage = luckyFPoints === 100 ? ' (GOD DAMN!!)' : luckyFPoints === 50 ? ' (Jackpot!)' : luckyFPoints >= 30 ? ' (Awesome!)' : luckyFPoints >= 20 ? ' (Nice!)' :  luckyFPoints >= 10 ? ' (Good!)' :  luckyFPoints >= 5 ? ' (You can\'t even afford anything with this.)' : '';
-                userFPoints += earnedFPoints;
-                saveAppState();
-                alert("You've received " + earnedFPoints + " FPoints for clicking the button!" + specialMessage);
-                showFPointsNotification(earnedFPoints);
-            });
-        }
-    });
-    luckPageButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const luckyFPoints = Math.floor(Math.random() * 50) + 1;
-            const earnedFPoints = Math.round(luckyFPoints * userLuck);
-            const specialMessage = luckyFPoints === 100 ? ' (GOD DAMN!!)' : luckyFPoints === 50 ? ' (Jackpot!)' : luckyFPoints >= 30 ? ' (Awesome!)' : luckyFPoints >= 20 ? ' (Nice!)' :  luckyFPoints >= 10 ? ' (Good!)' :  luckyFPoints >= 5 ? ' (You can\'t even afford anything with this.)' : '';
-            userFPoints += earnedFPoints;
-            saveAppState();
-            alert("You've received " + earnedFPoints + " FPoints for clicking the button!" + specialMessage);
-            showFPointsNotification(earnedFPoints);
-        });
-    });
-    // Random hyperlink
-    const randomLinks = browserContent.querySelectorAll('.random-link');
-    randomLinks.forEach(link => {
-        link.addEventListener('click', (event) => {
-            event.preventDefault();
-            const url = link.getAttribute('data-url');
-            navigate(url);
-            if (url === 'fexplorer:random-user-page-') { // send the user to another random page with the random url
-                const randomIndex = Math.floor(Math.random() * 1000000); // large number to avoid collisions
-                navigate(`fexplorer:user-page-${randomIndex}`);
-            }
-        });
-    });
-    const mysteryLinks = browserContent.querySelectorAll('.mystery-link');
-    mysteryLinks.forEach(link => {
-        link.addEventListener('click', (event) => {
-            const mysteryNavigate = [
-                `fexplorer:home`,
-                `fexplorer:user-page-${randomIndex}`
-                `paranoid.com`
-            ];
-            event.preventDefault();
-            const url = navigate(mysteryNavigate);
-            navigate(url);
-            if (url === 'fexplorer:random-user-page-') { // send the user to another random page with the random url
-                const randomIndex = Math.floor(Math.random() * 1000000); // large number to avoid collisions
-                navigate(`fexplorer:user-page-${randomIndex}`);
-                alert('It sent you to another user page! How mysterious.');
-            } else if (url === 'fexplorer:home') {
-                navigate('fexplorer:home');
-                alert('It sent you to the home page.');
-            } else if (url === 'fexplorer:home') {
-                navigate('paranoid.com');
-            }
-        });
-    });
-
-    // Random user page appearance
-    const userPageButtons = browserContent.querySelectorAll('.user-page-button');
-    userPageButtons.forEach(button => {
-        const randomIndex = Math.floor(Math.random() * userPageAppearances.length);
-        button.style.backgroundImage = `url(${userPageAppearances[randomIndex]})`;
-    });
-
     if (currentUrl.startsWith('goog.com') || currentUrl.startsWith('ping.com')) {
         const googSearchInput = browserContent.querySelector('#googSearchInput');
         const googSearchButton = browserContent.querySelector('#googSearchButton');
@@ -4289,9 +6490,25 @@ function updateAchievementsUI() {
         }
     }
 
+    // ------------------------------------
+//  FSTUDIO (CREATE PAGE)
+// ------------------------------------
+if (currentUrl === CREATE_PAGE_URL) {
+
+    // Clear loading screen first
+    browserContent.innerHTML = "";
+
+    // Load the full FStudio UI
+    if (typeof loadFStudio === "function") {
+        loadFStudio();
+    } else {
+        console.error("FStudio not loaded: loadFStudio() missing.");
+    }
+    pageFound = true;
+}
 
     // Chatroom functionality
-    if (currentUrl === 'fxplorer.chatroom.com/chatroom') {
+    if (currentUrl === 'fexplorer.chatroom.com/chatroom') {
         const chatSection = browserContent.querySelector('#fakeChatroomSection');
         const chatInput = browserContent.querySelector('input[type="search"]');
         const chatButton = browserContent.querySelector('button');
@@ -4544,6 +6761,9 @@ function updateAchievementsUI() {
         }
     }
 
+    if (currentUrl === 'file:terminal') {
+        loadTerminal()
+    }
     if (currentUrl.startsWith('minceraft.com')) {
         const minceraftSearchInput = browserContent.querySelector('#minceraftSearchInput');
         const minceraftSearchButton = browserContent.querySelector('#minceraftSearchButton');
@@ -5346,6 +7566,23 @@ function updateAchievementsUI() {
                 }
             }).join(', ');
 
+            // Calculate progress if available
+            let progressHtml = '';
+            if (!isUnlocked && achievement.progress) {
+                const progressPercent = achievement.progress();
+                const progressInfo = achievement.getProgress?.();
+                progressHtml = `
+                    <div style="margin-top: 10px;">
+                        <div class="achievement-progress-bar" style="background: #ddd; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: #4CAF50; height: 100%; width: ${progressPercent}%; transition: width 0.3s;"></div>
+                        </div>
+                        <p style="font-size: 0.85em; margin-top: 5px; color: #666;">
+                            ${progressInfo ? `${progressInfo.current} / ${progressInfo.target}` : `${progressPercent}% Complete`}
+                        </p>
+                    </div>
+                `;
+            }
+
             card.innerHTML = `
                 <h3 class="achievement-title">
                     ${isUnlocked ? '🏆' : '🔒'} ${achievement.name}
@@ -5357,13 +7594,131 @@ function updateAchievementsUI() {
                         ? `Unlocked on ${new Date(unlockedAchievements[achievement.id].unlockedAt).toLocaleDateString()}`
                         : 'Not yet unlocked'}
                 </p>
+                ${progressHtml}
             `;
+            // Append the card directly (original behavior)
             achievementsList.appendChild(card);
         });
+
+        // Update stats
+        const unlockedCount = Object.keys(unlockedAchievements).filter(key => unlockedAchievements[key].awarded).length;
+        const totalCount = achievementItems.length;
+        const completionPercent = Math.round((unlockedCount / totalCount) * 100);
+        
+        const unlockedCountEl = browserContent.querySelector('#unlockedCount');
+        const totalCountEl = browserContent.querySelector('#totalCount');
+        const completionPercentEl = browserContent.querySelector('#completionPercent');
+        
+        if (unlockedCountEl) unlockedCountEl.textContent = unlockedCount;
+        if (totalCountEl) totalCountEl.textContent = totalCount;
+        if (completionPercentEl) completionPercentEl.textContent = completionPercent + '%';
 
         // Add initial achievement check
         setTimeout(() => checkAchievements(), 1000);
     }
+
+    // Events Page
+    if (currentUrl === 'fexplorer:events') {
+        // Define event objectives
+        const eventObjectives = [
+            { id: 'earn_500fp', title: 'Earn 500 FPoints', description: 'Complete pages and earn rewards', reward: 100, completed: false },
+            { id: 'visit_pages', title: 'Visit 10 Different Pages', description: 'Explore the browser', reward: 150, completed: false },
+            { id: 'shop_purchase', title: 'Purchase an Item from Shop', description: 'Buy 1 item from the FExplorer Shop', reward: 200, completed: false },
+            { id: 'achieve_unlock', title: 'Unlock an Achievement', description: 'Complete an achievement goal', reward: 175, completed: false },
+            { id: 'create_page', title: 'Create Your Own Page', description: 'Make and publish a page in FStudio', reward: 250, completed: false }
+        ];
+
+        // Load event progress from localStorage
+        let eventProgress = {};
+        try {
+            eventProgress = JSON.parse(localStorage.getItem('fexplorerEventProgress') || '{}');
+        } catch (e) {
+            eventProgress = {};
+        }
+
+        // Save event progress
+        function saveEventProgress() {
+            localStorage.setItem('fexplorerEventProgress', JSON.stringify(eventProgress));
+        }
+
+        // Update objectives display
+        const objectivesList = browserContent.querySelector('#objectivesList');
+        if (objectivesList) {
+            objectivesList.innerHTML = eventObjectives.map(obj => {
+                const isCompleted = eventProgress[obj.id] || false;
+                return `
+                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${isCompleted ? '#4CAF50' : '#ccc'}; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #333; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 1.2em;">${isCompleted ? '✅' : '⭕'}</span>
+                                ${obj.title}
+                            </div>
+                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">${obj.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: bold; color: #4CAF50; font-size: 1.1em;">+${obj.reward} FP</div>
+                            <div style="font-size: 0.8em; color: #999; margin-top: 3px;">${isCompleted ? 'Completed' : 'In Progress'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Wire up buttons
+        const participateBtn = browserContent.querySelector('#participateEventBtn');
+        const eventMessage = browserContent.querySelector('#eventMessage');
+
+        if (participateBtn) {
+            participateBtn.addEventListener('click', () => {
+                eventMessage.style.display = 'block';
+                eventMessage.style.background = '#fff3cd';
+                eventMessage.style.color = '#856404';
+                eventMessage.style.borderLeft = '4px solid #ffc107';
+                eventMessage.innerHTML = '🎪 Event participation activated! Your progress is being tracked. Complete objectives to earn FPoints!';
+                setTimeout(() => {
+                    eventMessage.style.display = 'none';
+                }, 3000);
+            });
+        }
+
+        // Track objective completion
+        window.completeEventObjective = function(objectiveId) {
+            if (!eventProgress[objectiveId]) {
+                eventProgress[objectiveId] = true;
+                saveEventProgress();
+                // Award FPoints
+                const objective = eventObjectives.find(o => o.id === objectiveId);
+                if (objective) {
+                    userFPoints += objective.reward;
+                    saveAppState();
+                    showFPointsNotification(objective.reward);
+                }
+            }
+        };
+    }
+
+    if (currentUrl === "fexplorer:429") {
+    const timerSpan = browserContent.querySelector("#error429Timer");
+    const button = browserContent.querySelector("#429ForceReturn");
+
+    let timeLeft = Math.ceil((parseInt(localStorage.getItem("fexplorerRateLimitUntil")) - Date.now()) / 1000);
+
+    const interval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            timerSpan.textContent = "0";
+        } else {
+            timerSpan.textContent = timeLeft.toString();
+        }
+    }, 1000);
+
+    if (button) {
+        button.addEventListener("click", () => {
+            navigate("fexplorer:home");
+        });
+    }
+}
 
     // Add event listeners for settings page buttons if present
     const saveSettingsBtn = browserContent.querySelector('#saveSettingsBtn');
@@ -5391,6 +7746,10 @@ function updateAchievementsUI() {
             if (homepageSelect) homepageSelect.value = 'fexplorer:home';
             if (notificationsToggle) notificationsToggle.checked = false;
             if (loginToggle) loginToggle.checked = false;
+            if (musicToggle) musicToggle.checked = false;
+            if (musicVolumeSlider) musicVolumeSlider.value = 60;
+            if (musicChoiceSelect) musicChoiceSelect.value = 'orbspire';
+            applyOS('default');
             updateWindowStyle('default');
             document.body.classList.remove('fexplorer-dark-mode');
             document.body.classList.remove('fexplorer-blue-mode');
@@ -5402,366 +7761,1183 @@ function updateAchievementsUI() {
     }
 }
 
-function navigate(urlToLoad, isBackNavigation = false) {
+function getPageTitle(url) {
+    const titles = {
+        "fexplorer:home": "Home",
+        "fexplorer:quick-links": "Quick Links",
+        "fexplorer:create": "FStudio",
+        "fexplorer:games": "Games",
+        "fexplorer:financial": "Financials",
+        "fexplorer:settings": "Settings",
+        "goog.com": "Goog",
+        "ping.com": "Ping"
+    };
+
+    if (titles[url]) return titles[url];
+
+    if (url.startsWith("fexplorer:user-page-")) {
+        const id = url.replace("fexplorer:user-page-", "");
+        return userCreatedPages[id]?.title || "User Page";
+    }
+
+    if (url.includes("goog.com/search") || url.includes("ping.com/search")) {
+        const q = new URL("http://" + url).searchParams.get("q") || "";
+        if (url.includes('ping.com/search')) return `Ping: ${q}`;
+        return `Goog: ${q}`;
+    }
+
+    return url;
+}
+
+function handleExternalOrSearchPages(url) {
+    let parsedUrl;
+    try {
+        parsedUrl = new URL(url.startsWith("http") || url.includes(":") ? url : "http://" + url);
+    } catch (e) {
+        parsedUrl = { hostname: "unknown", pathname: "/", searchParams: new URLSearchParams() };
+    }
+
+    const host = parsedUrl.hostname.replace("www.", "");
+    const path = parsedUrl.pathname;
+    const q = parsedUrl.searchParams.get("q");
+
+    /*────────────────────────────────────
+      1. Goog Search
+    ────────────────────────────────────*/
+    if ((host === "goog.com" || host === "ping.com") && path === "/search" && q) {
+        return buildSearchResults(q, host);
+    }
+
+    /*────────────────────────────────────
+      2. MyTube Search
+    ────────────────────────────────────*/
+    if (host === "mytube.com" && path === "/search" && q) {
+        return buildMyTubeSearchResults(q);
+    }
+
+    /*────────────────────────────────────
+      3. Opening random URLs
+    ────────────────────────────────────*/
+    return `
+        <div style="padding:20px;text-align:center;">
+            <h1>🌐 External Website</h1>
+            <p>You attempted to visit:</p>
+            <p style="font-size:1.2em;color:#666"><strong>${escapeHtml(url)}</strong></p>
+            <p>This site is outside FExplorer. No real content exists here.</p>
+        </div>
+    `;
+}
+
+// Goog/Ping results
+function buildSearchResults(query, host) {
+    const lower = query.toLowerCase();
+    const isPing = host === 'ping.com';
+
+    const predefined = {
+        "example": { url: "example.com", title: "Example Domain" },
+        "blank": { url: "about:blank", title: "About Blank" },
+        "placeholder": { url: "fexplorer:placeholder", title: "Placeholder" },
+        "goog": { url: "goog.com", title: "Goog - That One Search Engine" },
+        "fexplorer": { url: "fexplorer:home", title: "FExplorer Home" },
+        "home": { url: "fexplorer:home", title: "FExplorer Home" },
+        "quick links": { url: "fexplorer:quick-links", title: "Quick Links" },
+        "fpoints": { url: "fexplorer:financial", title: "Earn FPoints!" },
+        "shop": { url: "fexplorer:shop", title: "FExplorer Shop" },
+        "page creator": { url: "fexplorer:create", title: "Page Creator" },
+        "create page": { url: "fexplorer:create", title: "Page Creator" },
+        "creator hub": { url: "fexplorer:create.hub", title: "Creator Hub" },
+        "settings": { url: "fexplorer:settings", title: "Settings" },
+        "games": { url: "fexplorer:games", title: "Games" },
+        "program": { url: "fexplorer:programs", title: "Programs" },
+        "cookie": { url: "fexplorer:cookies", title: "Cookies" },
+        "visual editor": { url: "scripts.visualeditor.com", title: "Visual Scripts Editor" },
+        "bookmarks": { url: "fexplorer:bookmarks", title: "Bookmarks Manager" },
+        "legacy": {url: "fexplorer:legacy", title: "Older versions!"}
+    };
+
+    // Build result items
+    let resultsHtml = "";
+    if (predefined[lower]) {
+        const r = predefined[lower];
+        resultsHtml += `
+            <div class="search-result-item ${isPing ? 'ping-result-item' : ''}">
+                <h3><a data-url="${r.url}" href="#">${escapeHtml(r.title)}</a></h3>
+                <p>${escapeHtml(r.url)}</p>
+            </div>
+        `;
+    } else {
+        const resultCount = Math.floor(Math.random() * 4) + 3; // 3–6 results
+        for (let i = 0; i < resultCount; i++) {
+            const id = Math.random().toString(36).substring(2, 8);
+            const safe = query.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+            const domain = `${safe}-${id}.com`;
+            const titles = [
+                `10 big facts about ${query}!`,
+                `Why ${query} is very important for diet`,
+                `Top 10 things about ${query} you didn't know`,
+                `How ${query} saves hundreds of lives`,
+                `${query}: A complete guide to survival`
+            ];
+            const title = titles[Math.floor(Math.random() * titles.length)];
+            resultsHtml += `
+                <div class="search-result-item ${isPing ? 'ping-result-item' : ''}">
+                    <h3><a data-url="${domain}" href="#">${escapeHtml(title)}</a></h3>
+                    <p style="color:${isPing ? '#2b8af6' : '#006621'};font-size:.85em">${escapeHtml(domain)}</p>
+                    <p>${isPing ? 'Ping autogenerated result snippet.' : 'Random autogenerated search result.'}</p>
+                </div>
+            `;
+        }
+    }
+
+    // Fun facts (aside)
+    const facts = getFunFacts(query, isPing);
+    let factsHtml = "";
+    if (facts && facts.length) {
+        factsHtml += `<h3>Fun facts about ${escapeHtml(query)}</h3><ul>`;
+        facts.forEach(f => { factsHtml += `<li>${escapeHtml(f)}</li>`; });
+        factsHtml += `</ul>`;
+    } else {
+        factsHtml = `<h3>Interesting tidbits</h3><p>No facts available.</p>`;
+    }
+
+    const engineLogo = isPing ? 'icons/ping-icon.png' : 'icons/goog-logo.png';
+    const title = isPing ? `Ping Search Results for "${query}"` : `Goog! Search Results for "${query}"`;
+
+    return `
+        <div class="search-results-layout ${isPing ? 'ping-results' : 'goog-results'}">
+            <div class="search-header">
+                <img src="${engineLogo}" class="search-engine-logo" alt="${isPing ? 'Ping' : 'Goog'} logo">
+                <div class="search-header-title">${escapeHtml(title)}</div>
+            </div>
+
+            <div class="search-content">
+                <div class="results-column">
+                    ${resultsHtml}
+                    <p style="margin-top:20px;color:#aaa">(These are not real.)</p>
+                </div>
+                <aside class="aside-column">
+                    <div class="facts-card">
+                        ${factsHtml}
+                        <p style="font-size:.85em;color:#666;margin-top:12px">Provided by Ping &amp; Goog demo data</p>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    `;
+}
+
+// Simple fun-fact generator based on query keywords
+function getFunFacts(query, isPing) {
+    const q = (query || '').toLowerCase();
+    const facts = [];
+    if (!q) return [];
+    if (q.includes('cookie')) {
+        facts.push('Cookies were originally invented to remember website sessions.');
+        facts.push('Modern browsers allow only limited localStorage by domain.');
+        facts.push('Collecting cookies in FExplorer grants FPoints in some events.');
+    } else if (q.includes('fpoints') || q.includes('fpoint')) {
+        facts.push('FPoints are the primary in-game currency in FExplorer.');
+        facts.push('You can earn FPoints by searching with Goog or Ping.');
+        facts.push('Rare items in the shop may require thousands of FPoints.');
+    } else if (q.includes('music') || q.includes('song')) {
+        facts.push('FExplorer supports background music tracks like obby7 and orbspire.');
+        facts.push('You can toggle music and adjust volume in Settings.');
+        facts.push('Looping music stays persistent across page navigation.');
+    } else if (q.includes('roblox') || q.includes('dynablocks')) {
+        facts.push('Dynablocks is a playful nod to Roblox in FExplorer themes.');
+        facts.push('Collectibles and cosmetics reference classic game culture.');
+    } else if (q.includes('science') || q.includes('space')) {
+        facts.push('Space is mostly a vacuum but filled with low-density particles.');
+        facts.push('Light from distant stars takes years to reach us.');
+        facts.push('Gravity shapes galaxies on a massive scale.');
+    } else {
+        // generic facts pool
+        const pool = [
+            `The word "${query}" appears on ${Math.floor(Math.random()*1000)} demo pages.`,
+            'Did you know? Many browsers include Easter eggs for developers.',
+            'Tip: Try searching short phrases for more varied results.',
+            'Fun fact: The first web search engines were directory-based.'
+        ];
+        // pick 2-3 facts
+        const count = Math.min(3, Math.max(2, Math.floor(Math.random() * 3) + 1));
+        for (let i=0;i<count;i++) facts.push(pool[Math.floor(Math.random()*pool.length)]);
+    }
+    return facts;
+}
+
+// Generate and store a simple article for a search result. Returns the article object with id.
+function generateSearchArticle(title, domain, snippet, query) {
+    const id = Math.random().toString(36).substring(2, 9);
+    const now = new Date();
+    const article = {
+        id,
+        title: title || `About ${query}`,
+        domain: domain || 'example.com',
+        snippet: snippet || '',
+        author: 'FExplorer News',
+        date: now.toISOString(),
+        content: []
+    };
+
+    // Build a few content paragraphs based on the snippet and query
+    article.content.push(`${article.title} — ${article.snippet}`);
+    article.content.push(`This article is an autogenerated variant created from your search for "${query}". It provides a brief, informative take and some context.`);
+    article.content.push(`Background: The domain ${article.domain} is a placeholder used for demonstration pages inside FExplorer.`);
+    // Add an extra paragraph depending on keyword
+    if ((query || '').toLowerCase().includes('cookie')) {
+        article.content.push('Cookies are small pieces of data stored on your device to remember preferences and sessions.');
+    } else if ((query || '').toLowerCase().includes('music')) {
+        article.content.push('Music in FExplorer is persistent and can be toggled in settings.');
+    } else {
+        article.content.push('For more depth, try searching related terms or visit the Creator Hub to create content like this.');
+    }
+
+    searchGeneratedArticles[id] = article;
+    return article;
+}
+
+// Render a generated search article page
+function getSearchArticleHTML(articleId) {
+    const article = searchGeneratedArticles[articleId];
+    if (!article) return `
+        <div class="home-page-content">
+            <h1>Article not found</h1>
+            <p>This article has expired or does not exist.</p>
+            <button class="home-page-button" data-url="fexplorer:home">Return Home</button>
+        </div>
+    `;
+
+    const dateStr = new Date(article.date).toLocaleString();
+    let body = '';
+    article.content.forEach(p => { body += `<p>${escapeHtml(p)}</p>`; });
+
+    return `
+        <div class="search-article-page home-page-content">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                <img src="icons/news-icon.png" alt="article" style="width:52px;height:52px;border-radius:8px;"> 
+                <div>
+                    <h1 style="margin:0">${escapeHtml(article.title)}</h1>
+                    <div style="color:#666;font-size:0.9em">By ${escapeHtml(article.author)} • ${escapeHtml(dateStr)} • ${escapeHtml(article.domain)}</div>
+                </div>
+            </div>
+            <hr style="border:none;height:1px;background:#eee;margin:12px 0;"> 
+            <div class="article-body" style="line-height:1.6;color:#222;">
+                ${body}
+            </div>
+            <div style="margin-top:18px;display:flex;gap:8px;">
+                <button class="home-page-button" data-url="fexplorer:home">Home</button>
+                <button class="home-page-button" data-url="javascript:history.back()">Back</button>
+            </div>
+        </div>
+    `;
+}
+
+// Cookie
+/* ──────────────────────────────────────────────
+   FEXPLORER COOKIE SYSTEM (Real + Fun hybrid)
+   - Stores cookies in localStorage under "fexplorerCookies"
+   - Settings under "fexplorerCookieSettings"
+   - Page: fexplorer:cookies
+   - API: setCookie/getCookie/deleteCookie/listCookies/clearCookies
+────────────────────────────────────────────────-*/
+
+(function initFExplorerCookies() {
+
+  // ---------- storage/load ----------
+  function loadCookieJar() {
+    try {
+      return JSON.parse(localStorage.getItem('fexplorerCookies') || '{}');
+    } catch (e) {
+      console.warn('fexplorerCookies parse error, resetting', e);
+      return {};
+    }
+  }
+  function saveCookieJar(jar) {
+    localStorage.setItem('fexplorerCookies', JSON.stringify(jar || {}));
+  }
+
+  function loadCookieSettings() {
+    try {
+      return JSON.parse(localStorage.getItem('fexplorerCookieSettings') || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+  function saveCookieSettings(s) {
+    localStorage.setItem('fexplorerCookieSettings', JSON.stringify(s || {}));
+  }
+
+  // defaults
+  let COOKIE_JAR = loadCookieJar();
+  let COOKIE_SETTINGS = Object.assign({
+    allowCookies: true,        // 2A: allow/block cookies
+    autoDeleteOnExit: false,   // option to clear cookies on exit
+    specialCookies: true,      // 2F: websites can plant special cookies
+    maxCookieAgeDays: 30
+  }, loadCookieSettings());
+
+  // ---------- helpers ----------
+  function normalizeDomain(url) {
+    if (!url) return 'unknown';
+    // if starts with fexplorer: keep prefix for internal sites
+    if (url.startsWith('fexplorer:')) return url;
+    // remove protocol and path
+    try {
+      const u = url.includes('://') ? new URL(url) : new URL('http://' + url);
+      return u.hostname.replace(/^www\./, '');
+    } catch (e) {
+      // fallback: take up to first slash
+      return url.split('/')[0];
+    }
+  }
+
+  function setCookie(domainRaw, key, value, opts = {}) {
+    if (!COOKIE_SETTINGS.allowCookies) return false;
+    const domain = normalizeDomain(domainRaw);
+    if (!COOKIE_JAR[domain]) COOKIE_JAR[domain] = {};
+    const expires = opts.expires || (Date.now() + (opts.maxAgeDays || COOKIE_SETTINGS.maxCookieAgeDays) * 24*60*60*1000);
+    COOKIE_JAR[domain][key] = { value: value, expires: expires, created: Date.now() };
+    saveCookieJar(COOKIE_JAR);
+    return true;
+  }
+
+  function getCookie(domainRaw, key) {
+    const domain = normalizeDomain(domainRaw);
+    const domainObj = COOKIE_JAR[domain];
+    if (!domainObj) return null;
+    const c = domainObj[key];
+    if (!c) return null;
+    if (c.expires && Date.now() > c.expires) { // expired
+      delete domainObj[key];
+      saveCookieJar(COOKIE_JAR);
+      return null;
+    }
+    return c.value;
+  }
+
+  function deleteCookie(domainRaw, key) {
+    const domain = normalizeDomain(domainRaw);
+    if (!COOKIE_JAR[domain]) return false;
+    delete COOKIE_JAR[domain][key];
+    // if no keys left, remove domain
+    if (Object.keys(COOKIE_JAR[domain]).length === 0) delete COOKIE_JAR[domain];
+    saveCookieJar(COOKIE_JAR);
+    return true;
+  }
+
+  function listCookies() {
+    return JSON.parse(JSON.stringify(COOKIE_JAR));
+  }
+
+  function clearCookies() {
+    COOKIE_JAR = {};
+    saveCookieJar(COOKIE_JAR);
+  }
+
+  // ---------- fun helpers: defaults that websites will use ----------
+  // Called by navigate() when visiting a page (see integration example below)
+  function siteVisit(domainOrUrl) {
+    if (!COOKIE_SETTINGS.allowCookies) return;
+    const domain = normalizeDomain(domainOrUrl);
+    // track visits
+    const prev = parseInt(getCookie(domain, 'visits') || '0', 10);
+    setCookie(domain, 'visits', prev + 1);
+    // maybe plant a 'mystery' special cookie
+    if (COOKIE_SETTINGS.specialCookies) {
+      // small chance for a golden cookie, or mystery cookie
+      const r = Math.random();
+      if (r < 0.025) { // 2.5% golden cookie
+        setCookie(domain, 'golden_cookie', 'yes', { maxAgeDays: 7 });
+        // award an achievement via your existing achievement system:
+        if (typeof unlockAchievement === 'function') unlockAchievement('Found a Golden Cookie');
+        // small FPoints if you have points system
+        if (typeof userFPoints === 'number') {
+          userFPoints += 50;
+          saveAppState?.();
+          showFPointsNotification?.(50);
+        }
+      } else if (r < 0.12) { // 9.5% mystery cookie
+        setCookie(domain, 'mystery', Math.random().toString(36).slice(2), {});
+      }
+      // 3% chance to corrupt a random cookie (3F: cookie corruption)
+      if (r > 0.97) {
+        corruptRandomCookie(domain);
+      }
+    }
+  }
+
+  function corruptRandomCookie(domain) {
+    const domainNorm = normalizeDomain(domain);
+    const domainObj = COOKIE_JAR[domainNorm];
+    if (!domainObj) return;
+    const keys = Object.keys(domainObj);
+    if (!keys.length) return;
+    const pick = keys[Math.floor(Math.random()*keys.length)];
+    let entry = domainObj[pick];
+    if (!entry || !entry.value) return;
+    // simple corruption: shuffle characters or set to '???'
+    const v = String(entry.value);
+    const corrupted = v.split('').sort(() => Math.random()-0.5).join('').slice(0, Math.max(1, Math.floor(v.length/2)));
+    entry.value = corrupted;
+    // mark corrupted flag
+    entry.corrupted = true;
+    saveCookieJar(COOKIE_JAR);
+    // optional: show tiny toast if notifications allowed
+    if (typeof showFPointsNotification === 'function') {
+      // use it as a general notifier if available
+      showFPointsNotification('Cookie corruption happened!', 0);
+    }
+    // trigger achievement
+    if (typeof unlockAchievement === 'function') unlockAchievement('Cookie Tamper Detected');
+  }
+
+  // ---------- Cookie UI HTML generator ----------
+  function getCookieManagerHTML() {
+    return `
+      <div class="browser-frame">
+        <div class="app-header">
+          <img src="icons/cookies-icon.png" class="app-logo">
+          <span class="app-title">Cookies</span>
+        </div>
+        <div class="cookie-manager">
+          <h2>Cookie Settings</h2>
+          <label><input type="checkbox" id="cookieAllowToggle"> Allow cookies</label><br>
+          <label><input type="checkbox" id="cookieAutoDelete"> Delete cookies on exit</label><br>
+          <label><input type="checkbox" id="cookieSpecials"> Allow special/mystery cookies</label><br>
+          <button id="clearAllCookiesBtn" class="home-page-button" style="margin-top:8px;">Clear all cookies</button>
+
+          <hr>
+
+          <h3>Stored Cookies</h3>
+          <div id="cookieListContainer" style="max-height:300px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:6px;"></div>
+          <div id="cookieInspector" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Cookie manager loader (binds UI) ----------
+  function loadCookieManager(container) {
+    try {
+      // If called without container, assume browserContent current
+      const root = (container && container.querySelector) ? container : browserContent;
+      const cookieAllowToggle = root.querySelector('#cookieAllowToggle');
+      const cookieAutoDelete = root.querySelector('#cookieAutoDelete');
+      const cookieSpecials = root.querySelector('#cookieSpecials');
+      const clearAllBtn = root.querySelector('#clearAllCookiesBtn');
+      const cookieListContainer = root.querySelector('#cookieListContainer');
+      const inspector = root.querySelector('#cookieInspector');
+
+      // set from settings
+      cookieAllowToggle.checked = COOKIE_SETTINGS.allowCookies;
+      cookieAutoDelete.checked = COOKIE_SETTINGS.autoDeleteOnExit;
+      cookieSpecials.checked = COOKIE_SETTINGS.specialCookies;
+
+      function renderList() {
+        const jar = listCookies();
+        const domains = Object.keys(jar).sort();
+        if (!cookieListContainer) return;
+        if (domains.length === 0) {
+          cookieListContainer.innerHTML = `<p>No cookies stored.</p>`;
+          if (inspector) inspector.innerHTML = '';
+          return;
+        }
+        cookieListContainer.innerHTML = domains.map(domain => {
+          const keys = Object.keys(jar[domain] || {});
+          return `
+            <div style="border-bottom:1px solid #f0f0f0;padding:6px;margin-bottom:6px;">
+              <b>${escapeHtml(domain)}</b> — ${keys.length} cookie(s)
+              <div style="margin-top:6px;">
+                ${keys.map(k => `<button class="inspectCookieBtn" data-domain="${encodeURIComponent(domain)}" data-key="${encodeURIComponent(k)}">${escapeHtml(k)}</button>`).join(' ')}
+                <button class="deleteDomainCookies" data-domain="${encodeURIComponent(domain)}">Delete all</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        // attach listeners
+        cookieListContainer.querySelectorAll('.inspectCookieBtn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const domain = decodeURIComponent(btn.dataset.domain);
+            const key = decodeURIComponent(btn.dataset.key);
+            const val = getCookie(domain, key);
+            inspector.innerHTML = `
+              <h4>Inspect: ${escapeHtml(domain)} → ${escapeHtml(key)}</h4>
+              <pre style="background:#f7f7f7;padding:8px;border-radius:6px;white-space:pre-wrap;">${escapeHtml(String(val))}</pre>
+              <button id="deleteCookieBtn" class="home-page-button">Delete cookie</button>
+            `;
+            const deleteCookieBtn = inspector.querySelector('#deleteCookieBtn');
+            deleteCookieBtn.addEventListener('click', () => {
+              deleteCookie(domain, key);
+              renderList();
+              inspector.innerHTML = `<div>Cookie deleted.</div>`;
+            });
+          });
+        });
+        cookieListContainer.querySelectorAll('.deleteDomainCookies').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const domain = decodeURIComponent(btn.dataset.domain);
+            if (confirm(`Delete all cookies for ${domain}?`)) {
+              const jar = listCookies();
+              if (jar[domain]) {
+                delete COOKIE_JAR[domain];
+                saveCookieJar(COOKIE_JAR);
+              }
+              renderList();
+            }
+          });
+        });
+      }
+
+      // toggles
+      cookieAllowToggle.addEventListener('change', () => {
+        COOKIE_SETTINGS.allowCookies = !!cookieAllowToggle.checked;
+        saveCookieSettings(COOKIE_SETTINGS);
+      });
+      cookieAutoDelete.addEventListener('change', () => {
+        COOKIE_SETTINGS.autoDeleteOnExit = !!cookieAutoDelete.checked;
+        saveCookieSettings(COOKIE_SETTINGS);
+      });
+      cookieSpecials.addEventListener('change', () => {
+        COOKIE_SETTINGS.specialCookies = !!cookieSpecials.checked;
+        saveCookieSettings(COOKIE_SETTINGS);
+      });
+
+      clearAllBtn.addEventListener('click', () => {
+        if (!confirm('Clear all cookies?')) return;
+        clearCookies();
+        renderList();
+      });
+
+      renderList();
+    } catch (e) {
+      console.error('loadCookieManager error', e);
+    }
+  }
+
+  // ---------- Integration helpers to call from navigate() ----------
+  // Call this when you visit a site to allow it to set cookies / track visits
+  function handleSiteOnVisit(url) {
+    // siteVisit will respect allowCookies setting
+    siteVisit(url);
+
+    // auto-create a 'lastVisited' cookie
+    if (COOKIE_SETTINGS.allowCookies) {
+      setCookie(url, 'lastVisited', new Date().toISOString());
+    }
+  }
+
+  // make API global-ish so other code can call
+  window.fexplorerCookies = {
+    getCookie, setCookie, deleteCookie, listCookies, clearCookies,
+    loadCookieManager, getCookieManagerHTML, handleSiteOnVisit,
+    loadCookieSettings: () => JSON.parse(JSON.stringify(COOKIE_SETTINGS)),
+    saveCookieSettings: (s) => { COOKIE_SETTINGS = Object.assign(COOKIE_SETTINGS, s); saveCookieSettings(COOKIE_SETTINGS); }
+  };
+
+  // auto-delete on exit if enabled
+  window.addEventListener('beforeunload', () => {
+    try {
+      COOKIE_SETTINGS = loadCookieSettings();
+      if (COOKIE_SETTINGS.autoDeleteOnExit) {
+        clearCookies();
+      }
+    } catch (e) { /* ignore */ }
+  });
+
+  // ------- Example integration points (apply in navigate or route resolver) -------
+  // 1) Call `fexplorerCookies.handleSiteOnVisit(sanitizedUrl)` inside your navigate() after you set currentUrl.
+  // 2) When building your routes object, include:
+  //    "fexplorer:cookies": () => { setTimeout(()=>window.fexplorerCookies.loadCookieManager(), 0); return window.fexplorerCookies.getCookieManagerHTML(); }
+  //
+  // 3) If you want Google/ping/other sites to plant cookies automatically, call handleSiteOnVisit there.
+  //
+  // Example (copy into your navigate right after `currentUrl = sanitizedUrl;`):
+  //    if (typeof window.fexplorerCookies === 'object') window.fexplorerCookies.handleSiteOnVisit(sanitizedUrl);
+  //
+  // 4) You can also create UI buttons that call: setCookie('goog.com','consent','granted');
+  //
+})();
+// end cookie system
+
+// Bookmark
+function saveBookmarks() {
+    localStorage.setItem("fexplorerBookmarks", JSON.stringify(bookmarks));
+}
+
+// Small toast for bookmark feedback (requires a #bookmarkToast element)
+function showBookmarkToast(msg) {
+    let toast = document.getElementById("bookmarkToast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "bookmarkToast";
+        toast.style.cssText = "position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .25s;z-index:99999;";
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = "1";
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => { toast.style.opacity = "0"; }, 1400);
+}
+
+// Toggle bookmark for currentUrl (used by Alt+B or UI)
+function toggleBookmark() {
+    if (!currentUrl) return;
+    const idx = bookmarks.findIndex(b => b.url === currentUrl);
+    const activeTab = typeof activeTabId !== "undefined" ? tabs.find(t => t.id === activeTabId) : null;
+    const pageTitle = activeTab?.title || currentUrl;
+
+    if (idx >= 0) {
+        const removed = bookmarks.splice(idx, 1)[0];
+        saveBookmarks();
+        updateBookmarkStar();
+        showBookmarkToast(`Removed bookmark: ${removed.title}`);
+    } else {
+        bookmarks.push({ title: pageTitle, url: currentUrl });
+        saveBookmarks();
+        updateBookmarkStar();
+        showBookmarkToast(`Bookmarked: ${pageTitle}`);
+    }
+}
+
+// Update the visual bookmark star (if you use a star button) — safe if element missing
+function updateBookmarkStar() {
+    const btn = document.getElementById("bookmarkBtn");
+    if (!btn) return;
+    const exists = bookmarks.some(b => b.url === currentUrl);
+    btn.textContent = exists ? "★" : "☆";
+    if (exists) btn.classList.add("bookmarked"); else btn.classList.remove("bookmarked");
+}
+
+// Keyboard shortcut Alt+B
+document.addEventListener("keydown", (e) => {
+    if (e.altKey && e.key.toLowerCase() === "b") {
+        toggleBookmark();
+        e.preventDefault();
+    }
+});
+
+// ------------- Bookmark Manager page HTML -------------
+function getBookmarkManagerHTML() {
+    return `
+        <div class="bookmark-page">
+            <div class="app-header">
+                <img src="icons/fexplorer.png" class="app-logo" alt="logo">
+                <span class="app-title">Bookmarks</span>
+                <a href="#" data-url="fexplorer:home" class="app-header-button">Home</a>
+            </div>
+
+            <h1 style="text-align:center;margin-top:18px;">Your Bookmarks</h1>
+
+            <div id="bookmarkManagerContent" style="max-width:900px;margin:18px auto;"></div>
+        </div>
+    `;
+}
+
+// ------------- Loader + event wiring for manager -------------
+function loadBookmarkManager() {
+    const container = document.getElementById("bookmarkManagerContent");
+    if (!container) return;
+
+    if (bookmarks.length === 0) {
+        container.innerHTML = `
+            <p style="text-align:center;margin-top:20px;color:#666;">
+                No bookmarks yet.<br>
+                Press <b>Alt + B</b> on any page to bookmark it!
+            </p>
+        `;
+        return;
+    }
+
+    container.innerHTML = bookmarks.map((bm, i) => `
+        <div class="bookmark-item" data-index="${i}" style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:#f6f6f6;margin:8px 0;">
+            <div style="max-width:70%;">
+                <div style="font-weight:600;">${escapeHtml(bm.title)}</div>
+                <div style="font-size:12px;color:#666;word-break:break-all;">${escapeHtml(bm.url)}</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="bm-open" data-index="${i}" style="padding:6px 10px;border-radius:6px;border:none;cursor:pointer;background:#4CAF50;color:#fff;">Open</button>
+                <button class="bm-rename" data-index="${i}" style="padding:6px 10px;border-radius:6px;border:none;cursor:pointer;background:#FF9800;color:#fff;">Rename</button>
+                <button class="bm-delete" data-index="${i}" style="padding:6px 10px;border-radius:6px;border:none;cursor:pointer;background:#F44336;color:#fff;">Delete</button>
+            </div>
+        </div>
+    `).join("");
+
+    attachBookmarkManagerEvents();
+}
+
+function attachBookmarkManagerEvents() {
+    const container = document.getElementById("bookmarkManagerContent");
+    if (!container) return;
+
+    // Open
+    container.querySelectorAll(".bm-open").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const bm = bookmarks[btn.dataset.index];
+            if (!bm) return;
+            navigate(bm.url);
+        });
+    });
+
+    // Delete
+    container.querySelectorAll(".bm-delete").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const idx = Number(btn.dataset.index);
+            if (isNaN(idx)) return;
+            const removed = bookmarks.splice(idx, 1)[0];
+            saveBookmarks();
+            loadBookmarkManager();
+            showBookmarkToast(`Removed "${removed.title}"`);
+            updateBookmarkStar();
+        });
+    });
+
+    // Rename
+    container.querySelectorAll(".bm-rename").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const idx = Number(btn.dataset.index);
+            if (isNaN(idx)) return;
+            const newTitle = prompt("Rename bookmark:", bookmarks[idx].title);
+            if (!newTitle) return;
+            bookmarks[idx].title = newTitle.trim();
+            saveBookmarks();
+            loadBookmarkManager();
+            showBookmarkToast(`Renamed to "${bookmarks[idx].title}"`);
+        });
+    });
+}
+
+// If you have a bookmark button element in your UI, wire it to toggle and keep visual synced
+const bookmarkBtn = document.getElementById("bookmarkBtn");
+if (bookmarkBtn) {
+    bookmarkBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        toggleBookmark();
+    });
+}
+
+// Ensure star state is correct on initial load and when currentUrl changes you should call updateBookmarkStar()
+// You can call updateBookmarkStar() right after you set currentUrl inside navigate()
+updateBookmarkStar();
+
+function parseFexplorerVariantUrl(raw) {
+    let s = raw;
+    if (s.startsWith("fexplorer:")) s = s.substring(11);
+
+    const dash = s.indexOf("-");
+    if (dash === -1) return null;
+
+    const id = s.substring(0, dash);
+    const rest = s.substring(dash + 1);
+
+    const slash = rest.indexOf("/");
+    if (slash === -1) return null;
+
+    return {
+        id,
+        category: rest.substring(0, slash),
+        variant: rest.substring(slash + 1)
+    };
+}
+
+// Fun facts for home page
+const FUN_FACTS = [
+    "Enjoy your stay!",
+    "You can create your own custom pages and share them with others!",
+    "The shop has 14 unique items to collect and purchase!",
+    "RE8uUkVNRU1CRVIuVE8uQlVZLk1ZLlRIRU1FLg==",
+    "You can stock trade in the Financial section. Buy low, sell high!",
+    "Cookies in the Cookie Clicker game give you free FPoints when earned!",
+    "Achievement unlocks can reward you with special cosmetics!",
+    "You can customize your browser's OS theme in Settings!",
+    "Alpha 1.5 is also known as the Quality of Life update!",
+    "Luck stat affects your FPoint earnings from Goog! searches.",
+    "You can bookmark your favorite pages for quick access!",
+    "The chat feature connects you with an AI that responds to keywords!",
+    "Games include Tic Tac Toe, Cookie Clicker, and more!",
+    "Different OS themes change the browser appearance!",
+    "This browser is cool.",
+    "Dark mode is available in the Settings for night browsing!",
+    "IGHGHIGHEIFJOEBOENVOFEJPOFDOVFEHOGHDOIJIFOEIOBHOIJVOEIGHOE",
+];
+
+/**
+ * Update the home page stats (FPoints, Cookies, Luck)
+ */
+function updateHomePageStats() {
+    const fpointsEl = document.getElementById('homePageFPoints');
+    const cookiesEl = document.getElementById('homePageCookies');
+    const luckEl = document.getElementById('homePageLuck');
+
+    if (fpointsEl) fpointsEl.textContent = userFPoints.toLocaleString();
+    if (cookiesEl) cookiesEl.textContent = userCookies.toLocaleString();
+    if (luckEl) {
+        const luckValue = userLuck >= 0 ? `+${userLuck.toFixed(1)}` : userLuck.toFixed(1);
+        luckEl.textContent = luckValue;
+    }
+}
+
+/**
+ * Display a random fun fact on the home page
+ */
+function updateHomeFunFact() {
+    const funFactEl = document.getElementById('funFactText');
+    if (funFactEl) {
+        const randomFact = FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)];
+        funFactEl.textContent = randomFact;
+    }
+}
+
+/**
+ * Update financial page stats (FPoints, Luck, Stock, Price)
+ */
+function updateFinancialPageStats() {
+    const fpointsEl = document.getElementById('currentFPoints');
+    const luckEl = document.getElementById('currentLuck');
+    const stockEl = document.getElementById('userOwnedStock');
+    const priceEl = document.getElementById('stockPriceDisplay');
+
+    if (fpointsEl) fpointsEl.textContent = userFPoints.toLocaleString();
+    if (luckEl) luckEl.textContent = userLuck.toFixed(1) + 'x';
+    if (stockEl) stockEl.textContent = userChannel.stockOwned;
+    if (priceEl) priceEl.textContent = stockPrice.toFixed(2);
+}
+
+/**
+ * Update cookies page display
+ */
+function updateCookiesPageDisplay() {
+    const cookiesEl = document.getElementById('cookiesCounter');
+    if (cookiesEl) {
+        const cookiesValue = document.querySelector('.cookies-stat-value');
+        if (cookiesValue) cookiesValue.textContent = userCookies.toLocaleString();
+    }
+}
+
+// Visual cookie indicator (+cookie) and optional gentle auto-gain
+function addCookieIndicator(amount = 1, opts = {}) {
+    try {
+        const now = Date.now();
+        if (now - lastCookieGainTime < COOKIE_GAIN_COOLDOWN_MS) return; // throttle
+        lastCookieGainTime = now;
+
+        // add cookies (throttled)
+        const gain = Number(amount) || 0;
+        if (gain > 0) {
+            userCookies = (userCookies || 0) + gain;
+            saveAppState();
+            updateCookiesPageDisplay();
+        }
+
+        const el = document.createElement('div');
+        el.className = 'cookie-indicator';
+        // Show as +[n] for clarity
+        el.textContent = `+${gain}`;
+        document.body.appendChild(el);
+        // position near top-right, optionally near a target
+        el.style.right = '20px';
+        el.style.top = '80px';
+
+        // Animate: fade up and remove
+        el.animate([
+            { transform: 'translateY(0)', opacity: 1 },
+            { transform: 'translateY(-28px)', opacity: 0 }
+        ], { duration: 1200, easing: 'ease-out' });
+
+        setTimeout(() => { try { el.remove(); } catch (e) {} }, 1300);
+    } catch (e) {
+        console.warn('addCookieIndicator error', e);
+    }
+}
+
+// the big thing.
+function navigate(urlToLoad, isBackNavigation = false, isForwardNavigation = false) {
     const sanitizedUrl = urlToLoad.toLowerCase().trim();
 
-    // Handle JX1DX1 theme effects for the new page
-    if (userChannel && userChannel.activeTheme === 'jx1dx1_theme' && typeof jx1dx1Annoyance === 'function') {
-        stopJx1dx1Annoyance(); // Clear existing effects
-        setTimeout(() => jx1dx1Annoyance(), 100); // Start new effects after a brief delay
-    }
-    if (userChannel && userChannel.activeTheme === 'fexplorer_assistant' && typeof fexplorerAssistant === 'function') {
-        stopfexplorerAssistant(); // Clear existing effects
-        setTimeout(() => fexplorerAssistant(), 100); // Start new effects after a brief delay
+    // =========================
+// RATE LIMIT CHECK (Error 429)
+// =========================
+const now = Date.now();
+
+// Reset counter if too much time passed
+if (now - lastRequestTime > RATE_LIMIT_INTERVAL) {
+    requestCount = 0;
+}
+lastRequestTime = now;
+
+requestCount++;
+
+if (!isRateLimited && requestCount > RATE_LIMIT_MAX) {
+    isRateLimited = true;
+    localStorage.setItem("fexplorerRateLimitUntil", (now + rateLimitCooldown).toString());
+    navigate("fexplorer:429", true); // force navigation, no rewards
+    return;
+}
+
+// If already rate-limited
+const storedLimit = parseInt(localStorage.getItem("fexplorerRateLimitUntil") || "0", 10);
+if (isRateLimited && now < storedLimit) {
+    navigate("fexplorer:429", true);
+    return;
+} else if (isRateLimited && now >= storedLimit) {
+    // cooldown ended
+    isRateLimited = false;
+    requestCount = 0;
+}
+
+    /* =====================================================
+       THEME EFFECTS
+    ====================================================== */
+    try {
+        if (userChannel?.activeTheme === "jx1dx1_theme") {
+            stopJx1dx1Annoyance?.();
+            setTimeout(() => jx1dx1Annoyance?.(), 120);
+        }
+
+        if (userChannel?.activeTheme === "fexplorer_assistant") {
+            stopfexplorerAssistant?.();
+            setTimeout(() => fexplorerAssistant?.(), 120);
+        }
+    } catch (e) {
+        console.warn("Theme handler error:", e);
     }
 
-    // Stop existing AI post timer if leaving Headbook page
-    if (currentUrl === 'headbook.com' && sanitizedUrl !== 'headbook.com' && aiPostTimer) {
-        clearTimeout(aiPostTimer);
-        aiPostTimer = null;
-        console.log('Stopped AI Headbook post scheduling.');
-    }
+    /* =====================================================
+       FPOINTS AWARD LOGIC
+    ====================================================== */
+    const shouldAwardFPoints =
+        currentUrl &&
+        currentUrl !== sanitizedUrl &&
+        !isBackNavigation &&
+        !sanitizedUrl.startsWith("fexplorer:shop?category=") &&
+        !sanitizedUrl.startsWith("fexplorer:shop?q=") &&
+        !sanitizedUrl.startsWith("goog.com/search?q=") &&
+        !sanitizedUrl.startsWith("fexplorer:user-page-") &&
+        !sanitizedUrl.startsWith("fexplorer:create") &&
+        !sanitizedUrl.startsWith("fexplorer:create.hub") &&
+        !sanitizedUrl.startsWith("fexplorer:preview");
 
-    const shouldAwardFPoints = currentUrl &&
-                                currentUrl !== sanitizedUrl &&
-                                !isBackNavigation &&
-                                !sanitizedUrl.startsWith('fexplorer:shop?category=') &&
-                                !sanitizedUrl.startsWith('fexplorer:shop?q=') &&
-                                !sanitizedUrl.startsWith('goog.com/search?q=') &&
-                                !sanitizedUrl.startsWith('fexplorer:user-page-') && // No FPoints for visiting user created pages directly
-                                !sanitizedUrl.startsWith('fexplorer:create') && // No FPoints for visiting create page
-                                !sanitizedUrl.startsWith('fexplorer:create.hub') && // No FPoints for visiting hub page
-                                !sanitizedUrl.startsWith('fexplorer:preview'); // No FPoints for visiting preview page
-
-    if (!isBackNavigation && currentUrl && currentUrl !== sanitizedUrl) {
+    /* =====================================================
+       HISTORY HANDLING
+    ====================================================== */
+    if (!isBackNavigation && !isForwardNavigation && currentUrl && currentUrl !== sanitizedUrl) {
         historyStack.push(currentUrl);
+        forwardStack = []; // Clear forward stack on new navigation
     }
 
     currentUrl = sanitizedUrl;
-    addressBar.value = currentUrl;
+    addressBar.value = sanitizedUrl;
 
-    browserContent.innerHTML = `<div style="text-align: center; padding: 20px; color: #555;">Loading...</div>`;
-
-    if (sanitizedUrl === 'fexplorer:financial') {
-        fluctuateStockPrice();
+    if (typeof window.fexplorerCookies === 'object') {
+    try { window.fexplorerCookies.handleSiteOnVisit(sanitizedUrl); } catch (e) { console.warn(e); }
     }
+    // Show loading message
+    browserContent.innerHTML =
+        `<div style="text-align:center;padding:20px;color:#555;">Loading...</div>`;
 
+    // Fluctuate stock if visiting financial page
+    if (sanitizedUrl === "fexplorer:financial") fluctuateStockPrice();
+
+
+    /* =====================================================
+       MAIN PAGE RESOLUTION START
+    ====================================================== */
     setTimeout(() => {
-        let contentHtml = '';
+        let contentHtml = getPageContentFromUrl(sanitizedUrl); //
         let pageFound = false;
 
-        if (sanitizedUrl === 'fexplorer:create') { // New case for create page
-            contentHtml = getCreatePageEditorHTML();
-            pageFound = true;
-        } else if (sanitizedUrl === 'fexplorer:create.hub') { // New case for Creator Hub page
-            contentHtml = getFExplorerCreatorHubPageHTML();
+        /* =====================================================
+           1. RANDOM VARIANT PAGE
+        ====================================================== */
+        if (contentHtml === "__RANDOM_VARIANT_PAGE__") {
+            try {
+                // This function from randomUserVariants.js draws the page
+                renderRandomUserPage(sanitizedUrl); //
+                pageFound = true; 
+            } catch (e) {
+                console.error("Error rendering random page:", e);
+                browserContent.innerHTML = "<h1>Error: Failed to load random page component.</h1>";
+            }
+
+            // Manually run the final UI updates
+            attachDynamicEventListeners();
+            updateBackButtonState();
+            updateForwardButtonState();
+            updateBookmarkStar(); 
+            
+            // Stop this function so it doesn't overwrite our content
+            return; 
+        }
+
+        /* =====================================================
+           2. CREATE PAGE / HUB (Handled by getPageContentFromUrl)
+           These pages have special logic not in fakeContent
+        ====================================================== */
+        else if (sanitizedUrl === "fexplorer:create") {
+            contentHtml = getCreatePageEditorHTML(); //
             pageFound = true;
         }
-        else if (sanitizedUrl.startsWith('fexplorer:user-page-')) { // New case for user-created pages
-            const pageId = sanitizedUrl.substring('fexplorer:user-page-'.length);
+
+        else if (sanitizedUrl === "fexplorer:create.hub") {
+            contentHtml = getFExplorerCreatorHubPageHTML(); //
+            pageFound = true;
+        }
+
+        /* =====================================================
+           3. USER-CREATED PAGE (CODE MODE)
+           (Simple mode is handled by getPageContentFromUrl)
+        ====================================================== */
+        else if (sanitizedUrl.startsWith("fexplorer:user-page-")) {
+            const pageId = sanitizedUrl.substring("fexplorer:user-page-".length);
             const pageData = userCreatedPages[pageId];
-            if (pageData && pageData.creationMode === 'code') {
+
+            if (pageData?.creationMode === "code") {
+                // This is a special page that needs to inject scripts/styles
                 contentHtml = `
                     <div class="user-created-code-page-layout">
                         <div class="app-header">
-                            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+                            <img src="icons/fexplorer.png" class="app-logo">
                             <span class="app-title">${escapeHtml(pageData.title)}</span>
-                            <a href="#" data-url="fexplorer:home" class="app-header-button">Back to Home</a>
-                            <a href="#" data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
+                            <a data-url="fexplorer:home" class="app-header-button">Home</a>
+                            <a data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
                         </div>
-                        <div class="user-code-page-content" id="userCodePageContent">
-                            <!-- Custom HTML will be injected here -->
-                        </div>
-                        <p class="footer-note" style="text-align: center; margin: 20px;">This is a user-created page (code mode).</p>
+                        <div id="userCodePageContent"></div>
                     </div>
                 `;
-                // Apply the HTML, CSS, and JS after the main structure is rendered
-                browserContent.innerHTML = contentHtml;
-                setTimeout(() => { // Use setTimeout 0 to push to end of event queue
-                    const userCodePageContent = browserContent.querySelector('#userCodePageContent');
-                    if (userCodePageContent) {
-                        userCodePageContent.innerHTML = pageData.htmlCode; // Inject HTML
-                        const styleTag = document.createElement('style');
-                        styleTag.textContent = pageData.cssCode;
-                        userCodePageContent.appendChild(styleTag);
+                browserContent.innerHTML = contentHtml; // Write shell
 
-                        const scriptTag = document.createElement('script');
-                        scriptTag.textContent = pageData.jsCode;
-                        scriptTag.type = 'module';
-                        userCodePageContent.appendChild(scriptTag);
+                // Inject code
+                setTimeout(() => {
+                    const container = document.querySelector("#userCodePageContent");
+                    if (!container) return;
+                    container.innerHTML = pageData.htmlCode;
+
+                    const style = document.createElement("style");
+                    style.textContent = pageData.cssCode;
+                    container.appendChild(style);
+
+                    try {
+                        const script = document.createElement("script");
+                        script.textContent = pageData.jsCode;
+                        script.type = "module";
+                        container.appendChild(script);
+                    } catch (e) {
+                        console.error("Error executing user-page script:", e);
                     }
                 }, 0);
+
                 pageFound = true;
-            } else {
-                contentHtml = getPublishedUserPageHTML(pageId); // This is for simple pages
+            } else if (pageData) {
+                // Simple page was already loaded by getPageContentFromUrl
                 pageFound = true;
-            }
-        } else if (sanitizedUrl === 'fexplorer:preview') {
-            const previewData = JSON.parse(localStorage.getItem('fexplorerPreviewDraft'));
-            if (!previewData) {
-                contentHtml = `
-                    <div style="text-align: center; padding: 50px;">
-                        <h1>Preview Not Available</h1>
-                        <p>No page draft found to preview. Please create a page first.</p>
-                        <p>Return to <a href="#" data-url="fexplorer:create">Page Creator</a></p>
-                    </div>
-                `;
-                pageFound = true;
-            } else {
-                contentHtml = `
-                    <div class="user-created-page-layout">
-                        <div class="app-header">
-                            <img src="icons/placeholder.png" alt="FExplorer Logo" class="app-logo">
-                            <span class="app-title">Preview: ${escapeHtml(previewData.title)}</span>
-                            <a href="#" data-url="fexplorer:create" class="app-header-button">Back to Editor</a>
-                        </div>
-                        <div class="user-page-content" id="previewPageContent">
-                            <!-- Content will be inserted here -->
-                        </div>
-                        <p class="footer-note" style="text-align: center; margin: 20px;">This is a live preview. Interactivity may be limited.</p>
-                    </div>
-                `;
-                browserContent.innerHTML = contentHtml; // Set the main wrapper HTML
-
-                setTimeout(() => { // Execute after HTML structure is in DOM
-                    const previewPageContent = browserContent.querySelector('#previewPageContent');
-                    if (previewPageContent) {
-                        if (previewData.creationMode === 'simple') {
-                            let previewButtonsHtml = previewData.simpleButtons.map(btn => `
-                                <button class="user-page-button" disabled>${escapeHtml(btn.text)} (Preview)</button>
-                            `).join('');
-                            previewPageContent.innerHTML = `
-                                <h1>${escapeHtml(previewData.title)}</h1>
-                                <div class="user-page-text">${previewData.simpleContent}</div>
-                                <div class="user-page-buttons">
-                                    ${previewButtonsHtml}
-                                </div>
-                            `;
-                        } else if (previewData.creationMode === 'code') {
-                            previewPageContent.innerHTML = previewData.htmlCode;
-                            const styleTag = document.createElement('style');
-                            styleTag.textContent = previewData.cssCode;
-                            previewPageContent.appendChild(styleTag);
-
-                            const scriptTag = document.createElement('script');
-                            scriptTag.textContent = `
-                                // Intercept alert for preview mode
-                                const originalAlert = window.alert;
-                                window.alert = (message) => originalAlert('[Preview JS] ' + message);
-                                try { ${previewData.jsCode} } catch (e) { console.error('Preview JS Error:', e); originalAlert('Error in preview JS: ' + e.message); }
-                                window.alert = originalAlert; // Restore original alert
-                            `;
-                            scriptTag.type = 'module';
-                            previewPageContent.appendChild(scriptTag);
-                        }
-                    }
-                }, 0);
-                pageFound = true;
-            }
-        } else if (sanitizedUrl.startsWith('fexplorer:shop')) {
-            contentHtml = fakeContent['fexplorer:shop'];
-            pageFound = true;
-        } else if (fakeContent[sanitizedUrl]) {
-            contentHtml = fakeContent[sanitizedUrl];
-            pageFound = true;
-        } else {
-            let parsedUrl;
-            try {
-                parsedUrl = new URL(sanitizedUrl.startsWith('http') || sanitizedUrl.includes(':') ? sanitizedUrl : `http://${sanitizedUrl}`);
-            } catch (e) {
-                parsedUrl = { hostname: 'unknown', pathname: '/', searchParams: new URLSearchParams() };
-            }
-
-            const hostname = parsedUrl.hostname.replace('www.', '');
-            const pathname = parsedUrl.pathname;
-            const query = parsedUrl.searchParams.get('q');
-
-            if (hostname === 'goog.com' && pathname === '/search' && query || hostname === 'ping.com' && pathname === '/search' && query) {
-                pageFound = true;
-                const lowerQuery = query.toLowerCase();
-                let searchResultContent = '';
-
-                const searchResultsMap = {
-                    'example': { url: 'example.com', title: 'Example Domain' },
-                    'blank': { url: 'about:blank', title: 'About Blank' },
-                    'placeholder': { url: 'fexplorer:placeholder', title: 'Placeholder' },
-                    'goog': { url: 'goog.com', title: 'Goog - That One Search Engine' },
-                    'fexplorer': { url: 'fexplorer:home', title: 'FExplorer Home' },
-                    'home': { url: 'fexplorer:home', title: 'FExplorer Home' },
-                    'quick links': { url: 'fexplorer:quick-links', title: 'FExplorer Quick Links' },
-                    'fpoints': { url: 'fexplorer:financial', title: 'FExplorer Financials - Earn FPoints!' },
-                    'shop': { url: 'fexplorer:shop', title: 'FExplorer Shop - Spend FPoints!' },
-                    'financial': { url: 'fexplorer:financial', title: 'FExplorer Financials - Earn FPoints!' },
-                    'updates': { url: 'fexplorer:updates', title: 'FExplorer Updates - What\'s New?' },
-                    'page creator': { url: 'fexplorer:create', title: 'FExplorer Page Creator' },
-                    'create page': { url: 'fexplorer:create', title: 'FExplorer Page Creator' },
-                    'creator hub': { url: 'fexplorer:create.hub', title: 'FExplorer Creator Hub' }, // Add search result for hub
-                    'my pages': { url: 'fexplorer:create.hub', title: 'FExplorer Creator Hub - Your Pages' }, // Add search result for hub
-					'settings': { url: 'fexplorer:settings', title: 'FExplorer Settings' },
-                    'games': { url: 'fexplorer:games', title: 'FExplorer Games' },
-                    'program': { url: 'fexplorer:programs', title: 'FExplorer Programs' },
-                    'cookie': { url: 'fexplorer:cookies', title: 'Cookies' },
-                    'visual editor': { url: 'scripts.visualeditor.com', title: 'Visual Scripts Editor' },
-                    'paranoid': { url: 'paranoid.com', title: '???' },
-                    'black market': { url: 'black-market.net', title: 'Totally legal market' },
-                    'online quiz': { url: 'fexplorer://online-quiz.com', title: 'Try the online quiz!' }
-                };
-
-                const matchedResult = searchResultsMap[lowerQuery] || Object.values(searchResultsMap).find(item => lowerQuery.includes(item.url.split('.')[0]));
-
-                if (matchedResult) {
-                    searchResultContent = `
-                        <div class="search-result-item">
-                            <h3><a href="#" data-url="${matchedResult.url}">${matchedResult.title} - ${matchedResult.url}</a></h3>
-                            <p>This is a search result for ${matchedResult.url}. Click to visit.</p>
-                        </div>
-                    `;
-                } else {
-                    searchResultContent = `<p>Here are some results for your search query, "${query}":</p>`;
-                    const numRandomResults = Math.floor(Math.random() * 3) + 3;
-                    for (let i = 0; i < numRandomResults; i++) {
-                        const randomId = Math.random().toString(36).substring(2, 8);
-                        const safeQueryForUrl = query.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase().substring(0, 15);
-                        const fakeDomain = `${safeQueryForUrl || 'random-info'}-${randomId}.com`;
-                        const fakeUrl = `http://www.${fakeDomain}/articles/${randomId}`;
-
-                        const fakeTitleOptions = [
-                            `Reasons why ${query} was a big hit!`,
-                            `The definitive guide to ${query}`,
-                            `Top 10 facts about ${query} you didn't know`,
-                            `Explore the world of ${query} - A detailed analysis`,
-                            `How ${query} impacts daily life`,
-                            `Understanding ${query}: A beginner's perspective`,
-                            `The history and future of ${query}`,
-                            `Tips and tricks for ${query}`,
-                            `How to survive ${query} for 99 nights`,
-                            `Why ${query} is influencial to the planet`,
-                            `How JX1DX1 defeats ${query} in a fight, and you too.`
-                        ];
-                        const fakeTitle = fakeTitleOptions[Math.floor(Math.random() * fakeTitleOptions.length)];
-                        const fakeDescriptionOptions = [
-                            `Dive deep into the fascinating aspects of ${query}. Find comprehensive information and expert opinions on ${query.toLowerCase()}.`,
-                            `${query} brings you the latest celebrity & royal news from the UK & around the world. Find more information about ${query.toLowerCase()}.`
-                        ];
-                        const fakeDescription = fakeDescriptionOptions[Math.floor(Math.random() * fakeDescriptionOptions.length)];
-
-                        searchResultContent += `
-                            <div class="search-result-item">
-                                <h3><a href="#" data-url="${fakeUrl}">${fakeTitle}</a></h3>
-                                <p style="color: #006621; font-size: 0.85em; margin-bottom: 2px; overflow-wrap: break-word;">${fakeUrl}</p>
-                                <p>${fakeDescription}</p>
-                            </div>
-                        `;
-                    }
-                    searchResultContent += `<p style="margin-top: 20px;">(These search results are obviously not real.)</p>`;
-                }
-
-                contentHtml = `
-                    <div class="search-results-page home-page-content">
-                        <h1>Goog! Search Results for "${query}"</h1>
-                        ${searchResultContent}
-                        <p class="footer-note">Back to <a href="#" data-url="goog.com">Goog!</a></p>
-                    </div>
-                `;
-            } else if (hostname === 'mytube.com' && pathname === '/search' && query) {
-                pageFound = true;
-                const lowerQuery = query.toLowerCase();
-                let myTubeSearchResultContent = '';
-                const matchedVideos = Object.values(myTubeVideos).filter(video =>
-                    video.title.toLowerCase().includes(lowerQuery) ||
-                    video.channel.toLowerCase().includes(lowerQuery) ||
-                    video.description.toLowerCase().includes(lowerQuery)
-                );
-
-                if (matchedVideos.length > 0) {
-                    myTubeSearchResultContent = `
-                        <div class="mytube-video-grid" style="margin-top: 20px;">
-                    `;
-                    matchedVideos.forEach(video => {
-                        myTubeSearchResultContent += `
-                            <div class="mytube-video-item">
-                                <a href="#" data-url="mytube.com/watch?v=${video.id}">
-                                    <img src="${video.thumbnail}" alt="${video.title} thumbnail" class="mytube-video-thumbnail">
-                                    <div class="mytube-video-info">
-                                        <h3 class="mytube-video-title">${video.title}</h3>
-                                        <p class="mytube-video-channel">${video.channel}</p>
-                                        <p class="mytube-video-meta">${video.views} views • ${video.date}</p>
-                                    </div>
-                                </a>
-                            </div>
-                        `;
-                    });
-                    myTubeSearchResultContent += `</div>`;
-                } else {
-                    myTubeSearchResultContent = `
-                        <p style="text-align: center;">No videos found for your search: "${query}".</p>
-                    `;
-                }
-
-                contentHtml = `
-                    <div class="mytube-page-layout">
-                        <div class="app-header">
-                            <img src="mytube_logo.png" alt="MyTube Logo" class="app-logo">
-                            <span class="app-title">MyTube</span>
-                            <div class="app-search-container">
-                                <input type="search" id="mytubeSearchInput" class="app-search-input" value="${query}" placeholder="Search MyTube...">
-                                <button id="mytubeSearchButton" class="app-search-button">Search</button>
-                            </div>
-                            ${userChannel.name ? `<a href="#" data-url="mytube.com/my-channel" class="app-header-button">My Channel</a>` : `<a href="#" data-url="mytube.com/create-channel" class="app-header-button">Create Channel</a>`}
-                        </div>
-                        <div class="mytube-main-content">
-                            <div class="mytube-sidebar">
-                                <h3>Categories</h3>
-                                <ul>
-                                    <li><a href="#" data-url="mytube.com">Home</a></li>
-                                    <li><a href="#" data-url="mytube.com/search?q=popular">Popular</a></li>
-                                    <li><a href="#" data-url="mytube.com/search?q=gaming">Gaming</a></li>
-                                    <li><a href="#" data-url="mytube.com/search?q=tech">Tech</a></li>
-                                    <li><a href="#" data-url="mytube.com/search?q=social">Social</a></li>
-                                    ${userChannel.name ? `<li><a href="#" data-url="mytube.com/my-channel">My Channel</a></li>` : ''}
-                                    <li><a href="#" data-url="fexplorer:quick-links">Quick Links</a></li>
-                                </ul>
-                            </div>
-                            <div class="mytube-video-listing">
-                                <h1>Search Results for "${query}"</h1>
-                                ${myTubeSearchResultContent}
-                            </div>
-                        </div>
-                        <p class="footer-note" style="text-align: center; margin: 20px;">This is a simulated video platform. Content is pre-defined.</p>
-                    </div>
-                `;
             }
         }
 
-        if (!pageFound) {
+        /* =====================================================
+           4. PREVIEW PAGE (Special case)
+        ====================================================== */
+        else if (sanitizedUrl === "fexplorer:preview") {
+            const previewData = JSON.parse(localStorage.getItem("fexplorerPreviewDraft"));
+            if (!previewData) {
+                contentHtml = "<h1>No preview found.</h1>";
+            } else {
+                // Logic for previewing (omitted for brevity, 
+                // but this assumes you have this logic elsewhere)
+                contentHtml = "<h1>Preview Page</h1>"; // Placeholder
+            }
+            pageFound = true;
+        }
+
+        /* =====================================================
+           5. STATIC PAGES (fakeContent)
+        ====================================================== */
+        else if (fakeContent[sanitizedUrl]) { //
+            // Handled by getPageContentFromUrl, contentHtml is already set
+            pageFound = true;
+        }
+
+        /* =====================================================
+           6. SEARCH / EXTERNAL SITES
+        ====================================================== */
+        else {
+            contentHtml = handleExternalOrSearchPages(sanitizedUrl); //
+            if (contentHtml) {
+                pageFound = true;
+            }
+        }
+
+        /* =====================================================
+           7. 404 PAGE
+        ====================================================== */
+        if (!pageFound && !contentHtml) {
             contentHtml = `
-                <div style="text-align: center; padding: 20px;">
+                <div style="text-align:center;padding:20px;">
                     <h1>404 - Page Not Found</h1>
-                    <p>The requested URL <strong>${sanitizedUrl}</strong> could not be found.</p>
-                    <p>The site either could not load or does not exist.</p>
-                    ${Object.keys(userCreatedPages).length > 0 ? `<p>You also have your own created pages! Like: <a href="#" data-url="fexplorer:user-page-${Object.keys(userCreatedPages)[0]}">Your First Page</a></p>` : ''}
+                    <p>The URL <b>${sanitizedUrl}</b> does not exist.</p>
                 </div>
             `;
         }
 
-        if (!sanitizedUrl.startsWith('fexplorer:user-page-') || (sanitizedUrl.startsWith('fexplorer:user-page-') && userCreatedPages[sanitizedUrl.substring('fexplorer:user-page-'.length)]?.creationMode === 'simple')) {
-            // Only update innerHTML directly if it's not a code page
-            // or if it's a simple page, where scripts aren't expected to execute dynamically.
+        /* =====================================================
+           8. WRITE TO DOM (Static pages only)
+           (Code pages and Random pages already wrote to DOM)
+        ====================================================== */
+        const isCodePage = sanitizedUrl.startsWith("fexplorer:user-page-") &&
+                           userCreatedPages[sanitizedUrl.replace("fexplorer:user-page-", "")]?.creationMode === "code";
+        
+        // If it's NOT a special page, write the static HTML
+        if (!isCodePage) {
             browserContent.innerHTML = contentHtml;
         }
 
-
+        /* =====================================================
+           9. AWARD FPOINTS
+        ====================================================== */
         if (pageFound && shouldAwardFPoints) {
-            const baseFPoints = 5;
-            const earnedFPoints = Math.round(baseFPoints * userLuck);
-            userFPoints += earnedFPoints;
+            const earned = Math.round(5 * (userLuck || 1));
+            userFPoints += earned;
             saveAppState();
-            showFPointsNotification(earnedFPoints);
+            showFPointsNotification(earned);
         }
 
+        /* =====================================================
+           10. TRACK ACHIEVEMENT PROGRESS
+        ====================================================== */
+        // Track unique page visits
+        if (pageFound && !isBackNavigation) {
+            if (!achievementProgress['page_visits']) achievementProgress['page_visits'] = 0;
+            achievementProgress['page_visits']++;
+            saveAchievementProgress();
+        }
+
+        // Check for newly unlocked achievements
+        checkAchievements();
+
+        // Update home page specific UI if on home page
+        if (sanitizedUrl === "fexplorer:home") {
+            updateHomePageStats();
+            updateHomeFunFact();
+        }
+
+        // Update financial page stats
+        if (sanitizedUrl === "fexplorer:financial") {
+            updateFinancialPageStats();
+        }
+
+        // Update cookies page display
+        if (sanitizedUrl === "fexplorer:cookies") {
+            updateCookiesPageDisplay();
+        }
+
+        // Run final updates
         attachDynamicEventListeners();
         updateBackButtonState();
-    }, 500);
+        updateForwardButtonState();
+        updateBookmarkStar();
+        applyMusicSettings();
+        // show cookie indicator on visit (throttled) — grant 1 cookie by default
+        addCookieIndicator(1);
+
+    }, 300); // End of setTimeout
 }
 
 goButton.addEventListener('click', () => {
@@ -5776,8 +8952,17 @@ addressBar.addEventListener('keydown', (event) => {
 
 backButton.addEventListener('click', () => {
     if (historyStack.length > 0) {
+        forwardStack.push(currentUrl); // <--- IMPORTANT
         const prevUrl = historyStack.pop();
-        navigate(prevUrl, true);
+        navigate(prevUrl, true, false); // isBackNavigation = true
+    }
+});
+
+forwardButton.addEventListener('click', () => {
+    if (forwardStack.length > 0) {
+        historyStack.push(currentUrl); // <--- IMPORTANT
+        const nextUrl = forwardStack.pop();
+        navigate(nextUrl, false, true); // isBackNavigation = false
     }
 });
 
@@ -5873,13 +9058,6 @@ dropdown10.addEventListener('click', () => {
     navigate(EVENTS_URL);
 });
 
-// Forward button functionality can be added if a forward stack is implemented
-const forwardButton = document.getElementById('forwardButton');
-forwardButton.addEventListener('click', () => {
-    // Placeholder for future forward navigation
-    alert('Forward navigation is not implemented yet.');
-});
-
 document.addEventListener('DOMContentLoaded', () => {
     initializeDraftPage(); // Initialize or load draftPage
     updateFPointsDisplay();
@@ -5894,6 +9072,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchEngineSelect = browserContent.querySelector('#searchEngineSelect');
         const notificationsToggle = browserContent.querySelector('#notificationsToggle');
         const loginToggle = browserContent.querySelector('#loginToggle');
+        const cookieToggle = browserContent.querySelector('#cookieToggle');
         const resetSettingsBtn = browserContent.querySelector('#resetSettingsBtn');
         const settingsStatus = browserContent.querySelector('#settingsStatus');
         const saveSettingsBtn = browserContent.querySelector('#saveSettingsBtn');
@@ -5908,8 +9087,30 @@ document.addEventListener('DOMContentLoaded', () => {
             loginMessageElement.style.display = localStorage.getItem('fexplorerSettingHideLogin') === 'true' ? 'none' : 'block';
         }
         if (themeSelect) themeSelect.value = localStorage.getItem('fexplorerSettingTheme') || 'light';
-    if (notificationsToggle) notificationsToggle.checked = localStorage.getItem('fexplorerSettingNotifications') === 'true';
-    if (loginToggle) loginToggle.checked = localStorage.getItem('fexplorerSettingHideLogin') === 'true';
+        if (notificationsToggle) notificationsToggle.checked = localStorage.getItem('fexplorerSettingNotifications') === 'true';
+        if (loginToggle) loginToggle.checked = localStorage.getItem('fexplorerSettingHideLogin') === 'true';
+        if (cookieToggle) cookieToggle.checked = localStorage.getItem('fexplorerCookiesDisabled') === 'true';
+
+        // Music and related controls
+        const musicToggle = browserContent.querySelector('#musicToggle') || browserContent.querySelector('#musicToggleSetting');
+        const musicVolumeSetting = browserContent.querySelector('#musicVolumeSetting');
+        const musicVolumeLabel = browserContent.querySelector('#musicVolumeLabel');
+        const musicSelect = browserContent.querySelector('#musicSelect');
+        const homepageSelect = browserContent.querySelector('#homepageSelect');
+        const devModeToggle = browserContent.querySelector('#devModeToggle');
+
+        if (musicToggle) musicToggle.checked = localStorage.getItem('fexplorerMusicEnabled') === 'true';
+        if (musicVolumeSetting) {
+            musicVolumeSetting.value = localStorage.getItem('fexplorerMusicVolume') || '0.6';
+            if (musicVolumeLabel) musicVolumeLabel.textContent = Math.round(parseFloat(musicVolumeSetting.value) * 100) + '%';
+            music.volume = parseFloat(musicVolumeSetting.value) || music.volume;
+        }
+        if (musicSelect) musicSelect.value = localStorage.getItem('fexplorerMusicChoice') || 'orbspire';
+        if (homepageSelect) homepageSelect.value = localStorage.getItem('fexplorerSettingHomepage') || 'fexplorer:home';
+        if (devModeToggle) devModeToggle.checked = localStorage.getItem('fexplorerDevMode') === 'true';
+
+        // Ensure save/reset buttons are wired
+        try { attachSettingsListeners(); } catch (e) { /* ignore */ }
 
         // Custom notification function
         function showSettingsNotification(message, type = 'success') {
@@ -5995,17 +9196,35 @@ document.addEventListener('DOMContentLoaded', () => {
                         yourAccountUi.style.visible = 'none';
                     }
                 }
+                if (cookieToggle) {
+                    localStorage.setItem('fexplorerCookiesDisabled', cookieToggle.checked ? 'true' : 'false');
+                }
                 if (settingsStatus) settingsStatus.textContent = 'Settings saved!';
                 // Show notification if enabled
                 if (notificationsToggle && notificationsToggle.checked) {
                     showSettingsNotification('Settings saved successfully!', 'success');
                 }
+                if (musicToggleSetting) localStorage.setItem('fexplorerMusicEnabled', musicToggleSetting.checked ? 'true' : 'false');
+if (musicVolumeSetting) localStorage.setItem('fexplorerMusicVolume', musicVolumeSetting.value);
+applyMusicSettings();
+
             } catch (e) {
                 if (settingsStatus) settingsStatus.textContent = 'Error saving settings!';
                 if (notificationsToggle && notificationsToggle.checked) {
                     showSettingsNotification('Error saving settings!', 'error');
                 }
             }
+        }
+
+        // Wire save/reset buttons
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', saveSettings);
+        }
+        if (resetSettingsBtn) {
+            resetSettingsBtn.addEventListener('click', () => {
+                resetSettings();
+                setTimeout(() => applyFExplorerSettings(), 80);
+            });
         }
 
         if (osSelect) {
@@ -6070,5 +9289,293 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (saveSettingsBtn) {
             saveSettingsBtn.addEventListener('click', saveSettings);
+        }
+
+        // Developer Mode Tools
+        const devToolsSection = browserContent.querySelector('#devToolsSection');
+        const inspectElementBtn = browserContent.querySelector('#inspectElementBtn');
+        const showConsoleBtn = browserContent.querySelector('#showConsoleBtn');
+        const viewStorageBtn = browserContent.querySelector('#viewStorageBtn');
+        const toggleGridBtn = browserContent.querySelector('#toggleGridBtn');
+        const toggleMetricsBtn = browserContent.querySelector('#toggleMetricsBtn');
+        const exportDataBtn = browserContent.querySelector('#exportDataBtn');
+        const clearStorageBtn = browserContent.querySelector('#clearStorageBtn');
+
+        // Toggle dev tools visibility
+        if (devModeToggle) {
+            devModeToggle.addEventListener('change', () => {
+                localStorage.setItem('fexplorerDevMode', devModeToggle.checked ? 'true' : 'false');
+                if (devToolsSection) {
+                    devToolsSection.style.display = devModeToggle.checked ? 'block' : 'none';
+                }
+            });
+            // Initialize visibility
+            if (devToolsSection) {
+                devToolsSection.style.display = devModeToggle.checked ? 'block' : 'none';
+            }
+        }
+
+        // Inspect Element Tool
+        if (inspectElementBtn) {
+            let inspectMode = false;
+            inspectElementBtn.addEventListener('click', () => {
+                inspectMode = !inspectMode;
+                inspectElementBtn.style.backgroundColor = inspectMode ? '#4CAF50' : '';
+                inspectElementBtn.textContent = inspectMode ? '🔍 Inspect Element (Active)' : '🔍 Inspect Element (Click to enable)';
+                
+                if (inspectMode) {
+                    // Add inspect overlay styles
+                    if (!document.getElementById('inspectOverlayStyle')) {
+                        const style = document.createElement('style');
+                        style.id = 'inspectOverlayStyle';
+                        style.textContent = `
+                            .inspect-highlight {
+                                outline: 2px solid #4CAF50 !important;
+                                outline-offset: -1px !important;
+                                background-color: rgba(76, 175, 80, 0.1) !important;
+                            }
+                            .inspect-info-box {
+                                position: fixed;
+                                background: rgba(0, 0, 0, 0.85);
+                                color: #4CAF50;
+                                padding: 10px 15px;
+                                font-family: monospace;
+                                font-size: 12px;
+                                border: 1px solid #4CAF50;
+                                border-radius: 4px;
+                                z-index: 999999;
+                                max-width: 400px;
+                                pointer-events: none;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+
+                    // Enable element inspection
+                    const handler = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const el = e.target;
+                        document.querySelectorAll('.inspect-highlight').forEach(el => el.classList.remove('inspect-highlight'));
+                        el.classList.add('inspect-highlight');
+
+                        // Show element info
+                        let infoBox = document.getElementById('inspectInfoBox');
+                        if (!infoBox) {
+                            infoBox = document.createElement('div');
+                            infoBox.id = 'inspectInfoBox';
+                            infoBox.className = 'inspect-info-box';
+                            document.body.appendChild(infoBox);
+                        }
+                        const tagName = el.tagName.toLowerCase();
+                        const id = el.id ? ` #${el.id}` : '';
+                        const classes = el.className ? `.${el.className.split(' ').join('.')}` : '';
+                        const text = el.textContent.substring(0, 50).replace(/\n/g, ' ');
+                        infoBox.innerHTML = `&lt;${tagName}${id}${classes}&gt;<br>Text: "${text}"<br>Size: ${el.offsetWidth}x${el.offsetHeight}px`;
+                        infoBox.style.left = e.clientX + 10 + 'px';
+                        infoBox.style.top = e.clientY + 10 + 'px';
+                    };
+
+                    document.addEventListener('mouseover', handler, true);
+                    inspectElementBtn.dataset.handler = 'active';
+                    inspectElementBtn.addEventListener('click', function turnOff() {
+                        inspectMode = false;
+                        document.removeEventListener('mouseover', handler, true);
+                        document.querySelectorAll('.inspect-highlight').forEach(el => el.classList.remove('inspect-highlight'));
+                        const infoBox = document.getElementById('inspectInfoBox');
+                        if (infoBox) infoBox.remove();
+                        inspectElementBtn.style.backgroundColor = '';
+                        inspectElementBtn.textContent = '🔍 Inspect Element (Click to enable)';
+                        inspectElementBtn.removeEventListener('click', turnOff);
+                    });
+                }
+            });
+        }
+
+        // Show Console Logs
+        if (showConsoleBtn) {
+            showConsoleBtn.addEventListener('click', () => {
+                let logPanel = document.getElementById('devConsolePanel');
+                if (!logPanel) {
+                    logPanel = document.createElement('div');
+                    logPanel.id = 'devConsolePanel';
+                    logPanel.style.cssText = `
+                        position: fixed;
+                        bottom: 10px;
+                        right: 10px;
+                        width: 400px;
+                        height: 300px;
+                        background: rgba(0, 0, 0, 0.95);
+                        border: 1px solid #4CAF50;
+                        border-radius: 4px;
+                        color: #4CAF50;
+                        font-family: monospace;
+                        font-size: 12px;
+                        padding: 10px;
+                        overflow-y: auto;
+                        z-index: 999998;
+                    `;
+                    logPanel.innerHTML = '<div style="font-weight: bold; margin-bottom: 5px;">Console Logs:</div>';
+                    document.body.appendChild(logPanel);
+
+                    // Capture console logs
+                    const originalLog = console.log;
+                    console.log = function(...args) {
+                        originalLog.apply(console, args);
+                        const logDiv = document.createElement('div');
+                        logDiv.textContent = '> ' + args.join(' ');
+                        logPanel.appendChild(logDiv);
+                        logPanel.scrollTop = logPanel.scrollHeight;
+                    };
+                } else {
+                    logPanel.style.display = logPanel.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+        }
+
+        // View Storage
+        if (viewStorageBtn) {
+            viewStorageBtn.addEventListener('click', () => {
+                let storagePanel = document.getElementById('devStoragePanel');
+                if (!storagePanel) {
+                    storagePanel = document.createElement('div');
+                    storagePanel.id = 'devStoragePanel';
+                    storagePanel.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 600px;
+                        max-height: 400px;
+                        background: rgba(0, 0, 0, 0.95);
+                        border: 2px solid #4CAF50;
+                        border-radius: 4px;
+                        color: #4CAF50;
+                        font-family: monospace;
+                        font-size: 12px;
+                        padding: 15px;
+                        overflow-y: auto;
+                        z-index: 999998;
+                    `;
+                    let content = '<div style="font-weight: bold; margin-bottom: 10px;">LocalStorage Contents:</div>';
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        const value = localStorage.getItem(key);
+                        content += `<div style="margin-bottom: 5px;"><strong>${key}:</strong> ${value.substring(0, 100)}</div>`;
+                    }
+                    content += '<div style="margin-top: 10px;"><button onclick="this.parentElement.remove()" style="padding: 5px 10px; background: #4CAF50; color: black; border: none; cursor: pointer; border-radius: 3px;">Close</button></div>';
+                    storagePanel.innerHTML = content;
+                    document.body.appendChild(storagePanel);
+                }
+            });
+        }
+
+        // Toggle Grid Overlay
+        if (toggleGridBtn) {
+            toggleGridBtn.addEventListener('click', () => {
+                let gridOverlay = document.getElementById('devGridOverlay');
+                if (!gridOverlay) {
+                    gridOverlay = document.createElement('div');
+                    gridOverlay.id = 'devGridOverlay';
+                    gridOverlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-image: 
+                            linear-gradient(0deg, transparent 24%, rgba(76, 175, 80, 0.3) 25%, rgba(76, 175, 80, 0.3) 26%, transparent 27%, transparent 74%, rgba(76, 175, 80, 0.3) 75%, rgba(76, 175, 80, 0.3) 76%, transparent 77%, transparent),
+                            linear-gradient(90deg, transparent 24%, rgba(76, 175, 80, 0.3) 25%, rgba(76, 175, 80, 0.3) 26%, transparent 27%, transparent 74%, rgba(76, 175, 80, 0.3) 75%, rgba(76, 175, 80, 0.3) 76%, transparent 77%, transparent);
+                        background-size: 50px 50px;
+                        z-index: 99999;
+                        pointer-events: none;
+                    `;
+                    document.body.appendChild(gridOverlay);
+                    toggleGridBtn.style.backgroundColor = '#4CAF50';
+                } else {
+                    gridOverlay.remove();
+                    toggleGridBtn.style.backgroundColor = '';
+                }
+            });
+        }
+
+        // Toggle Performance Metrics
+        if (toggleMetricsBtn) {
+            toggleMetricsBtn.addEventListener('click', () => {
+                let metricsPanel = document.getElementById('devMetricsPanel');
+                if (!metricsPanel) {
+                    metricsPanel = document.createElement('div');
+                    metricsPanel.id = 'devMetricsPanel';
+                    metricsPanel.style.cssText = `
+                        position: fixed;
+                        top: 10px;
+                        left: 10px;
+                        background: rgba(0, 0, 0, 0.85);
+                        border: 1px solid #4CAF50;
+                        border-radius: 4px;
+                        color: #4CAF50;
+                        font-family: monospace;
+                        font-size: 12px;
+                        padding: 10px;
+                        z-index: 999998;
+                    `;
+                    document.body.appendChild(metricsPanel);
+
+                    const updateMetrics = () => {
+                        const mem = performance.memory;
+                        const now = performance.now();
+                        metricsPanel.innerHTML = `
+                            <div>Memory: ${mem ? Math.round(mem.usedJSHeapSize / 1048576) + 'MB' : 'N/A'}</div>
+                            <div>Time: ${Math.round(now)}ms</div>
+                            <div>DOM Nodes: ${document.querySelectorAll('*').length}</div>
+                        `;
+                    };
+                    updateMetrics();
+                    metricsPanel.dataset.intervalId = setInterval(updateMetrics, 500);
+                    toggleMetricsBtn.style.backgroundColor = '#4CAF50';
+                } else {
+                    clearInterval(metricsPanel.dataset.intervalId);
+                    metricsPanel.remove();
+                    toggleMetricsBtn.style.backgroundColor = '';
+                }
+            });
+        }
+
+        // Export Game Data
+        if (exportDataBtn) {
+            exportDataBtn.addEventListener('click', () => {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    fpoints: localStorage.getItem('fexplorerFPoints'),
+                    cookies: localStorage.getItem('fexplorerCookies'),
+                    settings: {}
+                };
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('fexplorer')) {
+                        data.settings[key] = localStorage.getItem(key);
+                    }
+                }
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `fexplorer-export-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showSettingsNotification('Game data exported!', 'success');
+            });
+        }
+
+        // Clear Storage
+        if (clearStorageBtn) {
+            clearStorageBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear ALL storage? This cannot be undone!')) {
+                    localStorage.clear();
+                    showSettingsNotification('All storage cleared!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                }
+            });
         }
     }
