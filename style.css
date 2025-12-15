@@ -1747,6 +1747,11 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 120, 212, 0.4);
 }
+.financial-button-primary:disabled {
+    background: #a0c4ff;
+    cursor: not-allowed;
+    box-shadow: none;
+}
 
 .financial-button-success {
     background: linear-gradient(135deg, #28a745, #20c997);
@@ -4974,59 +4979,4 @@ body.fexplorer-binary-mode {
     outline: none;
     color: #00ff00;
     font-family: inherit;
-}
-/* ============================================================
-   FSTUDIO — FExplorer-STYLE UI THEME
-   Makes FStudio look like a native FExplorer app.
-   Clean layout • Flexible sizing • Modern app look
-============================================================ */
-/* New FStudio styles for `fstudio:create.new` page */
-.fstudio-page {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: inherit;
-    color: #1f2937;
-    background: transparent;
-}
-
-/* App header used across studio */
-.app-header {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:12px 18px;
-    background: linear-gradient(90deg,#ffffff,#fbfbff);
-    border-radius:10px;
-    box-shadow: 0 2px 6px rgba(16,24,40,0.06);
-}
-.app-header .app-logo { width:36px; height:36px; border-radius:6px; }
-.app-header .app-title { font-weight:700; font-size:1.05rem; color:#0f1724; }
-.app-header-button { margin-left:8px; text-decoration:none; color:#374151; padding:6px 10px; border-radius:6px; font-weight:600; background:transparent; border:1px solid transparent; }
-.app-header-button:hover { background:#f3f4f6; }
-
-/* Container: two-column grid (panels) */
-.fstudio-container { width:100%; box-sizing:border-box; }
-.fstudio-panel { background:white; border:1px solid #e6e9ef; border-radius:12px; padding:18px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); }
-
-.fstudio-container { display:grid; grid-template-columns: 1fr 1fr; gap:20px; max-width:1200px; margin:0 auto; }
-
-.fstudio-panel h2 { margin:0 0 10px 0; font-size:1.05rem; }
-
-/* Inputs in panels */
-.fstudio-panel input[type="text"], .fstudio-panel textarea { width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; box-sizing:border-box; font-size:14px; }
-.fstudio-panel textarea { min-height:80px; resize:vertical; }
-
-.mode-btn { display:inline-block; padding:10px 12px; border-radius:8px; cursor:pointer; border:2px solid #e6e9ef; background:white; font-weight:700; }
-.mode-btn.active { background:#667eea; color:white; border-color: #667eea; }
-
-.fstudio-panel .home-page-button { width:100%; padding:12px 14px; border-radius:8px; font-weight:700; }
-
-#uploadYoutubeBtn { transition: all .15s ease; }
-#uploadYoutubeBtn:disabled { opacity:0.6; cursor:not-allowed; }
-
-/* Tips card */
-.fstudio-panel .tip { background:#fff7ed; border:1px solid #ffecb5; padding:12px; border-radius:8px; color:#7a4b00; }
-
-@media (max-width: 980px) {
-    .fstudio-container { grid-template-columns: 1fr; padding: 0 12px; }
 }

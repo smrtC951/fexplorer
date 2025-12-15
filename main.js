@@ -267,6 +267,10 @@ function getPageContentFromUrl(sanitizedUrl) {
             const id = sanitizedUrl.replace('fexplorer:search-article-', '');
             return getSearchArticleHTML(id);
         }
+        // MyTube video watch pages
+        if (sanitizedUrl.startsWith('mytube.com/watch?v=')) {
+            return '__MYTUBE_WATCH_PAGE__';
+        }
 
         // e) If we get here and it's fexplorer:something but not in fakeContent, return null
         // This will trigger 404 handling in navigate()
@@ -557,6 +561,31 @@ if (!window.__fexplorerDelegatedClickBound) {
             return;
         }
 
+        // Meme button
+        if (target.matches(".meme-button1")) {
+            let memeChance = Math.floor(Math.random() * 100);
+            if (memeChance > 50) {
+                alert(`YOUR MEME IS VERY NICE!!`);
+                alert(`YOU GET ${memeChance} FPOINTS!!`);
+                userFPoints += memeChance;
+                saveAppState();
+                showFPointsNotification(+memeChance);
+            } else {
+                alert(`YOUR MEME ISN'T GOOD ENOUGH...`);
+                alert(`NOT TO WORRY! BECAUSE YOU'LL GET ${memeChance} FPOINTS ANYWAY!! :DDD`);
+                memeChance /= 2; 
+                userFPoints += memeChance;
+                saveAppState();
+                showFPointsNotification(+memeChance);
+            }
+        }
+        if (target.matches(".meme-button2")) {
+            alert('..did you just ignore my meme review page?');
+            alert('I SPENT SO MUCH ON THAT!!');
+            alert('YOU\'LL PAY FOR YOUR ACTIONS!!');
+            navigate("fexplorer:home");
+        }
+
         /* =============================
            🎰 BETTING BUTTON
         ============================= */
@@ -588,6 +617,21 @@ if (!window.__fexplorerDelegatedClickBound) {
             return;
         }
 
+        if (target.matches(".error777-button")) {
+            confirm("Support is currently unavailable. Please try again later.");
+            if (true) {
+                confirm("Support is STILL unavailable. When do you think it will be?");
+                if (true) {
+                    let waitTime = Math.floor(Math.random() * 11) + 5;
+                    alert("Please wait approximately " + waitTime + " seconds and try again.");
+                    setTimeout(() => {
+                        alert("Support is now available! Just kidding, still unavailable.");
+                        alert("You really thought it was, huh?");
+                    }, waitTime * 1000);
+                }
+            }
+            return;
+        }
         /* =============================
            🍔 BURGER BUTTON
         ============================= */
@@ -618,12 +662,22 @@ if (target.matches(".bonus-button")) {
         /* =============================
            🔥 HOLIDAY
         ============================= */
-        if (target.matches(".holiday-button, #jx1dx1Halloween")) {
+        if (target.matches(".holiday-button")) {
             const randomHalloweenPoints = Math.floor(Math.random() * 101) + 50;
             userFPoints += randomHalloweenPoints;
             saveAppState();
             showFPointsNotification(randomHalloweenPoints);
-            alert("Happy Holidays! You received " + randomHalloweenPoints + " FPoints!");
+            if (currentUrl.includes("holiday/halloween")) {
+                alert(`Happy Halloween! You received ${randomHalloweenPoints} FPoints!`);
+            } else if (currentUrl.includes("holiday/jx1dx1")) {
+                alert(`I.KNOW.YOU.WILL.CLICK.THIS.`);
+            } else if (currentUrl.includes("thanksgiving")) {
+                alert(`Happy Thanksgiving! You received ${randomHalloweenPoints} FPoints!`)
+            } else if (currentUrl.includes("christmas")) {
+                alert(`Merry Christmas! You received ${randomHalloweenPoints} FPoints!`);
+            } else {
+                alert(`Happy Holidays! You received ${randomHalloweenPoints} FPoints!`);
+            }
             target.style.display = "none";
             return;
         }
@@ -672,6 +726,115 @@ if (target.matches(".bonus-button")) {
             return;
         }
 
+        if (target.matches(".dangerous-button4")) {
+            alert("Downloading kinitoPET...");
+            if (confirm("Are you sure?")) {
+                alert("Đꝋⱳꞥłꝋⱥđīꞥꞡ ҟīꞥīⱦꝋꝐɆȾ...");
+                userFPoints -= 1000;
+                saveAppState();
+                alert("FExplorer deleted the download.");
+                userFPoints += 2000;
+                saveAppState();
+                showFPointsNotification(+userFPoints);
+                alert("Congrats! :)");
+            } else {
+                alert("You evaded the virus! Here's 200 FPoints!");
+                userFPoints += 200;
+                saveAppState();
+                showFPointsNotification(+userFPoints);
+            }
+            target.style.display = "none";
+            return;
+        }
+
+        /* =============================
+        Paranoid.
+        ============================= */
+        if (target.matches(".paranoia-button1")) {
+            alert("₲ꝋꝋđ.")
+            alert(`Ī'łł ӻꝋłłꝋⱳ ɏꝋᵾ ⱳħēɍē ēꝟēɍ ɏꝋᵾ ꞡꝋ.`)
+            alert(`A͉ͪ̾Ņ̴̶͈̘͈͔̲̮͓͖̣̩͔͎̬̭͈ͦ͒̑ͨͣ̔͐ͥ̓ͭ̏͝͝͞ͅDͣ_̥̭̙̑ Ỵ̴̷̛̤̪͙̲̟̻͎̣̞̩̞͗̿ͬ̌̀̒̅ͭ̉̀̈́̇͗͐̇͌̃͘͟͝Ǫ̻̞̪̞̬͎͕̼̲͙͔̗̦̭̝̣̃̀̓̑͒̀ͦ͊̌ͣ̀̒̂͑͠͝ͅU̴̶̻͉͍̰̙͓̬̤̪̻͈ͯͤ̅̀ͮͥ̌̀̈́̏ͦͣͬ̊̋͞͞ͅͅ Ć̶̛̳̬̜͓̠ͮ͋ͦ̔Ą̖̰̮͙̪̺͕̈̎̿̈́̽ͣ͋̈́̄͑́̑̃̈́͗̎ͪ͌ͪ͝N̡̹̦̟̗̮͒͟_̸̣͓̝̐ͨ̈͘'̴̢̨̡̛̭͙̤̝̭͚̦̙̣̬̟̤̒̃̔̏ͩ̈́̍ͨ̽ͦ͑̈ͮ͢͟͠͠_Țͨ̽͡ S̜̫͓̙̯͎ͩ̅ͤ͂ͤͨ̀͘̚̚T̢̛̹͍̳̣͕͈͚̞̖̯̾̐́̅̂̈̉̌̓̄͆̚̕͘͝͠_̢̯̯͚̦̠͓̼̖̔̀ͮ̈́̅̔̏ͮǪ̴̸̡̡̰͇̯̘̱̙̞̰ͩ̄̉̾̇̾̃̌̑̋ͯͬ̈́͑͡͡Pͣ M̵̢̛͎̪̳͚̰̘̝̪̖̬͂̔ͫͪ̂͐ͪͣ̀ͭ̾ͯ̒ͅ_̛̛̮̞͚͕̮̰̭̈́̄͒̂ͥ͊̕̕͡Ę̨̙̼̪͉͓̪̤͙̯̼̠̿̇̃̏̒͂͂̅̿ͫͫ̂̚.̨̧͍̠̻̲̦͖̬͈͉̲ͬ̅̑̀̓͛͆̉̐ͣ̐ͯ̉ͦ̆͗̎͑͛_̴̳̤͂̉̃͗ͥ̐́̏`);
+            navigate("paranoid.com/error.html");
+            userCookies /= 2;
+            saveAppState();
+            showCookiesNotification(-userCookies);
+            return;
+        }
+
+        if (target.matches(".paranoia-button2")) {
+            alert("You're lucky you got out of that one...");
+            navigate("fexplorer:10000-default/basic");
+            userFPoints += 500;
+            saveAppState();
+            showFPointsNotification(+500);
+            return;
+        }
+
+        // Task Button
+if (target.matches(".task-button")) {
+    if (currentUrl.includes("oh_no")) {
+        // Microwave cooking task
+        const foods = ["pizza", "popcorn", "leftovers", "frozen dinner"];
+        const correctFood = foods[Math.floor(Math.random() * foods.length)];
+        const userChoice = prompt(`What would you like to cook in the microwave? Options: ${foods.join(", ")}`);
+        
+        if (userChoice && userChoice.toLowerCase() === correctFood) {
+            alert("You cooked the right food! Here's 50 FPoints!");
+            userFPoints += 50;
+            saveAppState();
+            showFPointsNotification(50);
+            target.style.display = "none";
+        } else {
+            alert(`Wrong food! The correct food was ${correctFood}. Try again!`);
+            userFPoints -= 25;
+            saveAppState();
+            showFPointsNotification(-25);
+        }
+    } else if (currentUrl.includes("code")) {
+        // Javascript Code task
+    const unfinishedCodes = ["print()", `if (currentUrl.includes("apple")) {}`, `userFPoints += 37; // I want the FPoints to be 50`];
+    const randomCode = unfinishedCodes[Math.floor(Math.random() * unfinishedCodes.length)];
+    const solvedCodes = ["print(\"hello world\")", `if (currentUrl.includes("code")) {}`, `userFPoints += 50;`];
+    const solveCode = prompt(`Solve this code: ${randomCode}`);
+
+if (solveCode) {
+    const codeIndex = unfinishedCodes.indexOf(randomCode);
+    if (codeIndex >= 0 && solveCode === solvedCodes[codeIndex]) {
+        alert("Correct solution! Here's 50 FPoints!");
+        userFPoints += 50;
+        saveAppState();
+        showFPointsNotification(50);
+        target.style.display = "none";
+    } else {
+        alert("That's not quite right. Try again!");
+        userFPoints -= 25;
+        saveAppState(); 
+        showFPointsNotification(-25);
+    }
+}    
+    } else {
+        // Connect lines task
+        const lines = ["A", "B", "C"];
+        const correctOrder = ["B", "A", "C"];
+        let userOrder = [];
+        
+        for (let i = 0; i < 3; i++) {
+            const choice = prompt(`Connect line ${i + 1} (Choose A, B, or C):`);
+            if (choice) userOrder.push(choice.toUpperCase());
+        }
+        
+        if (userOrder.join("") === correctOrder.join("")) {
+            alert("Lines connected correctly! Here's 50 FPoints!");
+            userFPoints += 50;
+            saveAppState();
+            showFPointsNotification(50);
+            target.style.display = "none";
+        } else {
+            alert("Wrong connection order! Try again!");
+        }
+    }
+    return;
+}
         /* =============================
            RANDOM LINK
         ============================= */
@@ -724,7 +887,6 @@ if (target.matches(".mystery-link")) {
     navigate(chosen);
     return;
 }
-
     });
 
     window.__fexplorerDelegatedClickBound = true;
@@ -1566,7 +1728,7 @@ const achievementItems = [
         name: 'congratulations.i.guess.',
         description: 'Did what JX1DX1 told you to do. <br> bmljZS5iYWRnZS5icm8u',
         awards: [{ type: 'fpoints', amount: 2008 }, { type: 'cosmetic', id: 'jx1dx1_badge' }],
-        checkUnlock: () => false, // TODO: Add tracking for visiting paranoid.com/jx1dx1
+        checkUnlock: () => false,
         progress: null
     },
     {
@@ -1705,19 +1867,20 @@ function runTerminalCommand(cmd, print) {
             print("Available commands:");
             print("help - Show this list");
             print("clear - Clear terminal");
-            print("points - Show your FPoints");
+            print("stats - Show your statistics");
             print("date - Show system date/time");
             print("open [url] - Open an FExplorer page");
             print("whoami - Identity check");
             print("fbot - Chat with FBot?");
+            print("tasks - Shows a list of tasks to do")
             break;
 
         case "clear":
             document.getElementById('terminalOutput').innerHTML = "";
             break;
 
-        case "points":
-            print(`You have ${userFPoints} FPoints.`);
+        case "stats":
+            print(`YOUR STATS: <br> ${userFPoints} FPoints <br> ${userCookies} Cookies <br> ${userLuck} Luck`);
             break;
 
         case "date":
@@ -1745,9 +1908,14 @@ function runTerminalCommand(cmd, print) {
         case "teapot":
             print("Loading a very detailed looking teapot...");
             setTimeout(() => print("Error 518 - I'm A Teapot!<br>Yeah no you're not gonna see a teapot here."), 2000);
+            userFPoints += 518;
             updateFPointsDisplay();
             saveAppState();
-            showFPointsNotification(518);
+            showFPointsNotification(+518);
+            break;
+        
+        case "tasks":
+            print("No tasks right now.");
             break;
         default:
             print(`Unknown command: ${cmd}`);
@@ -1821,7 +1989,7 @@ function jx1dx1Annoyance() {
                 } else if (currentUrl === 'fexplorer:shop') {
                     messages.push('ah.yes.the.shop. buy.something.interesting...');
                     messages.push('welcome.to.the.shop.i.guess.');
-                } else if (currentUrl && currentUrl.startsWith('fexplorer:user-page-')) {
+                } else if (sanitizedUrl.includes("-") && sanitizedUrl.includes("/")) {
                     messages.push('visiting.user.pages? how.curious...');
                     messages.push("visiting.user.pages.is.a.risky.move...");
                     messages.push("do.you.really.trust.these.pages?");
@@ -1860,7 +2028,9 @@ function jx1dx1Annoyance() {
                 } else if (currentUrl === `goog.com/search?q=jx1dx1`) {
                     messages.push('hey.that\'s.me.');
                     messages.push('you.could\'ve.searched.("paranoid").instead.but.whatever.');
-                };
+                } else if (userFPoints > 9999) {
+                    messages.push("you.should.really.touch.some.grass.");
+                }
                 
                 if (messages.length > 0) {
                     alert(messages[Math.floor(Math.random() * messages.length)]);
@@ -2044,16 +2214,20 @@ function showFPointsNotification(amount) {
 // Browser checking
 function getBrowserName() {
     const userAgent = navigator.userAgent;
-    if (userAgent.includes("Chrome")) {
-        return "Chrome";
+    if (userAgent.includes("Edg")) {
+        return "Microsoft Edge";
+    } else if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
+        return "Google Chrome"; 
     } else if (userAgent.includes("Firefox")) {
-        return "Firefox";
-    } else if (userAgent.includes("Safari")) {
+        return "Mozilla Firefox";
+    } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
         return "Safari";
-    } else  if (userAgent.includes("Internet Explorer") || userAgent.includes("Netscape")) {
+    } else if (userAgent.includes("Opera") || userAgent.includes("OPR")) {
+        return "Opera";
+    } else if (userAgent.includes("Internet Explorer") || userAgent.includes("Trident") || userAgent.includes("MSIE")) {
         return "bro i think you need to upgrade";
     } else {
-        return "Unknown";
+        return "Unknown Browser";
     }
 }
 
@@ -2321,6 +2495,7 @@ function deletePage(pageId) {
     }
 }
 
+// Content
 const fakeContent = {
     // Example site
     'example.com': `
@@ -2351,6 +2526,18 @@ const fakeContent = {
             </div>
             <div id="googSearchResults" class="goog-search-results" style="width:100%;max-width:760px;margin-top:28px;"></div>
             <p class="footer-note" style="margin-top:32px;color:#70757a">© Goog | Made by smrtC951!</p>
+        </div>
+    `,
+    // Search Engine: NoSearch (Yahoo)
+    'nosearch.com': `
+    <div>
+            <img src="icons/placeholder.png" alt="Goog! Logo" class="goog-logo" style="width:220px;margin-bottom:18px;">
+            <div style="width:100%;max-width:760px;display:flex;gap:8px;align-items:center;">
+                <input type="search" id="googSearchInput" placeholder="Search the web with Goog!">
+                <button id="googSearchButton">Search</button>
+            </div>
+            <div id="googSearchResults"></div>
+            // No
         </div>
     `,
     // FExplorer Home Page
@@ -2414,7 +2601,7 @@ const fakeContent = {
                     <button class="home-page-button" data-url="fexplorer:settings">Settings</button>
                     <button class="home-page-button" data-url="fexplorer:games">Games</button>
                     <button class="home-page-button" data-url="fexplorer:about">About</button>
-                    <button class="home-page-button" data-url="fexplorer:placeholder" id="yourAccountButton" disabled>Your Account</button>
+                    <button class="home-page-button" data-url="fexplorer:account" id="yourAccountButton">Your Account</button>
                 </div>
             </div>
 
@@ -2631,22 +2818,17 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Alpha 1.5 - This is the overhaul of an update, truss me!</h2>
-            <p>Release Date: <i>November 25, 2025</i></p>
+			<h2>Update Name: Alpha 1.5.1 - The Christmas Mini-update!</h2>
+            <p>Release Date: <i>December 15, 2025</i></p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>Added new endings to Interactive Game: Into The Horizon</li>
-                    <li>Added something to FExplorer Legacy.. Shhh...</li>
-                    <li>Completely recoded the create feature! Now it is called FStudio, with the link "fexplorer:create.new".</li>
-                    <li>Tabs has been added! You can now play games while.. playing another game, except you can't. Brh.</li>
-                    <li>Recoded the random page mechanic! It now uses the "fexplorer:(id)-(category)/(variant)" URL!</li>
-                    <li>Added forward navigation!</li>
-                    <li>FExplorer Slideshow is now part of the System Suite!</li>
-                    <li>A Quality of Life update to some FExplorer pages! They look too good. I liked the flat one.</li>
-                    <li>Upgraded Goog and Ping search engines!</li>
-                    <li>Brand new game - survial game! It's kinda broken, but you should try it out!</li>
+                    <li>A ton of new user variants!</li>
+                    <li>MyTube beta is released! It's filled with bugs, so expect.. bugs.</li>
+                    <li>AI summaries to summarize your search results! They are quite stupid.</li>
+                    <li>Added a Christmas page!</li>
+                    <li>"Enhanced" the log in system (not really)</li>
                 </ul>
             </div>
 
@@ -2683,7 +2865,7 @@ const fakeContent = {
                 <option value="winxp">Windows XP</option>
                 <option value="macx">Mac OS X</option>
                 <option value="mac9">Mac OS 9</option>
-                <option value="classic">Classic (Legacy)</option>
+                <option value="classic">Demo 1.2</option>
             </select>
 
             <label class="fx-label" for="themeSelect">Theme</label>
@@ -2813,8 +2995,8 @@ const fakeContent = {
             </div>
 
             <div id="settingsStatus" class="fx-status" aria-live="polite"></div>
+            <p>Browser: <script>document.write(getBrowserName());</script></p>
         </section>
-
     </div>
 </div>
 `,
@@ -2833,76 +3015,8 @@ const fakeContent = {
     `,
     // FExplorer NEW Create page
     'fexplorer:create.new': `
-        <div class="fstudio-page">
-            <div class="app-header">
-                <img src="icons/fexplorer.png" class="app-logo">
-                <span class="app-title">FStudio</span>
-                <a data-url="fexplorer:home" class="app-header-button">Home</a>
-                <a data-url="fexplorer:create.hub" class="app-header-button">Creator Hub</a>
-            </div>
-
-            <div class="fstudio-container" style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto;">
-                <!-- Left Panel: Page Creator -->
-                <div class="fstudio-panel">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
-                        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.5em;">📄</span>
-                            Create a New Page
-                        </h2>
-                    </div>
-                    <div style="background: white; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none;">
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #333;">Page Title</label>
-                            <input type="text" id="pageTitle" placeholder="Enter page title" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #333;">Page Description</label>
-                            <textarea id="pageDescription" placeholder="Describe your page..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; resize: vertical; height: 80px;"></textarea>
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #333;">Creation Mode</label>
-                            <div style="display: flex; gap: 10px;">
-                                <button id="simpleModeBtn" class="mode-btn" style="flex: 1; padding: 10px; border: 2px solid #667eea; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                                    🎨 Simple
-                                </button>
-                                <button id="codeModeBtn" class="mode-btn" style="flex: 1; padding: 10px; border: 2px solid #ccc; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                                    💻 Code
-                                </button>
-                            </div>
-                        </div>
-                        <button id="createPageBtn" style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1em;">
-                            ✨ Create Page
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Right Panel: Studio Tools -->
-                <div class="fstudio-panel">
-                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
-                        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.3em;">🎬</span>
-                            Studio Tools
-                        </h2>
-                    </div>
-                    <div style="background: white; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; display: flex; flex-direction: column; gap: 12px;">
-                        <button style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.3em;">🎨</span>
-                            Visual Editor
-                        </button>
-                        <button style="padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.3em;">🎬</span>
-                            Preview Page
-                        </button>
-                        <button id="uploadYoutubeBtn" disabled style="padding: 15px; background: #ccc; color: #999; border: none; border-radius: 8px; cursor: not-allowed; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.3em;">📹</span>
-                            Upload to MyTube
-                        </button>
-                        <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404; font-size: 0.9em;">
-                            <strong>💡 Tip:</strong> MyTube uploads are coming soon! Check back later.
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div id="fstudio_root_placeholder" style="padding:40px;text-align:center;color:#666;">
+            <p>Loading FStudio...</p>
         </div>
     `,
     // FExplorer Boomarks Manager
@@ -2918,34 +3032,87 @@ const fakeContent = {
             <p>This feature will be coming in another update. Stay tuned!</p>
         </div>
     `,
-    // MyTube Video Sharing Platform
+    // Full MyTube Video Sharing Platform
+    'mytube.com/watch': `
+        <!-- Video page content will be generated by JavaScript -->
+    `,
     'mytube.com': `
-        <div class="home-page-content" style="text-align: center; padding: 60px 20px;">
-            <img src="icons/mytube-logo.png" alt="MyTube Logo" class="mytube-logo">
-            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 30px; max-width: 500px; margin: 30px auto; color: #856404;">
-                <h2 style="margin-top: 0; color: #ff6600;">🚧 Under Construction 🚧</h2>
-                <p style="font-size: 1.1em; line-height: 1.6;">
-                    MyTube is currently under development! We're building an amazing video sharing platform for FExplorer.
-                </p>
-                <p style="margin: 20px 0; color: #ff0000; font-weight: bold;">
-                    Coming Soon!
-                </p>
-                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
-                    <strong>What to Expect:</strong>
-                    <ul style="margin: 10px 0; padding-left: 20px;">
-                        <li>Upload and share your FStudio creations</li>
-                        <li>Discover amazing videos from other creators</li>
-                        <li>Earn rewards for popular uploads</li>
-                        <li>Build your creator channel</li>
-                    </ul>
-                </div>
-                <p style="font-size: 0.9em; opacity: 0.8;">
-                    Check back soon for the launch!
-                </p>
+        <div class="home-page-content">
+            <img src="icons/mytube-logo.png" class="mytube-logo">
+            <h1>Welcome to MyTube!</h1>
+            <p class="tagline">Your go-to platform for sharing and discovering videos.</p>
+            
+            <div class="home-page-search-container">
+                <input type="text" class="mytube-search-input" placeholder="Search videos...">
+                <button class="home-page-search-button mytube-search-btn">Search</button>
             </div>
-            <button class="home-page-button" data-url="fexplorer:home" style="margin-top: 20px;">
-                ← Return to Home
-            </button>
+            
+            <div class="home-page-buttons-container">
+                <button class="home-page-button mytube-upload-btn">📤 Upload Video</button>
+                <button class="home-page-button" id="myChannelBtn">👤 My Channel</button>
+            </div>
+            
+            <div class="quicklinks-grid" style="margin-top: 40px;">
+                <button class="quicklink-card mytube-video-card" data-video-id="0" data-video-title="Amazing FExplorer Tutorial" style="border: none; background: inherit; cursor: pointer; text-align: left;">
+                    <div class="quicklink-icon" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4); width: 100%; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em; margin-bottom: 15px; position: relative;">
+                        ▶️
+                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">10:24</div>
+                    </div>
+                    <h3 style="color: #007bff;">Amazing FExplorer Tutorial</h3>
+                    <p>Learn the basics of FExplorer in this comprehensive tutorial. Perfect for beginners!</p>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px;"><span style="color: #007bff; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); navigate('mytube.com/channel?name=FExplorer%20Official');">FExplorer Official</span> • 1.2M views • 2 days ago</div>
+                </button>
+                
+                <button class="quicklink-card mytube-video-card" data-video-id="1" data-video-title="Top 10 FExplorer Tips" style="border: none; background: inherit; cursor: pointer; text-align: left;">
+                    <div class="quicklink-icon" style="background: linear-gradient(45deg, #667eea, #764ba2); width: 100%; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em; margin-bottom: 15px; position: relative;">
+                        ▶️
+                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">5:43</div>
+                    </div>
+                    <h3 style="color: #007bff;">Top 10 FExplorer Tips</h3>
+                    <p>Discover hidden features and productivity tips to get the most out of FExplorer.</p>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px;"><span style="color: #007bff; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); navigate('mytube.com/channel?name=TechReviewer');">TechReviewer</span> • 856K views • 1 week ago</div>
+                </button>
+                
+                <button class="quicklink-card mytube-video-card" data-video-id="2" data-video-title="Building Your First Website" style="border: none; background: inherit; cursor: pointer; text-align: left;">
+                    <div class="quicklink-icon" style="background: linear-gradient(45deg, #f093fb, #f5576c); width: 100%; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em; margin-bottom: 15px; position: relative;">
+                        ▶️
+                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">15:12</div>
+                    </div>
+                    <h3 style="color: #007bff;">Building Your First Website</h3>
+                    <p>Step-by-step guide to creating websites using FExplorer's built-in tools.</p>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px;"><span style="color: #007bff; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); navigate('mytube.com/channel?name=WebDev%20Pro');">WebDev Pro</span> • 432K views • 3 days ago</div>
+                </button>
+                
+                <button class="quicklink-card mytube-video-card" data-video-id="3" data-video-title="FExplorer vs Other Browsers" style="border: none; background: inherit; cursor: pointer; text-align: left;">
+                    <div class="quicklink-icon" style="background: linear-gradient(45deg, #4facfe, #00f2fe); width: 100%; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em; margin-bottom: 15px; position: relative;">
+                        ▶️
+                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">8:37</div>
+                    </div>
+                    <h3 style="color: #007bff;">FExplorer vs Other Browsers</h3>
+                    <p>Comprehensive comparison showing why FExplorer stands out from the competition.</p>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px;"><span style="color: #007bff; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); navigate('mytube.com/channel?name=TechComparison');">TechComparison</span> • 2.1M views • 5 days ago</div>
+                </button>
+                
+                <button class="quicklink-card mytube-video-card" data-video-id="4" data-video-title="Customizing FExplorer Themes" style="border: none; background: inherit; cursor: pointer; text-align: left;">
+                    <div class="quicklink-icon" style="background: linear-gradient(45deg, #fa709a, #fee140); width: 100%; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em; margin-bottom: 15px; position: relative;">
+                        ▶️
+                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">12:55</div>
+                    </div>
+                    <h3 style="color: #007bff;">Customizing FExplorer Themes</h3>
+                    <p>Complete guide to personalizing your FExplorer experience with custom themes.</p>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px;"><span style="color: #007bff; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); navigate('mytube.com/channel?name=CustomizeGuru');">CustomizeGuru</span> • 678K views • 1 day ago</div>
+                </button>
+                
+                <button class="quicklink-card mytube-video-card" data-video-id="5" data-video-title="FExplorer Gaming Features" style="border: none; background: inherit; cursor: pointer; text-align: left;">
+                    <div class="quicklink-icon" style="background: linear-gradient(45deg, #a8edea, #fed6e3); width: 100%; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em; margin-bottom: 15px; position: relative;">
+                        ▶️
+                        <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">6:21</div>
+                    </div>
+                    <h3 style="color: #007bff;">FExplorer Gaming Features</h3>
+                    <p>Explore the gaming capabilities and entertainment features built into FExplorer.</p>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px;"><span style="color: #007bff; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); navigate('mytube.com/channel?name=GameReviews');">GameReviews</span> • 1.5M views • 4 days ago</div>
+                </button>
+            </div>
         </div>
     `,
     // Test Page for new features
@@ -2959,88 +3126,8 @@ const fakeContent = {
     `,
     // Events page
     'fexplorer:events': `
-        <div class="events-page-content home-page-content">
-            <img src="icons/badge-icon.png" alt="Events Logo" class="app-logo">
-            <h1>FExplorer Events</h1>
-            <p class="tagline">Participate in limited-time events to earn exclusive rewards!</p>
-
-            <!-- Event Status Card -->
-            <div id="eventStatusCard" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
-                <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;" id="eventStatus">Status: Coming Soon</div>
-                <div style="font-size: 0.9em; opacity: 0.9;" id="eventCountdown">The Burger Event is scheduled to begin soon</div>
-            </div>
-
-            <!-- Current Event Details -->
-            <div class="event-details-section" style="background: #f9f9f9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF6B6B;">
-                <h2 style="margin-top: 0; color: #FF6B6B;">🍔 The Burger Event</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
-                    <div>
-                        <div style="font-weight: bold; color: #666;">Event Type</div>
-                        <div>Limited-Time Challenge</div>
-                    </div>
-                    <div>
-                        <div style="font-weight: bold; color: #666;">Duration</div>
-                        <div id="eventDuration">Starts soon</div>
-                    </div>
-                    <div>
-                        <div style="font-weight: bold; color: #666;">Difficulty</div>
-                        <div>Medium ⭐⭐⭐</div>
-                    </div>
-                </div>
-                <p style="margin: 15px 0; line-height: 1.6;">
-                    Join the Burger Event to get burger-themed rewards! Complete fun objectives, earn FPoints, and unlock exclusive cosmetics. Don't miss out on this tasty opportunity!
-                </p>
-            </div>
-
-            <!-- Objectives Section -->
-            <div class="objectives-section" style="margin: 20px 0;">
-                <h2 style="color: #333; margin-bottom: 15px;">📋 Event Objectives</h2>
-                <p style="color: #666; margin-bottom: 15px;">Complete objectives to earn FPoints rewards. Progress is tracked automatically!</p>
-                
-                <div id="objectivesList" style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- Objectives will be inserted here by JavaScript -->
-                </div>
-            </div>
-
-            <!-- Rewards Preview -->
-            <div class="rewards-section" style="background: #fff8dc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #FFD700;">
-                <h2 style="margin-top: 0; color: #FF8C00;">🎁 Event Rewards</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: #4CAF50;">500</div>
-                        <div style="color: #666; margin-top: 5px;">FPoints</div>
-                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">Completion Bonus</div>
-                    </div>
-                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: #2196F3;">+0.5x</div>
-                        <div style="color: #666; margin-top: 5px;">Luck Multiplier</div>
-                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">Event Benefit</div>
-                    </div>
-                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: #FF6B6B;">🏆</div>
-                        <div style="color: #666; margin-top: 5px;">Event Badge</div>
-                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">Exclusive Cosmetic</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Event Tips -->
-            <div class="event-tips" style="background: #e8f5e9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
-                <h3 style="margin-top: 0; color: #2e7d32;">💡 Tips & Tricks</h3>
-                <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                    <li>Higher luck multipliers make objective completion easier</li>
-                    <li>Complete all objectives to unlock the exclusive event badge</li>
-                </ul>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="home-page-buttons-container" style="margin-top: 30px; gap: 10px;">
-                <button id="participateEventBtn" class="home-page-button" style="background: #4CAF50; color: white; font-weight: bold;">
-                    📌 Get Started
-                </button>
-            </div>
-
-            <div id="eventMessage" style="margin-top: 20px; padding: 15px; border-radius: 8px; display: none; text-align: center;"></div>
+        <div style="font-family: Times New Roman;">
+            <p>Page missing.</p>
         </div>
     `,
     // Games Page
@@ -3352,61 +3439,137 @@ const fakeContent = {
             .fexplorer-search-page {
                 display: flex;
                 flex-direction: column;
+                align-items: center;
+                padding: 60px 20px;
+                background: #fff;
+            }
+            .fexplorer-search-container {
+                width: 100%;
+                max-width: 820px;
             }
             .fexplorer-search-page .app-logo {
-                width: 150px;
-                margin-top: 20px;
+                width: 180px;
+                margin-bottom: 24px;
             }
             .fexplorer-search-page h1 {
-                margin-top: 10px;
-                font-size: 2em;
+                font-size: 1.6em;
+                margin: 0 0 6px 0;
+                color: #333;
+                font-weight: 500;
+                text-align: center;
             }
-            .fexplorer-search-page p {
-                font-size: 1.1em;
-                color: #555;
+            .fexplorer-search-page .search-tagline {
+                font-size: 0.95em;
+                color: #999;
+                margin-bottom: 28px;
+                text-align: center;
             }
-            .fexplorer-search-page .footer-note {
-                margin-top: 30px;
+            .fexplorer-search-page .search-input-wrapper {
+                width: 100%;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                margin-bottom: 20px;
             }
             .fexplorer-search-page .home-page-search-input {
-                width: 100%;
-                max-width: 500px;
-                padding: 12px 20px;
-                font-size: 1em;
-                border: 1px solid #ccc;
-                border-radius: 25px;
+                flex: 1;
+                padding: 14px 18px;
+                font-size: 16px;
+                border: 1px solid #dadce0;
+                border-radius: 24px;
                 outline: none;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-                margin-top: 20px;
-                box-sizing: border-box;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+                transition: all 0.2s ease;
+            }
+            .fexplorer-search-page .home-page-search-input:focus {
+                border-color: #4285f4;
+                box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
             }
             .fexplorer-search-page .home-page-search-button {
-                background-color: #007bff;
-                color: white;
-                border: none;
-                padding: 12px 25px;
-                margin-top: 15px;
+                background-color: #f8f9fa;
+                color: #333;
+                border: 1px solid #dadce0;
+                padding: 12px 20px;
                 cursor: pointer;
-                font-size: 1em;
-                transition: background-color 0.2s ease;
-                border-radius: 25px;
+                font-size: 0.95em;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                border-radius: 20px;
                 white-space: nowrap;
             }
             .fexplorer-search-page .home-page-search-button:hover {
-                background-color: #0056b3;
-                color: white;
-                cursor: pointer;
+                background-color: #f8f9fa;
+                border-color: #bdc1c6;
+                box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+            }
+            .fexplorer-search-results {
+                width: 100%;
+                margin-top: 28px;
+            }
+            .fexplorer-search-results .search-results-layout {
+                padding: 0;
+            }
+            .fexplorer-search-results .search-header {
+                margin-bottom: 24px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .fexplorer-search-results .search-engine-logo {
+                width: 100px;
+                height: auto;
+            }
+            .fexplorer-search-results .search-header-title {
+                font-size: 1.1em;
+                color: #666;
+            }
+            .fexplorer-search-results .results-column {
+                background: transparent;
+            }
+            .fexplorer-search-results .search-result-item {
+                margin-bottom: 20px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid #eee;
+            }
+            .fexplorer-search-results .search-result-item:last-child {
+                border-bottom: none;
+            }
+            .fexplorer-search-results .search-result-item h3 {
+                margin: 0 0 4px 0;
+            }
+            .fexplorer-search-results .search-result-item h3 a {
+                color: #1a0dab;
+                text-decoration: none;
+                font-size: 1.1em;
+            }
+            .fexplorer-search-results .search-result-item h3 a:hover {
+                text-decoration: underline;
+            }
+            .fexplorer-search-page .footer-note {
+                margin-top: 40px;
+                font-size: 0.85em;
+                color: #70757a;
+                text-align: center;
             }
         </style>
-        <div class="fexplorer-search-page goog-homepage home-page-content">
-            <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
-            <h1>FExplorer Search</h1>
-            <p>This is the default search engine for FExplorer.</p>
-            <p>Use the search bar on the homepage to search the web!</p>
-            <input type="search" id="fexplorerSearchInput" class="home-page-search-input" placeholder="Search the web or type in a URL...">
-            <button id="fexplorerSearchResults" class="home-page-search-button">Search</button>
-            <p class="footer-note">© FExplorer | Made by smrtC951!</p>
+        <div class="fexplorer-search-page">
+            <div class="fexplorer-search-container">
+                <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
+                <h1>FExplorer Search</h1>
+                <p class="search-tagline">The weirdest search engine ever. Don't bother trying it. It's broken. Or is it?</p>
+                
+                <div class="search-input-wrapper">
+                    <input type="search" id="fexplorerSearchInput" class="home-page-search-input" placeholder="Search the web or type in a URL...">
+                    <button id="fexplorerSearchButton" class="home-page-search-button">Search</button>
+                </div>
+                <div style="text-align:center;margin-bottom:20px;">
+                    <button id="fexplorerLucky" class="home-page-search-button" style="background:transparent;border:1px solid #dadce0;">🍀 Feeling Lucky</button>
+                </div>
+                
+                <div id="fexplorerSearchResults" class="fexplorer-search-results"></div>
+            </div>
         </div>
+        <p class="footer-note">© FExplorer Search | Made by smrtC951!</p>
     `,
     // Search Engine: Ping (Microsoft-like)
     'ping.com': `
@@ -3457,7 +3620,11 @@ const fakeContent = {
             </div>
             <div>
                 <input type="search" placeholder="Type in your message...">
-                <button>Enter</button>
+                <button style="cursor: pointer;">Enter</button>
+                <select style="cursor: pointer;" id="chatSelect">
+                    <option style="cursor: pointer;">FBot</option>
+                    <option style="cursor: pointer;">JX1DX1</option>
+                </select>
             </div>
         </div>
     `,
@@ -3774,13 +3941,13 @@ const fakeContent = {
         </div>
     `,
     'paranoid.com/jx1dx1':`
-        <div style="height: 450px; background-color: #000000; color: #7b0000ff; font-family: 'Consolas', monospace;">
+        <div style="height: 450px; background-color: #000000; color: #7b0000ff; font-family: 'Consolas', monospace; button: cursor: pointer;">
             <p>how.did.you.find.me.</p>
             <p>i.thought.i.was.hidden.</p>
             <p>now.you.have.to.leave.</p>
             <p>before.it.is.too.late.</p>
-            <button data-url="fexplorer:home">Leave now</button>
-            <button data-url="paranoid.com/error.html">Proceed on</button>
+            <button class="button" data-url="fexplorer:home">Leave now</button>
+            <button class="button" data-url="paranoid.com/error.html">Proceed on</button>
         </div>
     `,
     'paranoid.com/error.html':`
@@ -3846,7 +4013,11 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Codes!</h1>
             <p class="tagline">Get codes for free FPoints!</p>
-            <p>Coming soon!</p>
+            <p>Find the codes scattered around FExplorer and enter them below to redeem your rewards!</p>
+            <br>
+            <input type="search" id="codeInput" placeholder="Enter your code here" style="padding: 10px; width: 250px; border: 1px solid #ccc; border-radius: 4px;">
+            <button id="redeemCodeButton" class="home-page-button">Redeem Code</button>
+            <div id="codeMessage" style="margin-top: 15px; font-weight: bold;"></div>
         </div>
     `,
 // FExplorer System
@@ -3946,8 +4117,111 @@ const fakeContent = {
 </div>
 </div>
     `,
-};
+    // FExplorer Experiences And Levels
+    'fexplorer:exp': `
+    <div class="home-page-content">
+            <img src="icons/fexplorer.png" class="app-logo">
+            <h1>FExplorer EXP!</h1>
+            <p>Get EXP by doing cool things on FExplorer!</p>
+            <br>
+            <div class="exp-stats" style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #4CAF50;" id="currentLevel">Level 1</div>
+                        <div style="font-size: 0.9em; color: #666;">Current Level</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #2196F3;" id="currentExp">0 XP</div>
+                        <div style="font-size: 0.9em; color: #666;">Current EXP</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #FF9800;" id="nextLevel">100 XP</div>
+                        <div style="font-size: 0.9em; color: #666;">Next Level</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <div class="exp-bar" style="width: 100%; height: 20px; background: #ddd; border-radius: 10px; overflow: hidden;">
+                        <div id="expProgress" style="width: 0%; height: 100%; background: #4CAF50; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
 
+            <div class="exp-activities">
+                <h2>Ways to Earn EXP</h2>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin: 10px 0; padding: 10px; background: #fff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        🏆 Complete Achievements (+50 XP)
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: #fff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        🔍 Daily Browsing (+10 XP)
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: #fff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        🎮 Play Mini-Games (+25 XP)
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: #fff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        💰 Trade Currency (+15 XP)
+                    </li>
+                </ul>
+            </div>
+
+            <div class="exp-rewards" style="margin-top: 20px;">
+                <h2>Level Rewards</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3>Level 5</h3>
+                        <p>🎁 500 FPoints Bonus</p>
+                    </div>
+                    <div style="padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3>Level 10</h3>
+                        <p>🌟 Special Badge</p>
+                    </div>
+                    <div style="padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3>Level 15</h3>
+                        <p>🎨 Custom Theme</p>
+                    </div>
+                    <div style="padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3>Level 20</h3>
+                        <p>💎 Premium Features</p>
+                    </div>
+                </div>
+            </div>
+    </div>
+    `,
+    // Celebaratory page
+    'fexplorer:celebrate': `
+        <div class="home-page-content quick-links-content">
+            <img src="icons/placeholder.png" class="app-logo">
+            <h1>🎉 Celebrations! 🎉</h1>
+            
+            <div class="celebration-section" style="margin: 20px 0; padding: 20px; background: #fff; border-radius: 8px; text-align: center;">
+                <h2>🎄 Merry Christmas! 🎄</h2>
+                <p>Wishing you a wonderful holiday season filled with joy and cheer!</p>
+                <div style="margin: 15px 0;">
+                    <button class="home-page-button" id="christmasBonus">Claim Christmas Bonus</button>
+                </div>
+            </div>
+
+            <div class="celebration-section" style="margin: 20px 0; padding: 20px; background: #fff; border-radius: 8px; text-align: center;">
+                <h2>🎆 Welcome 2026! 🎆</h2>
+                <p>Here's to a new year of exploring and discovering!</p>
+                <div style="margin: 15px 0;">
+                    <button class="home-page-button" id="newYearBonus">Claim New Year Bonus</button>
+                </div>
+            </div>
+
+            <div class="celebration-stats" style="margin-top: 20px; text-align: center;">
+                <p>Special holiday rewards and achievements await!</p>
+                <p>Don't forget to check back for more seasonal celebrations!</p>
+            </div>
+        </div>
+    `,
+    // Your Account page
+    'fexplorer:account': `
+        <div class="account-page-container">
+            <div id="accountContent"></div>
+        </div>
+    `,
+};
 // Cookie button
 const tradeCookiesButton = document.querySelector('.cookie-button');
 if (tradeCookiesButton) {
@@ -3969,6 +4243,34 @@ if (tradeCookiesButton) {
         }
     });
 }
+
+// Celebrate button
+const christmasBonus = browserContent.querySelector('#christmasBonus');
+if (christmasBonus) {
+    christmasBonus.addEventListener('click', () => {
+        const bonus = 500;
+        userFPoints += bonus;
+        updateFPointsDisplay();
+        saveAppState();
+        showFPointsNotification(bonus);
+        christmasBonus.disabled = true;
+        christmasBonus.textContent = 'Claimed!';
+    });
+}
+
+const newYearBonus = browserContent.querySelector('#newYearBonus');
+if (newYearBonus) {
+    newYearBonus.addEventListener('click', () => {
+        const bonus = 1000;
+        userFPoints += bonus;
+        updateFPointsDisplay(); 
+        saveAppState();
+        showFPointsNotification(bonus);
+        newYearBonus.disabled = true;
+        newYearBonus.textContent = 'Claimed!';
+    });
+}
+
 
 function applyFExplorerSettings() {
     // Apply OS style
@@ -4039,6 +4341,15 @@ function updateForwardButtonState() {
     forwardButton.disabled = forwardStack.length === 0;
 }
 
+// Check login status and update Your Account button
+function updateAccountButtonState() {
+    const yourAccountButton = document.querySelector('#yourAccountButton');
+    if (yourAccountButton) {
+        const isLoggedIn = localStorage.getItem('fexplorer_currentUser');
+        yourAccountButton.disabled = !isLoggedIn;
+    }
+}
+
 // Enable username advantages
 function enableUsernameAdvantage() {
     // FPoints Reward (100 per 30 minutes)
@@ -4053,7 +4364,6 @@ function enableUsernameAdvantage() {
         userFPoints += fpointsReward;
         updateFPointsDisplay();
         saveAppState();
-        // Add your reward logic here (e.g., update points, show item)
         localStorage.setItem('dailyRewardLastClaim', currentTime);
     } else {
         console.log("You already claimed your daily reward today. Come back in 30 minutes!");
@@ -4063,16 +4373,12 @@ function enableUsernameAdvantage() {
         const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
         console.log(`Time remaining: ${hours}h ${minutes}m ${seconds}s`);
     }
-
-    // Your Account
-    if (currentUrl === 'fexplorer:home') {
-        const yourAccountButton = browserContent.querySelector('#yourAccountButton');
-        if (yourAccountButton) {
-            yourAccountButton.disabled = false;
-        };
-    };
+    
+    updateAccountButtonState();
 };
 
+// Check on page load
+window.addEventListener('load', updateAccountButtonState);
 
 function attachDynamicEventListeners() {
     // Handle all buttons and links with data-url attribute across all pages
@@ -4089,6 +4395,9 @@ function attachDynamicEventListeners() {
         });
         element.dataset.listenerAttached = 'true';
     });
+    
+    // Update account button state after page loads
+    updateAccountButtonState();
 
     // JX1DX1's code (paranoid.com/code.html)
     if (currentUrl === 'paranoid.com/code.html') {
@@ -4187,22 +4496,156 @@ function attachDynamicEventListeners() {
     const loginForm = browserContent.querySelector('#loginForm');
     const usernameInput = browserContent.querySelector('#username');
     const passwordInput = browserContent.querySelector('#password');
+    const loginBtn = browserContent.querySelector('.btn-primary');
+    const signupBtn = browserContent.querySelector('.btn-secondary');
 
-    if (loginForm) {
-        loginForm.addEventListener('submit', () => {
-            event.preventDefault();
-            const username = usernameInput.value
-            const password = passwordInput.value
+    if (loginForm && loginBtn && signupBtn) {
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
 
-            if (password === '' || username === '') {
-                alert('You need a username AND password!');
-            } else {
-                alert(`Welcome, ${username}!`);
-                alert('You will receive more customization in the settings and a 30 minute reward of 100 FPoints!');
-                enableUsernameAdvantage();
-                navigate('fexplorer:home');
+            if (!username || !password) {
+                alert('Please enter both username and password!');
+                return;
             }
+
+            const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
+            
+            if (!users[username]) {
+                alert('Account not found. Please sign up first!');
+                return;
+            }
+
+            if (users[username].password !== password) {
+                alert('Incorrect password!');
+                return;
+            }
+
+            localStorage.setItem('fexplorer_currentUser', username);
+            alert(`Welcome back, ${username}!`);
+            enableUsernameAdvantage();
+            navigate('fexplorer:home');
         });
+
+        signupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                alert('Please enter both username and password!');
+                return;
+            }
+
+            if (username.length < 3) {
+                alert('Username must be at least 3 characters!');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters!');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
+            
+            if (users[username]) {
+                alert('Username already exists! Please choose another.');
+                return;
+            }
+
+            users[username] = { password, createdAt: Date.now() };
+            localStorage.setItem('fexplorer_users', JSON.stringify(users));
+            localStorage.setItem('fexplorer_currentUser', username);
+            
+            alert(`Account created successfully! Welcome, ${username}!`);
+            alert('You now have access to premium features and will receive 100 FPoints every 30 minutes!');
+            enableUsernameAdvantage();
+            navigate('fexplorer:home');
+        });
+    }
+    if (currentUrl === "fexplorer:account") {
+        const currentUser = localStorage.getItem('fexplorer_currentUser');
+        const container = browserContent.querySelector('#accountContent');
+        
+        if (!currentUser) {
+            container.innerHTML = `
+                <style>
+                    .error-container { min-height: 400px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
+                    .error-box { max-width: 500px; }
+                    .error-icon { font-size: 80px; margin-bottom: 20px; animation: shake 0.5s; }
+                    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+                    .error-title { font-size: 32px; font-weight: 700; color: #dc3545; margin: 0 0 15px 0; }
+                    .error-message { font-size: 16px; color: #666; margin-bottom: 30px; }
+                </style>
+                <div class="error-container">
+                    <div class="error-box">
+                        <div class="error-icon">🔒</div>
+                        <h1 class="error-title">Access Denied</h1>
+                        <p class="error-message">You need to be logged in to view your account page. Please log in or create an account to continue.</p>
+                        <button class="home-page-button" data-url="fexplorer:log-in" style="margin-right: 10px;">Log In</button>
+                        <button class="home-page-button" data-url="fexplorer:home">Go Home</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
+            const userData = users[currentUser] || {};
+            const joinDate = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'Unknown';
+            
+            container.innerHTML = `
+                <style>
+                    .account-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
+                    .account-avatar { width: 100px; height: 100px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+                    .account-username { font-size: 32px; font-weight: 700; margin: 0 0 10px 0; }
+                    .account-info { max-width: 800px; margin: -30px auto 0; padding: 0 20px 40px; }
+                    .info-card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                    .info-card h2 { margin: 0 0 20px 0; font-size: 20px; color: #333; }
+                    .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+                    .info-row:last-child { border-bottom: none; }
+                    .info-label { color: #666; font-weight: 500; }
+                    .info-value { color: #333; font-weight: 600; }
+                    .logout-btn { background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s; }
+                    .logout-btn:hover { background: #c82333; transform: translateY(-2px); }
+                </style>
+                <div class="account-header">
+                    <div class="account-avatar">👤</div>
+                    <h1 class="account-username">${currentUser}</h1>
+                    <p>Member since ${joinDate}</p>
+                </div>
+                <div class="account-info">
+                    <div class="info-card">
+                        <h2>📊 Account Statistics</h2>
+                        <div class="info-row"><span class="info-label">FPoints Balance</span><span class="info-value">${userFPoints.toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">Cookies</span><span class="info-value">${userCookies.toLocaleString()}</span></div>
+                        <div class="info-row"><span class="info-label">Luck Multiplier</span><span class="info-value">${userLuck.toFixed(1)}x</span></div>
+                        <div class="info-row"><span class="info-label">Pages Created</span><span class="info-value">${Object.keys(userCreatedPages).length}</span></div>
+                    </div>
+                    <div class="info-card">
+                        <h2>🎯 Achievements</h2>
+                        <div class="info-row"><span class="info-label">Unlocked</span><span class="info-value">${Object.keys(unlockedAchievements).length} / ${achievementItems.length}</span></div>
+                    </div>
+                    <div class="info-card">
+                        <h2>⚙️ Account Actions</h2>
+                        <button class="logout-btn" id="logoutBtn">Log Out</button>
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const logoutBtn = browserContent.querySelector('#logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => {
+                        if (confirm('Are you sure you want to log out?')) {
+                            localStorage.removeItem('fexplorer_currentUser');
+                            alert('You have been logged out successfully.');
+                            navigate('fexplorer:home');
+                        }
+                    });
+                }
+            }, 100);
+        }
     }
 
     // Financial page buttons
@@ -6440,14 +6883,16 @@ function updateAchievementsUI() {
     if (currentUrl.startsWith('fexplorer:search')) {
         const fexplorerSearchInput = browserContent.querySelector('#fexplorerSearchInput');
         const fexplorerSearchButton = browserContent.querySelector('#fexplorerSearchButton');
+        const fexplorerLucky = browserContent.querySelector('#fexplorerLucky');
+        const fexplorerSearchResults = browserContent.querySelector('#fexplorerSearchResults');
 
         if (fexplorerSearchInput && fexplorerSearchButton) {
-            const performGoogSearch = () => {
+            const performFExplorerSearch = () => {
                 const query = fexplorerSearchInput.value.trim();
                 if (query) {
                     const now = Date.now();
                     if (now - lastGoogSearchTime > GOOG_COOLDOWN) {
-                        const baseFPoints = Math.floor(Math.random() * 5) + 1;
+                        const baseFPoints = Math.floor(Math.random() * 3) + 2;
                         const earnedFPoints = Math.round(baseFPoints * userLuck);
                         userFPoints += earnedFPoints;
                         lastGoogSearchTime = now;
@@ -6456,14 +6901,29 @@ function updateAchievementsUI() {
                     } else {
                         alert(`Wait ${Math.ceil((GOOG_COOLDOWN - (now - lastGoogSearchTime)) / 1000)} seconds before searching again to earn FPoints!`);
                     }
-                    navigate(`goog.com/search?q=${encodeURIComponent(query)}`);
+                    // Generate results directly on the search page
+                    const resultsHtml = buildFExplorerSearchResults(query);
+                    if (fexplorerSearchResults) {
+                        fexplorerSearchResults.innerHTML = resultsHtml;
+                    }
                 }
             };
 
-            googSearchButton.addEventListener('click', performGoogSearch);
-            googSearchInput.addEventListener('keydown', (event) => {
+            if (fexplorerLucky) {
+                fexplorerLucky.addEventListener('click', () => {
+                    const query = fexplorerSearchInput.value.trim();
+                    if (query) {
+                        navigate(`fexplorer:search-article-${Math.floor(Math.random() * 99999)}`);
+                    } else {
+                        alert('Enter a search query first!');
+                    }
+                });
+            }
+
+            fexplorerSearchButton.addEventListener('click', performFExplorerSearch);
+            fexplorerSearchInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
-                    performGoogSearch();
+                    performFExplorerSearch();
                 }
             });
         }
@@ -6491,6 +6951,26 @@ function updateAchievementsUI() {
     }
 
     // ------------------------------------
+//  FSTUDIO (CREATE PAGE) — Load Script
+// ------------------------------------
+// Dynamically load create-page.js if it hasn't been loaded yet
+if (currentUrl === CREATE_PAGE_URL && typeof loadFStudio === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'create-page.js';
+    script.onload = () => {
+        console.log('create-page.js loaded successfully');
+        if (typeof loadFStudio === 'function') {
+            loadFStudio();
+        }
+    };
+    script.onerror = () => {
+        console.error('Failed to load create-page.js');
+        browserContent.innerHTML = '<div style="padding:20px;color:red;"><h2>Error loading FStudio</h2><p>Could not load create-page.js. Please check the file exists.</p></div>';
+    };
+    document.head.appendChild(script);
+}
+
+// ------------------------------------
 //  FSTUDIO (CREATE PAGE)
 // ------------------------------------
 if (currentUrl === CREATE_PAGE_URL) {
@@ -6510,9 +6990,11 @@ if (currentUrl === CREATE_PAGE_URL) {
     // Chatroom functionality
     if (currentUrl === 'fexplorer.chatroom.com/chatroom') {
         const chatSection = browserContent.querySelector('#fakeChatroomSection');
+        const chatSelect = browserContent.querySelector('#chatSelect');
         const chatInput = browserContent.querySelector('input[type="search"]');
         const chatButton = browserContent.querySelector('button');
-        if (chatSection && chatInput && chatButton) {
+        let currentChat = 'FBot';
+        if (chatSection && chatInput && chatButton && chatSelect) {
             // Add some styling to the chat section
             chatSection.style.padding = '10px';
             chatSection.style.overflowY = 'auto';
@@ -6541,6 +7023,7 @@ if (currentUrl === CREATE_PAGE_URL) {
                 'fake chatroom': ["Wait, what?", "Are you sure you're not tweaking?"],
                 'online quiz': ["You should try out the online quiz!", "Are you talking about the online quiz available in the internet?"]
             };
+            
 
             // Default responses when no keywords match
             const defaultResponses = [
@@ -6678,6 +7161,16 @@ if (currentUrl === CREATE_PAGE_URL) {
             chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     chatButton.click();
+                }
+            });
+
+            chatSelect.addEventListener('change', () => {
+                const selected = chatSelect.value;
+                if (selected) {
+                    if (selected !== currentChat) {
+                        currentChat = selected;
+                        addMessage(`You switched to chat with ${currentChat}.`, true);
+                    }
                 }
             });
         }
@@ -7033,6 +7526,131 @@ if (currentUrl === CREATE_PAGE_URL) {
         }
     }
 
+    if (currentUrl === 'mytube.com') {
+        const uploadBtn = browserContent.querySelector('.mytube-upload-btn');
+        const searchInput = browserContent.querySelector('.mytube-search-input');
+        const searchBtn = browserContent.querySelector('.mytube-search-btn');
+        const videoCards = browserContent.querySelectorAll('.mytube-video-card');
+        const myChannelBtn = browserContent.querySelector('#myChannelBtn');
+        
+        // Enhanced UI with gradient header
+        browserContent.insertAdjacentHTML('afterbegin', `
+            <div style="background: linear-gradient(135deg, #ff6b6b, #4ecdc4); padding: 40px 20px; margin-bottom: 30px; text-align: center; color: white;">
+                <h1 style="font-size: 2.5em; margin: 0 0 10px 0;">MyTube</h1>
+                <p style="font-size: 1.1em; opacity: 0.9; margin: 0;">Share and discover amazing content</p>
+            </div>
+        `);
+        
+        // Upload functionality with enhanced UI
+        if (uploadBtn) {
+            uploadBtn.style.cssText = 'background: #ff4757; color: white; padding: 12px 24px; border-radius: 30px; border: none; font-weight: bold; transition: transform 0.2s;';
+            uploadBtn.addEventListener('mouseover', () => uploadBtn.style.transform = 'scale(1.05)');
+            uploadBtn.addEventListener('mouseout', () => uploadBtn.style.transform = 'scale(1)');
+            uploadBtn.addEventListener('click', () => {
+                alert('Upload feature coming soon! Sign up for a FExplorer account to upload videos.');
+            });
+        }
+        
+        // Enhanced search UI
+        if (searchInput && searchBtn) {
+            searchInput.style.cssText = 'padding: 12px 20px; border-radius: 25px; border: 2px solid #eee; width: 300px; font-size: 16px; transition: all 0.3s;';
+            searchBtn.style.cssText = 'padding: 12px 24px; border-radius: 25px; background: #2196f3; color: white; border: none; margin-left: 10px; transition: all 0.3s;';
+            
+            searchInput.addEventListener('focus', () => {
+                searchInput.style.borderColor = '#2196f3';
+                searchInput.style.boxShadow = '0 0 10px rgba(33,150,243,0.2)';
+            });
+            
+            searchInput.addEventListener('blur', () => {
+                searchInput.style.borderColor = '#eee';
+                searchInput.style.boxShadow = 'none';
+            });
+            
+            const handleSearch = () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    alert(`Searching for: "${query}"\nSearch results coming soon!`);
+                }
+            };
+            
+            searchBtn.addEventListener('click', handleSearch);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSearch();
+            });
+        }
+        
+        // Enhanced video card interactions with slideshow preview
+        videoCards.forEach((card, index) => {
+            const previewImages = [
+                'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
+                'linear-gradient(45deg, #667eea, #764ba2)',
+                'linear-gradient(45deg, #f093fb, #f5576c)',
+                'linear-gradient(45deg, #4facfe, #00f2fe)'
+            ];
+            
+            let currentPreview = 0;
+            const previewContainer = card.querySelector('.quicklink-icon');
+            
+            if (previewContainer) {
+                setInterval(() => {
+                    currentPreview = (currentPreview + 1) % previewImages.length;
+                    previewContainer.style.background = previewImages[currentPreview];
+                }, 2000);
+            }
+            
+            card.style.cssText = `
+                transition: all 0.3s;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            `;
+            
+            card.addEventListener('click', () => {
+                const videoId = card.getAttribute('data-video-id');
+                const videoTitle = card.getAttribute('data-video-title');
+                navigate(`mytube.com/watch?v=${videoId}&title=${encodeURIComponent(videoTitle)}`);
+            });
+            
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-5px)';
+                card.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+            });
+        });
+        
+        // Enhanced channel button
+        if (myChannelBtn) {
+            myChannelBtn.style.cssText = `
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 30px;
+                border: none;
+                font-weight: bold;
+                transition: all 0.3s;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            `;
+            
+            myChannelBtn.addEventListener('mouseenter', () => {
+                myChannelBtn.style.transform = 'translateY(-2px)';
+                myChannelBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+            });
+            
+            myChannelBtn.addEventListener('mouseleave', () => {
+                myChannelBtn.style.transform = 'translateY(0)';
+                myChannelBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+            });
+            
+            myChannelBtn.addEventListener('click', () => {
+                alert(`Welcome to your channel, ${userChannel.name || 'User'}!\nChannel features coming soon.`);
+            });
+        }
+    }
+
     if (currentUrl === 'fexplorer:settings') {
         const themeSelect = browserContent.querySelector('#themeSelect');
         const binary = new Option('Binary', 'binary');
@@ -7042,6 +7660,34 @@ if (currentUrl === CREATE_PAGE_URL) {
             binary.disabled = false;
         };
     };
+
+    // Handle codes page
+    if (currentUrl === 'fexplorer:codes') {
+        const codeInput = browserContent.querySelector('#codeInput');
+        const redeemButton = browserContent.querySelector('#redeemButton');
+        const codeMessage = browserContent.querySelector('#codeMessage');
+
+        const validCodes = {
+            'WELCOME100': 100,
+            'FEXPLORER50': 50,
+            'APPLE1111': 1111
+        }
+        if (codeInput && redeemButton && codeMessage) {
+            redeemButton.addEventListener('click', () => {
+                const enteredCode = codeInput.value.trim().toUpperCase();
+                if (validCodes[enteredCode]) {
+                    const reward = validCodes[enteredCode];
+                    userFPoints += reward;
+                    saveAppState()
+                    showFPointsNotification(+reward);
+                    codeMessage.textContent = `Code redeemed! You received ${reward} FPoints.`;
+                } else {
+                    codeMessage.textContent = 'Invalid code. Please try again.';
+                    return;
+                }
+            });
+        }
+    }
 
     // Handle Inventory Page
     if (currentUrl === 'fexplorer:shop.inventory') {
@@ -7617,86 +8263,6 @@ if (currentUrl === CREATE_PAGE_URL) {
         setTimeout(() => checkAchievements(), 1000);
     }
 
-    // Events Page
-    if (currentUrl === 'fexplorer:events') {
-        // Define event objectives
-        const eventObjectives = [
-            { id: 'earn_500fp', title: 'Earn 500 FPoints', description: 'Complete pages and earn rewards', reward: 100, completed: false },
-            { id: 'visit_pages', title: 'Visit 10 Different Pages', description: 'Explore the browser', reward: 150, completed: false },
-            { id: 'shop_purchase', title: 'Purchase an Item from Shop', description: 'Buy 1 item from the FExplorer Shop', reward: 200, completed: false },
-            { id: 'achieve_unlock', title: 'Unlock an Achievement', description: 'Complete an achievement goal', reward: 175, completed: false },
-            { id: 'create_page', title: 'Create Your Own Page', description: 'Make and publish a page in FStudio', reward: 250, completed: false }
-        ];
-
-        // Load event progress from localStorage
-        let eventProgress = {};
-        try {
-            eventProgress = JSON.parse(localStorage.getItem('fexplorerEventProgress') || '{}');
-        } catch (e) {
-            eventProgress = {};
-        }
-
-        // Save event progress
-        function saveEventProgress() {
-            localStorage.setItem('fexplorerEventProgress', JSON.stringify(eventProgress));
-        }
-
-        // Update objectives display
-        const objectivesList = browserContent.querySelector('#objectivesList');
-        if (objectivesList) {
-            objectivesList.innerHTML = eventObjectives.map(obj => {
-                const isCompleted = eventProgress[obj.id] || false;
-                return `
-                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${isCompleted ? '#4CAF50' : '#ccc'}; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: bold; color: #333; display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 1.2em;">${isCompleted ? '✅' : '⭕'}</span>
-                                ${obj.title}
-                            </div>
-                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">${obj.description}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-weight: bold; color: #4CAF50; font-size: 1.1em;">+${obj.reward} FP</div>
-                            <div style="font-size: 0.8em; color: #999; margin-top: 3px;">${isCompleted ? 'Completed' : 'In Progress'}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Wire up buttons
-        const participateBtn = browserContent.querySelector('#participateEventBtn');
-        const eventMessage = browserContent.querySelector('#eventMessage');
-
-        if (participateBtn) {
-            participateBtn.addEventListener('click', () => {
-                eventMessage.style.display = 'block';
-                eventMessage.style.background = '#fff3cd';
-                eventMessage.style.color = '#856404';
-                eventMessage.style.borderLeft = '4px solid #ffc107';
-                eventMessage.innerHTML = '🎪 Event participation activated! Your progress is being tracked. Complete objectives to earn FPoints!';
-                setTimeout(() => {
-                    eventMessage.style.display = 'none';
-                }, 3000);
-            });
-        }
-
-        // Track objective completion
-        window.completeEventObjective = function(objectiveId) {
-            if (!eventProgress[objectiveId]) {
-                eventProgress[objectiveId] = true;
-                saveEventProgress();
-                // Award FPoints
-                const objective = eventObjectives.find(o => o.id === objectiveId);
-                if (objective) {
-                    userFPoints += objective.reward;
-                    saveAppState();
-                    showFPointsNotification(objective.reward);
-                }
-            }
-        };
-    }
-
     if (currentUrl === "fexplorer:429") {
     const timerSpan = browserContent.querySelector("#error429Timer");
     const button = browserContent.querySelector("#429ForceReturn");
@@ -7828,16 +8394,73 @@ function handleExternalOrSearchPages(url) {
     `;
 }
 
+// FExplorer Search — quirky results builder
+function buildFExplorerSearchResults(query) {
+    const lower = query.toLowerCase();
+    
+    // Silly result titles unique to FExplorer search
+    const sillySuffixes = [
+        'but like, why tho?',
+        'explained by a confused AI',
+        'ranked by chaos',
+        'but make it weird',
+        'if it was a meme',
+        'but it\'s actually broken',
+        'copypasta version',
+        'but unhinged',
+        'the cursed edition',
+        'this is so stupid.',
+    ];
+    
+    const resultCount = Math.floor(Math.random() * 3) + 3; // 3-5 results
+    let resultsHtml = `
+        <div class="search-results-layout goog-results" style="padding: 0;">
+            <div class="search-header">
+                <img src="icons/fexplorer.png" class="search-engine-logo" alt="FExplorer logo" style="width:90px;">
+                <div class="search-header-title">Search Results for "${escapeHtml(lower)}"</div>
+            </div>
+            <div class="search-content">
+                <div class="results-column" style="background:transparent;">
+    `;
+    
+    for (let i = 0; i < resultCount; i++) {
+        const id = Math.random().toString(36).substring(2, 8);
+        const safe = lower.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+        const domain = `fxsearch-${safe}-${id}.net`;
+        const suffix = sillySuffixes[Math.floor(Math.random() * sillySuffixes.length)];
+        const title = `${lower} ${suffix}`;
+        
+        resultsHtml += `
+                    <div class="search-result-item">
+                        <h3><a data-url="${domain}" href="#" style="color:#1a0dab;text-decoration:none;">${escapeHtml(title)}</a></h3>
+                        <p style="color:#006621;font-size:.85em;margin:4px 0 0 0;">${escapeHtml(domain)}</p>
+                        <p style="color:#545454;font-size:.95em;margin:4px 0 0 0;">FExplorer's weirdest result #${i+1}</p>
+                    </div>
+        `;
+    }
+    
+    resultsHtml += `
+                    <p style="margin-top:20px;color:#aaa">(These are not real.)</p>
+                </div>
+            </div>
+        </div>
+    `;
+    return resultsHtml;
+}
+
 // Goog/Ping results
 function buildSearchResults(query, host) {
     const lower = query.toLowerCase();
     const isPing = host === 'ping.com';
+    const isGoog = !isPing;  // distinguish goog vs ping
+    const isFexplorerSearch = host === 'fexplorer:search';
 
     const predefined = {
-        "example": { url: "example.com", title: "Example Domain" },
+        "example": { url: "example.com", title: "Example Domain", description: "A simple example domain for demonstration purposes." },
         "blank": { url: "about:blank", title: "About Blank" },
         "placeholder": { url: "fexplorer:placeholder", title: "Placeholder" },
         "goog": { url: "goog.com", title: "Goog - That One Search Engine" },
+        "ping": { url: "ping.com", title: "Ping - That One Other Search Engine" },
         "fexplorer": { url: "fexplorer:home", title: "FExplorer Home" },
         "home": { url: "fexplorer:home", title: "FExplorer Home" },
         "quick links": { url: "fexplorer:quick-links", title: "Quick Links" },
@@ -7852,11 +8475,29 @@ function buildSearchResults(query, host) {
         "cookie": { url: "fexplorer:cookies", title: "Cookies" },
         "visual editor": { url: "scripts.visualeditor.com", title: "Visual Scripts Editor" },
         "bookmarks": { url: "fexplorer:bookmarks", title: "Bookmarks Manager" },
-        "legacy": {url: "fexplorer:legacy", title: "Older versions!"}
+        "legacy": {url: "fexplorer:legacy", title: "Older versions!"},
+        "paranoid": {url: "paranoid.com", title: "Was this page always here, or are you just hullucinating?"},
+        "random": {url: "fexplorer:100-default/welcome", title: "Click me!"},
+        "black market": {url: "black-market.net", title: "Totally legal substances"},
     };
 
     // Build result items
     let resultsHtml = "";
+    // For goog only: add AI summary box before results
+    let aiSummaryHtml = "";
+    if (isGoog && lower.trim()) {
+        // Stupid summary to include both stupid and keyworded sumamries
+        const stupidSummary = generateStupidAISummary(query);
+        aiSummaryHtml = `
+            <div class="ai-summary-box" style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(255,193,7,0.3);">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <span style="font-weight:bold;color:#ff6b35;font-size:0.9em;">✨ AI SUMMARY</span>
+                </div>
+                <p style="margin:0;color:#333;font-size:0.95em;font-style:italic;">${escapeHtml(stupidSummary)}</p>
+                <p style="margin:4px 0 0 0;font-size:0.8em;color:#666;">This AI summary is very real, why wouldn't it be?</p>
+            </div>
+        `;
+    }
     if (predefined[lower]) {
         const r = predefined[lower];
         resultsHtml += `
@@ -7876,14 +8517,23 @@ function buildSearchResults(query, host) {
                 `Why ${query} is very important for diet`,
                 `Top 10 things about ${query} you didn't know`,
                 `How ${query} saves hundreds of lives`,
-                `${query}: A complete guide to survival`
+                `${query}: A complete guide to survival`,
+                `Is ${query} really free?`,
             ];
             const title = titles[Math.floor(Math.random() * titles.length)];
+            const descriptions = [
+                `Learn all about ${query} in this comprehensive article.`,
+                `Discover the secrets of ${query} and how it impacts your life.`,
+                `This page explores the many facets of ${query} and its significance.`,
+                `An in-depth look at ${query} and why it matters.`,
+                `Everything you need to know about ${query}, explained simply.`,
+            ];
+            const description = descriptions[Math.floor(Math.random() * descriptions.length)];
             resultsHtml += `
                 <div class="search-result-item ${isPing ? 'ping-result-item' : ''}">
                     <h3><a data-url="${domain}" href="#">${escapeHtml(title)}</a></h3>
                     <p style="color:${isPing ? '#2b8af6' : '#006621'};font-size:.85em">${escapeHtml(domain)}</p>
-                    <p>${isPing ? 'Ping autogenerated result snippet.' : 'Random autogenerated search result.'}</p>
+                    <p>${isPing ? 'Ping autogenerated result snippet.' : `${escapeHtml(description)}`}</p>
                 </div>
             `;
         }
@@ -7901,7 +8551,7 @@ function buildSearchResults(query, host) {
     }
 
     const engineLogo = isPing ? 'icons/ping-icon.png' : 'icons/goog-logo.png';
-    const title = isPing ? `Ping Search Results for "${query}"` : `Goog! Search Results for "${query}"`;
+    const title = isPing ? `Search Results for "${query}"` : `Search Results for "${query}"`;
 
     return `
         <div class="search-results-layout ${isPing ? 'ping-results' : 'goog-results'}">
@@ -7912,6 +8562,7 @@ function buildSearchResults(query, host) {
 
             <div class="search-content">
                 <div class="results-column">
+                    ${aiSummaryHtml}
                     ${resultsHtml}
                     <p style="margin-top:20px;color:#aaa">(These are not real.)</p>
                 </div>
@@ -7924,6 +8575,86 @@ function buildSearchResults(query, host) {
             </div>
         </div>
     `;
+}
+
+// Generate a hilariously stupid AI summary based on keywords
+function generateStupidAISummary(query) {
+    // Keyword-based answers
+    const keywordAnswers = {
+        cookie: [
+            `Cookies were invented by accident when a programmer dropped crumbs on their keyboard in 1994.`,
+            `Studies show that digital cookies contain zero calories but infinite bytes.`,
+            `Cookie Monster was actually the first web browser, but he kept eating all the data.`
+        ],
+        FPoints: [
+            `FPoints were discovered in ancient ruins, predating modern currency by several minutes.`,
+            `Scientists can't explain why FPoints sparkle, but they suspect quantum mechanics.`,
+            `9 out of 10 economists agree that FPoints will replace all world currencies by next Tuesday.`
+        ],
+        music: [
+            `Music in FExplorer is actually performed by tiny digital musicians living in your RAM.`,
+            `The background music is recorded from parallel universes where everything is a song.`,
+            `Our audio engineers trained dolphins to compose all the background tracks.`
+        ],
+        game: [
+            `Games were accidentally invented when a computer got bored and started playing with itself.`,
+            `87% of games are actually cake in disguise. The other 13% are soup.`,
+            `Every time you play a game, somewhere a unicorn gets its wings. Or was that bells? Whatever.`
+        ],
+        paranoid: [
+            `This message isn't actually here. Or is it? Who's asking? Are you watching me?`,
+            `The paranoid page was created by itself when no one was looking.`,
+            `ERROR: This summary has been redacted for your protection. Or has it?`,
+            `YOU.DO.NOT.KNOW.THAT.I.AM.HERE.`
+        ]
+    };
+
+    // Non-keyword answers
+    const stupidAnswers = [
+        `${query} is actually a type of cheese that was invented in 1987 by Swedish scientists who were bored.`,
+        `According to recent studies, ${query} can cure the common cold, but only if you read about it on Tuesdays.`,
+        `${query} was first mentioned in the Dead Sea Scrolls, which proved it existed before it was invented.`,
+        `Fun fact: ${query} is 87% water and 40% magic. The math checks out.`,
+        `Scientists believe that ${query} is responsible for 99% of all happiness, but they won't say why.`,
+        `${query} was briefly banned in 1923 for being "too good at existing."`,
+        `The word "${query}" comes from ancient Sumerian and means "basically nothing."`,
+        `A recent survey shows that 110% of people love ${query}. This is statistically impossible, which is why it's true.`,
+        `${query} can travel through walls if you believe in it hard enough. Scientists aren't sure why this works.`,
+        `In alternate universes, ${query} is actually three smaller ${query}s stacked on top of each other.`,
+        `${query} was originally spelled "${query}!" but the exclamation point got tired and left.`,
+        `If you say "${query}" three times in a mirror, it appears behind you and judges your life choices.`,
+        `${query} is secretly an acronym, but for what? Nobody knows. Not even ${query}.`,
+        `The average person thinks about ${query} 47 times per day. Experts suggest ignoring this.`,
+        `${query} has been proven to exist by studies that probably didn't happen.`,
+        `Your brain cells quadruple every time you try ${query}.`,
+        `Yes, it is legal to own ${query} in 47 states, but not in Idaho.`,
+        `Here are some fruit names that end with ${query}: Appl${query}, Banan${query}, Strawberr${query}, Tomat${query}, and Coconut.`,
+        `Doctors recommend smoking ${Math.floor(Math.random() * 20)} cigarettes per day during ${query}.`,
+        `Sometimes, ${query} is legal to do in ${Math.floor(Math.random() * 50)} states until 1989.`,
+        `I like cheese. I'm sure ${query} do too.`,
+    ];
+
+    // Check for keyword matches first
+    const lowerQuery = query.toLowerCase();
+    for (const [keyword, answers] of Object.entries(keywordAnswers)) {
+        if (lowerQuery.includes(keyword)) {
+            return answers[Math.floor(Math.random() * answers.length)];
+        }
+    }
+
+    // Fall back to random non-keyword answer
+    return stupidAnswers[Math.floor(Math.random() * stupidAnswers.length)];
+}
+
+// Generate specific AI summaries
+function generateAISummaryForArticle(article) {
+    const keywords = (article.title + ' ' + article.snippet).toLowerCase();
+    if (keywords.includes('cookie')) {
+        return 'Cookies are small pieces of data stored on your device to remember preferences and sessions.';
+    } else if (keywords.includes('fpoints')) {
+        return 'FPoints are the primary in-game currency in FExplorer, used to purchase items and cosmetics.';
+    }
+    return 'This article provides information related to your search query.';
 }
 
 // Simple fun-fact generator based on query keywords
@@ -7946,17 +8677,46 @@ function getFunFacts(query, isPing) {
     } else if (q.includes('roblox') || q.includes('dynablocks')) {
         facts.push('Dynablocks is a playful nod to Roblox in FExplorer themes.');
         facts.push('Collectibles and cosmetics reference classic game culture.');
+        facts.push(`ROBLOXIA'S AS GOOD AS MINE!!`);
     } else if (q.includes('science') || q.includes('space')) {
         facts.push('Space is mostly a vacuum but filled with low-density particles.');
         facts.push('Light from distant stars takes years to reach us.');
         facts.push('Gravity shapes galaxies on a massive scale.');
+    } else if (q.includes('technology') || q.includes('computer')) {
+        facts.push('The first computer was invented in the 1940s and filled an entire room.');
+        facts.push('Moore\'s Law predicted the doubling of transistors on microchips every two years.');
+        facts.push('Quantum computing is an emerging field with vast potential.');
+    } else if (q.includes('goog')) {
+        facts.push('Goog is the search engine you are currently using.');
+        facts.push('This search engine is fun! Unlike others...');
+        facts.push('Goog was created in 1995 to compete against Burgersoft.');
+    } else if (q.includes('bugersoft')) {
+        facts.push(`We don't talk about Burgersoft here.`);
+        facts.push('Burgersoft was a major tech company in the early 2000s.');
+        facts.push('Burgersoft created the Ping search engine as a competitor to Goog, but it failed.');
+    } else if (isPing) {
+        // Ping-specific facts
+        facts.push('Ping is known for its minimalist design and speed.');
+        facts.push('Ping was created as a lightweight alternative to larger search engines.');
+        facts.push('PING IS MUCH BETTER THAT GOOG AND FEXPLORER!! USE IT NOW!!!');
+        facts.push('Burgersoft made Ping.');
+    } else if (q.includes('paranoid') || q.includes('JX1DX1')) {
+        facts.push('Are you sure this is the right page?');
+        facts.push(`This isn't the correct time to search for this.`);
+        facts.push(`To be seen, to be lost.`);
     } else {
         // generic facts pool
         const pool = [
             `The word "${query}" appears on ${Math.floor(Math.random()*1000)} demo pages.`,
             'Did you know? Many browsers include Easter eggs for developers.',
             'Tip: Try searching short phrases for more varied results.',
-            'Fun fact: The first web search engines were directory-based.'
+            'Fun fact: The first web search engines were directory-based.',
+            `You can survive up to ${Math.floor(Math.random()*10)+1} days without ${query}.`,
+            `Studies show that ${Math.floor(Math.random()*90)+10}% of people enjoy learning about ${query}.`,
+            `In a recent survey, ${Math.floor(Math.random()*70)+30}% of respondents had heard of ${query}.`,
+            `The concept of ${query} dates back to ancient civilizations.`,
+            `Because of the asteroid, ${query} is now an endangered species, only peaking at ${Math.floor(Math.random())} individuals worldwide.`,
+            `Experts recommend spending at least ${Math.floor(Math.random()*5)+1} hours a day.`,
         ];
         // pick 2-3 facts
         const count = Math.min(3, Math.max(2, Math.floor(Math.random() * 3) + 1));
@@ -8558,6 +9318,9 @@ const FUN_FACTS = [
     "This browser is cool.",
     "Dark mode is available in the Settings for night browsing!",
     "IGHGHIGHEIFJOEBOENVOFEJPOFDOVFEHOGHDOIJIFOEIOBHOIJVOEIGHOE",
+    "1981 was the year that AAAAAH",
+    "The",
+    "You shouldn't browse the black market. It's not worth it."
 ];
 
 /**
@@ -8766,6 +9529,24 @@ if (isRateLimited && now < storedLimit) {
             
             // Stop this function so it doesn't overwrite our content
             return; 
+        }
+        if (contentHtml === "__MYTUBE_WATCH_PAGE__") {
+            try {
+                renderMyTubeWatchPage(sanitizedUrl);
+                pageFound = true;
+            } catch (e) {
+                console.error("Error rendering MyTube watch page:", e);
+                browserContent.innerHTML = "<h1>Error: Failed to load MyTube watch page.</h1>";
+            }
+
+            // Manually run the final UI updates
+            attachDynamicEventListeners();
+            updateBackButtonState();
+            updateForwardButtonState();
+            updateBookmarkStar();
+
+            // Stop this function so it doesn't overwrite our content
+            return;
         }
 
         /* =====================================================

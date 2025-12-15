@@ -303,11 +303,22 @@
     color: #fff;
     font-size: 20px;
 }
+/* -------------------- MODAL (Video Editor) -------------------- */
+.fstudio-modal-backdrop{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999}
+.fstudio-modal{background:var(--panel-bg,#fff);color:var(--text-color,#111);padding:16px;border-radius:10px;max-width:720px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.25)}
+.fstudio-modal h3{margin:0 0 8px 0}
+.fstudio-modal .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.fstudio-modal input.fstudio-input, .fstudio-modal textarea.fstudio-textarea{width:100%}
+.fstudio-modal .thumb{width:320px;height:180px;border-radius:6px;border:1px solid #ddd;object-fit:cover;background:#f6f6f6}
+.fstudio-modal .small-note{font-size:12px;color:var(--text-subtle,#666)}
+
+/* Tighter primary button */
+.fstudio-button.small{padding:6px 8px;font-size:13px}
 </style>
       <div class="fstudio-header">
         <div>
           <div class="fstudio-title">FStudio — Page Creator</div>
-          <div class="fstudio-sub">Create Simple pages, Code projects (with file manager), or Gamer Mode pages.</div>
+          <div class="fstudio-sub">Create Simple pages, Code projects (with file manager), or Gamer Mode pages. (Gamer uploads available in Gamer panel)</div>
         </div>
 
         <div class="fstudio-mode-buttons">
@@ -330,6 +341,29 @@
               <button id="mode_simple" class="fstudio-button">Simple</button>
               <button id="mode_code" class="fstudio-button">Code</button>
               <button id="mode_gamer" class="fstudio-button">Gamer</button>
+              <button id="mode_upload" class="fstudio-button">Upload</button>
+            </div>
+          </div>
+
+          <div id="fstudio_upload_area" style="display:none;">
+            <div class="fstudio-editor-row">
+              <label class="small">MyTube Title</label>
+              <input id="upload_title" class="fstudio-input" placeholder="Video title...">
+            </div>
+            <div class="fstudio-editor-row">
+              <label class="small">Description</label>
+              <textarea id="upload_desc" class="fstudio-textarea" placeholder="Short description..."></textarea>
+            </div>
+            <div class="fstudio-editor-row">
+              <label class="small">Thumbnail</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button id="upload_capture_thumb" class="fstudio-button small">Capture Thumbnail</button>
+                <img id="upload_thumb" class="thumb" src="" alt="thumb" style="width:160px;height:90px;">
+              </div>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px;">
+              <button id="fstudio_upload_btn" class="fstudio-button primary">Upload to MyTube</button>
+              <div class="small-note" style="align-self:center">Uploads saved to localStorage as <code>mytube_videos</code>.</div>
             </div>
           </div>
 
@@ -399,9 +433,12 @@
                   <option value="enemy">Enemy</option>
                   <option value="coin">Coin</option>
                 </select>
-                <button id="add_gobj" class="home-page-button">Add Object</button>
-              </div>
-              <div class="element-list" id="gobj_list"></div>
+                    <button id="add_gobj" class="home-page-button">Add Object</button>
+                  </div>
+                  <div class="element-list" id="gobj_list"></div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                      <button id="gamer_play_btn" class="fstudio-button">Play</button>
+                    </div>
             </div>
 
             <div style="margin-top:8px;">
@@ -459,11 +496,19 @@
     const addGobjBtn = qs(root, '#add_gobj');
     const gobjList = qs(root, '#gobj_list');
     const saveGamerBtn = qs(root, '#save_gamer_draft');
+    const uploadArea = qs(root, '#fstudio_upload_area');
+    const uploadTitle = qs(root, '#upload_title');
+    const uploadDesc = qs(root, '#upload_desc');
+    const uploadCaptureBtn = qs(root, '#upload_capture_thumb');
+    const uploadThumbImg = qs(root, '#upload_thumb');
+    const uploadBtnInline = qs(root, '#fstudio_upload_btn');
 
     const previewInner = qs(root, '#fstudio_preview_inner');
     const btnPreview = qs(root, '#fstudio_btn_preview');
     const btnPublish = qs(root, '#fstudio_btn_publish');
     const btnHome = qs(root, '#fstudio_btn_home');
+    const gamerPlayBtn = qs(root, '#gamer_play_btn');
+    const gamerUploadBtn = qs(root, '#gamer_upload_btn');
 
     // initialize values from draft
     titleInput.value = draft.title || '';
@@ -476,6 +521,7 @@
       simpleArea.style.display = (mode === 'simple') ? 'block' : 'none';
       codeArea.style.display = (mode === 'code') ? 'block' : 'none';
       gamerArea.style.display = (mode === 'gamer') ? 'block' : 'none';
+      uploadArea.style.display = (mode === 'upload') ? 'block' : 'none';
       draft.mode = mode;
       saveDraft(draft);
       renderPreview(draft);
@@ -484,6 +530,8 @@
     modeSimpleBtn.addEventListener('click', () => showMode('simple'));
     modeCodeBtn.addEventListener('click', () => showMode('code'));
     modeGamerBtn.addEventListener('click', () => showMode('gamer'));
+    const modeUploadBtn = qs(root, '#mode_upload');
+    if (modeUploadBtn) modeUploadBtn.addEventListener('click', () => showMode('upload'));
 
     // pick initial mode display
     showMode(draft.mode || 'simple');
@@ -976,6 +1024,9 @@
 
       // store into global userCreatedPages (main app expects key fexplorer-xxxx)
       userCreatedPages[pageId] = pageObj;
+      // remember last published id in draft so we can upload
+      draft.lastPublishedId = pageId;
+      try { saveDraft(draft); } catch(e) {}
       // add to randomWebsiteUrls if you use that mechanic
       if (Array.isArray(window.randomWebsiteUrls)) {
         const pageUrl = `fexplorer:user-page-${pageId}`;
@@ -992,10 +1043,87 @@
       } else {
         alert('Published (saved to localStorage). No navigate() function found to open the page.');
       }
+      // enable upload button in Upload mode if present
+      try { if (uploadBtnInline) uploadBtnInline.disabled = false; } catch(e) {}
     });
+
+    // Inline Upload panel handler (Upload mode)
+    if (uploadBtnInline) {
+      // disable until page is published
+      if (!draft.lastPublishedId) uploadBtnInline.disabled = true;
+
+      function captureInlineThumb() {
+        try {
+          const w = 320, h = 180;
+          const cvs = document.createElement('canvas'); cvs.width = w; cvs.height = h;
+          const ctx = cvs.getContext('2d');
+          if (draft.mode === 'gamer' && draft.gamerSettings && Array.isArray(draft.gamerSettings.objects)) {
+            ctx.fillStyle = (draft.gamerSettings.theme === 'neon') ? '#062' : (draft.gamerSettings.theme === 'retro' ? '#eee' : '#111');
+            ctx.fillRect(0,0,w,h);
+            draft.gamerSettings.objects.forEach(o => {
+              ctx.fillStyle = o.color || '#ffcc00';
+              const sx = Math.max(0, Math.min(w, o.x));
+              const sy = Math.max(0, Math.min(h, o.y));
+              const sw = Math.max(8, Math.min(w, o.w));
+              const sh = Math.max(8, Math.min(h, o.h));
+              ctx.fillRect(sx, sy, sw, sh);
+              ctx.fillStyle = '#000'; ctx.font = '12px sans-serif'; ctx.fillText((o.type||'')[0]?.toUpperCase()||'', sx+4, sy+14);
+            });
+          } else {
+            ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+            ctx.fillStyle = '#222'; ctx.font = 'bold 18px sans-serif'; ctx.fillText((uploadTitle.value.trim() || titleInput.value.trim() || 'Untitled'), 12, 36);
+            ctx.fillStyle = '#666'; ctx.font = '12px sans-serif';
+            const txt = (uploadDesc.value||draft.simpleContent||'').replace(/\n/g,' ').slice(0,140);
+            ctx.fillText(txt, 12, 64);
+          }
+          const data = cvs.toDataURL('image/png');
+          try { if (uploadThumbImg) uploadThumbImg.src = data; } catch(e){}
+          return data;
+        } catch (e) { console.error('thumbnail capture failed', e); alert('Capture failed: ' + e.message); }
+      }
+
+      if (uploadCaptureBtn) uploadCaptureBtn.addEventListener('click', () => captureInlineThumb());
+
+      uploadBtnInline.addEventListener('click', () => {
+        const title = (uploadTitle.value || titleInput.value || 'Untitled').trim();
+        const desc = (uploadDesc.value || draft.simpleContent || '').trim();
+        const thumb = (uploadThumbImg && uploadThumbImg.src) ? uploadThumbImg.src : captureInlineThumb();
+
+        const doUpload = (pageIdToUse) => {
+          const videosRaw = localStorage.getItem('mytube_videos');
+          let videos = [];
+          try { videos = videosRaw ? JSON.parse(videosRaw) : []; } catch (e) { videos = []; }
+          const newVideo = { id: uid(8), title, description: desc, pageUrl: `fexplorer:user-page-${pageIdToUse}`, pageId: pageIdToUse, createdAt: Date.now(), uploader: (localStorage.getItem('fexplorer_username') || 'You'), thumbnail: thumb };
+          videos.unshift(newVideo);
+          try { localStorage.setItem('mytube_videos', JSON.stringify(videos)); } catch (e) { console.error('Failed to save mytube_videos', e); }
+          alert('Uploaded to MyTube as "' + newVideo.title + '"');
+        };
+
+        if (draft.lastPublishedId) { doUpload(draft.lastPublishedId); return; }
+        if (!confirm('This page has not been published yet. Publish now and then upload?')) return;
+        btnPublish.click();
+        setTimeout(() => {
+          const pid = draft.lastPublishedId;
+          if (!pid) return alert('Publish did not complete — please try again.');
+          doUpload(pid);
+        }, 450);
+      });
+    }
 
     // render initial gamer objects
     renderGamerObjects();
+
+    // Play button behaviour: open the gamer HTML in a new window for quick playtest
+    if (gamerPlayBtn) {
+      gamerPlayBtn.addEventListener('click', () => {
+        try {
+          const w = window.open('', '_blank');
+          if (!w) return alert('Popup blocked.');
+          w.document.write(buildGamerHtml(draft));
+          w.document.close();
+        } catch (e) { console.error('Play open failed', e); alert('Failed to open play window'); }
+      });
+    }
 
     // expose small API for external calls (optional)
     if (!window.FStudio) window.FStudio = {};

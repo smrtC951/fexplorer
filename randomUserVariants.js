@@ -57,7 +57,16 @@ const RANDOM_USER_VARIANTS = {
           <button class="bonus-button">Bonus</button>
         </div>
       `
-    }
+    },
+    basic: {
+      id: "default.basic",
+      html: `
+        <div class="random-user-page">
+          <h2>Default Page</h2>
+          <p>This is a default random user page.</p>
+        </div>
+      `
+    },
   },
 
   /* ====================== MYSTERY ====================== */
@@ -180,6 +189,17 @@ const RANDOM_USER_VARIANTS = {
           <button class="mango-button1">GIVE ME MANGOES!!</button>
         </div>
       `
+    },
+    funny: {
+      id: "awesome.funny",
+      html: `
+        <div class="random-user-page">
+          <h2>SHOW ME YOUR MEME!! :DDD</h2>
+          <p>I, MR MEME MAN, CREATE THIS PAGE FOR YOU TO SHOW ME YOUR MEME!!</p>
+          <button class="meme-button1">GIVE MEME</button>
+          <button class="meme-button2">NO MEME</button>
+        </div>
+      `
     }
   },
 
@@ -237,6 +257,16 @@ const RANDOM_USER_VARIANTS = {
           <h2>TOTALLY SAFE DOWNLOAD!!!!!!!!!!!!!!!!!!!!!!!!!</h2>
           <p>This download is totally safe! Click to donwload and get 2147129498174917941 FPointd!111113131242121</p>
           <button class="dangerous-button3">DOWNLOAD</button>
+        </div>
+      `
+    },
+    pet: {
+      id: "danger.pet",
+      html: `
+        <div class="random-user-page dangerous-page" style="background:#f7869a;color:white">
+          <h2>Download Kinito PET now!</h2>
+          <p>Kinito PET is the best assistant ever!! Try it now!!</p>
+          <button class="dangerous-button4">DOWNLOAD KINITO PET</button>
         </div>
       `
     }
@@ -371,7 +401,9 @@ const RANDOM_USER_VARIANTS = {
       html: `
         <div class="random-user-page" style="background:black;color:#ff7518;">
           <h2>Happy Halloween!</h2>
-          <button class="holiday-button">Spooky Surprise!</button>
+          <p>Trick or Treat?</p>
+          <button class="holiday-button">Trick!</button>
+          <button class="holiday-button">Treat!</button>
         </div>
       `
     },
@@ -380,7 +412,7 @@ const RANDOM_USER_VARIANTS = {
       html: `
         <div class="random-user-page" style="background:#1a1a1a;color:#ff0000;">
           <h2>THE.CLOCK.IS.TICKING.</h2>
-          <button class="bonus-button">That's nice</button>
+          <button class="bonus-button">("CLICK.ME.")</button>
         </div>
       `
     },
@@ -392,7 +424,94 @@ const RANDOM_USER_VARIANTS = {
           <button class="holiday-button">Get turkey</button>
         </div>
       `
+    },
+    christmas: {
+      id: "holiday.chirstmas",
+      html: `
+        <div class="random-user-page" style="background:black;color:#c2f0d0;">
+          <h2>Merry Christmas!</h2>
+          <button class="holiday-button">Get presents</button>
+        </div>
+      `
+    },
+    happynewyear: {
+      id: "holiday.newyear",
+      html: `
+      <div class="random-user-page" style="background:black;color:#c2f0d0;">
+          <h2>Happy 2026!</h2>
+          <p>Hey, you're early. Wonderful day, isn't it?</p>
+          <p>Make sure to celebrate 2026 soon!</p>
+          <button class="holiday-button" disabled>Celebrate</button>
+        </div>
+      `
     }
+  },
+
+  /* ====================== PARANOIA ====================== */
+  paranoia: {
+    basic: {
+      id: "paranoia.basic",
+      html: `
+        <div class="random-user-page">
+          <h2>Paranoia Page</h2>
+          <p>They are watching you...</p>
+        </div>
+      `
+    },
+    definition: {
+      id: "paranoia.definition",
+      html: `
+        <div class="random-user-page" style="background:#222;color:#eee;">
+          <p>To be seen, to be lost</p>
+          <p>Are you sure it's there?</p>
+        </div>
+      `
+    },
+    alert: {
+      id: "paranoia.alert",
+      html: `
+        <div class="random-user-page">
+          <h2>ALERT!</h2>
+          <p>Hey, user. Quick question. Are you being watched?</p>
+          <button class="paranoia-button1">Yes</button>
+          <button class="paranoia-button2">No</button>
+        </div>
+      `
+    }
+  },
+  /* ====================== TASK ====================== */
+  task: {
+    basic: {
+      id: "task.basic",
+      html: `
+        <div class="random-user-page">
+          <h2>Task Page</h2>
+          <p>Complete the task to get a reward!</p>
+          <button class="task-button">Complete Task</button>
+        </div>
+      `
+    },
+    oh_no: {
+      id: "task.oh_no",
+      html: `
+        <div class="random-user-page">
+          <h2>Help, user!</h2>
+          <p>Oh no! My microwave has just exploded. Don't ask how, or why.</p>
+          <p>Can you help me fix it?</p>
+          <button class="task-button">Fix</button>
+        </div>
+      `
+    },
+    code: {
+      id: "task.code",
+      html: `
+        <div class="random-user-page">
+          <h2>Code Task</h2>
+          <p>Complete this Javascript code for me! It's VERY impossible, I tell you.</p>
+          <button class="task-button">View Code</button>
+        </div>
+      `
+    },
   },
 
   /* ====================== MISC ====================== */
@@ -404,6 +523,16 @@ const RANDOM_USER_VARIANTS = {
           <h2>Betting Page</h2>
           <p>Place your bets!</p>
           <button class="betting-button">Place Bet</button>
+        </div>
+      `
+    },
+    error777: {
+      id: "misc.error777",
+      html: `
+        <div class="random-user-page">
+          <h2>Error 777 Page</h2>
+          <p>This page has encountered Error 777. Please contact support.</p>
+          <button class="error777-button">Contact Support</button>
         </div>
       `
     },
