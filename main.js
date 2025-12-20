@@ -770,6 +770,18 @@ if (target.matches(".bonus-button")) {
             return;
         }
 
+        // Data Selling Button
+        if (target.matches(".data-sell-button")) {
+            const dataSellingPoints = Math.floor(Math.random() * 1001) + 500;
+            userFPoints += dataSellingPoints;
+            saveAppState();
+            showFPointsNotification(dataSellingPoints);
+            target.style.display = "none";
+            alert(`You sold your data for ${dataSellingPoints} FPoints!`);
+            alert(`We actually don't need it anymore. LOL!`);
+            return;
+        }
+
         // Task Button
 if (target.matches(".task-button")) {
     if (currentUrl.includes("oh_no")) {
@@ -812,6 +824,32 @@ if (solveCode) {
         showFPointsNotification(-25);
     }
 }    
+    } else if (currentUrl.includes("freddy")) {
+        // Freddy's task
+        const freddyTasks = ["task1", "task2", "task3"];
+        const randomTask = freddyTasks[Math.floor(Math.random() * freddyTasks.length)];
+        const solvedTask = prompt(`Solve Freddy's task: ${randomTask}`);
+
+        if (solvedTask) {
+            alert("Correct solution! Here's 50 FPoints!");
+            userFPoints += 50;
+            saveAppState();
+            showFPointsNotification(50);
+            target.style.display = "none";
+        } else {
+            alert("You died. Try again!");
+            userFPoints -= 25;
+            saveAppState();
+            showFPointsNotification(-25);
+        }
+    } else if (currentUrl.includes("createpage")) {
+        // Create page task
+        const createPage = browserContent.querySelector("crate-page");
+    
+        if (createPage) {
+            createPage.style.display = "inline";
+            target.style.display = "none";
+        }    
     } else {
         // Connect lines task
         const lines = ["A", "B", "C"];
@@ -1598,7 +1636,8 @@ const shopItems = [
     { id: 'jx1dx1_theme', name: 'JX1DX1 Theme', description: 'BUY.ME.IF.YOU.DARE.', cost: 2008, effect: { cosmetic: 'jx1dx1_theme' }, icon: 'icons/jx1dx1.jpg' },
     { id: 'dynablocks_theme', name: 'Dynablocks Theme', description: 'Classic Roblox for the win!', cost: 2005, effect: { cosmetic: 'dynablocks_theme' }, icon: 'icons/dynablocks-icon.png'},
     { id: 'ie_title', name: 'Famous Internet Explorer title', description: 'Allows you to get the world famous Internet Explorer title!', cost: 1995, effect: { cosmetic: 'ie_title' }, icon: 'icons/fexplorer.png' },
-    { id: 'burger_hat', name: 'Burger Hat', description: 'Extremely expensive hat for your FExplorer browser icon!', cost: 33333, effect: { cosmetic: 'burger_hat' }, icon: 'icons/hamburger-icon.png' }
+    { id: 'burger_hat', name: 'Burger Hat', description: 'Extremely expensive hat for your FExplorer browser icon!', cost: 33333, effect: { cosmetic: 'burger_hat' }, icon: 'icons/hamburger-icon.png' },
+    { id: 'homerun', name: 'Homerun!', description: 'What a waste of FPoints.', cost: 192845, effect: { cosmetic: 'homerun'}, icon: 'icons/placeholder.png'},
 ];
 
 // Achievement System
@@ -1752,9 +1791,25 @@ const achievementItems = [
         name: 'Sign in Verified!',
         description: 'Sign in to FExplorer!',
         awards: [{ type: 'fpoints', amount: 1000 }],
-        checkUnlock: () => false, // check if the user is signed in or not
+        checkUnlock: () => localStorage.getItem('fexplorer_currentUser') !== null,
         progress: null
-    }
+    },
+    {
+        id: 'cookie_trade',
+        name: 'Cookie Trader',
+        description: 'Trade 100 FPoints for Cookies!',
+        awards: [{ type: 'cookies', amount: 5 }],
+        checkUnlock: () => (achievementProgress['cookies_bought'] || 0) >= 20,
+        getProgress: () => ({ current: achievementProgress['cookies_bought'] || 0, target: 20 }),
+        progress: () => Math.min(100, Math.round(((achievementProgress['cookies_bought'] || 0) / 20) * 100))
+    },
+    {
+        id: 'legal_investment',
+        name: 'Totally legal investment',
+        description: 'Buy shares with a cost of 1000 FPoints! HOLY SHIT!!',
+        awards: [{type: 'luck', amount: 2.5}],
+        checkUnlock: () => false, // Check if the user bought shares which cost 1000 FPoints
+    },
 ];
 
 // Achievement Functions
@@ -2531,13 +2586,12 @@ const fakeContent = {
     // Search Engine: NoSearch (Yahoo)
     'nosearch.com': `
     <div>
-            <img src="icons/placeholder.png" alt="Goog! Logo" class="goog-logo" style="width:220px;margin-bottom:18px;">
+            <img src="icons/nosearch-logo.png" alt="Goog! Logo" class="goog-logo" style="width:220px;margin-bottom:18px;">
             <div style="width:100%;max-width:760px;display:flex;gap:8px;align-items:center;">
-                <input type="search" id="googSearchInput" placeholder="Search the web with Goog!">
+                <input type="search" id="googSearchInput" placeholder="Search the web with NoSearch.">
                 <button id="googSearchButton">Search</button>
             </div>
             <div id="googSearchResults"></div>
-            // No
         </div>
     `,
     // FExplorer Home Page
@@ -2818,17 +2872,16 @@ const fakeContent = {
             <img src="icons/fexplorer.png" alt="FExplorer Logo" class="app-logo">
             <h1>FExplorer Updates</h1>
             <p class="tagline">Stay informed about the latest features and upcoming changes!</p>
-			<h2>Update Name: Alpha 1.5.1 - The Christmas Mini-update!</h2>
-            <p>Release Date: <i>December 15, 2025</i></p>
+			<h2>Update Name: Alpha 1.5.2 - The Tweak Before The Big One</h2>
+            <p>Release Date: <i>December 20, 2025</i></p>
 
             <div class="updates-section">
                 <h2>Current Updates</h2>
                 <ul>
-                    <li>A ton of new user variants!</li>
-                    <li>MyTube beta is released! It's filled with bugs, so expect.. bugs.</li>
-                    <li>AI summaries to summarize your search results! They are quite stupid.</li>
-                    <li>Added a Christmas page!</li>
-                    <li>"Enhanced" the log in system (not really)</li>
+                    <li>Upgraded Account system! It's quite buggy, but you can create your own accounts!</li>
+                    <li>Changes to the Encyclopedia</li>
+                    <li>New program - FBlogs! Post posts and view posts and like and report the posts!</li>
+                    <li>More user variants!</li>
                 </ul>
             </div>
 
@@ -2839,7 +2892,7 @@ const fakeContent = {
             <p class="footer-note" style="margin-top: 20px;">Made by smrtC951!</p>
         </div>
     `,
-    // FExplorer Settings Page (NEW)
+    // FExplorer Settings Page
 'fexplorer:settings': `
 <div class="settings-wrapper">
     <div class="fx-header">
@@ -2894,7 +2947,8 @@ const fakeContent = {
             <select id="searchEngineSelect" class="fx-input">
                 <option value="fexplorer">FExplorer Browser</option>
                 <option value="goog">Goog</option>
-                    <option value="ping" disabled>Ping</option>
+                <option value="ping" disabled>Ping</option>
+                <option value="nosearch" disabled>NoSearch</option>
                 </select>
             <label class="fx-flex" for="notificationsToggle">
                 <span>Enable Notifications</span>
@@ -3008,12 +3062,12 @@ const fakeContent = {
             <form id="loginForm">
                 <input type="text" id="username" name="username" placeholder="Username..."><br>
                 <input type="password" id="password" name="password" placeholder="Password..."><br>
-                <input type="submit" value="Login">
-                <input type="submit" value="Signup">
+                <button type="button" class="btn-primary">Login</button>
+                <button type="button" class="btn-secondary">Signup</button>
             </form>
         </div>
     `,
-    // FExplorer NEW Create page
+    // FExplorer Create page
     'fexplorer:create.new': `
         <div id="fstudio_root_placeholder" style="padding:40px;text-align:center;color:#666;">
             <p>Loading FStudio...</p>
@@ -3268,6 +3322,10 @@ const fakeContent = {
                     <li>
                         <a href="#" data-url="fexplorer:placeholder">FExplorer Web Archives</a>
                         <p class="link-description">View preserved update logs from previous updates!</p>
+                    </li>
+                    <li>
+                        <a href="#" data-url="fexplorer:blogs">FBlogs</a>
+                        <p class="link-description">View and create posts for other users to see!</p>
                     </li>
                     <li>
                         <a href="placeholder.txt" download="placeholder.txt">placeholder</a>
@@ -3634,6 +3692,11 @@ const fakeContent = {
             <p>Page missing.</p>
         </div>
     `,
+    // Program: FBlogs
+    'fexplorer:blogs': `
+    <div class="home-page-content fblogs-content">
+    </div>
+    `,
     // Cookie Page
     'fexplorer:cookies':`
         <div class="cookies-page-enhanced">
@@ -3738,10 +3801,9 @@ const fakeContent = {
                 <div class="home-page-buttons-container">
                     <button class="home-page-button" data-url="fexplorer:wiki.currency">Currency</button>
                     <button class="home-page-button" data-url="fexplorer:wiki.navigation">Navigation</button>
-                    <button class="home-page-button" data-url="fexplorer:achievements">Achievements</button>
-                    <button class="home-page-button" data-url="fexplorer:events">Events</button>
-                    <button class="home-page-button" data-url="fexplorer:create.new">Creator Hub</button>
-                    <button class="home-page-button" data-url="mytube.com">MyTube</button>
+                    <button class="home-page-button" data-url="fexplorer:wiki.account">Account Requirements</button>
+                    <button class="home-page-button" data-url="fexplorer:wiki.events">Events</button>
+                    <button class="home-page-button" data-url="fexplorer:wiki.creator">Page Creator</button>
                 </div>
             </div>
             <br>
@@ -3813,7 +3875,7 @@ const fakeContent = {
     `,
     'fexplorer:wiki.events':`
     <div class="home-page-content quick-links-content">
-            <img src="icons/calendar-icon.png" class="app-logo">
+            <img src="icons/xp-info-icon.png" class="app-logo">
             <h1>Events</h1>
             <p>Events are limited-time activities that reward you with unique bonuses and achievements.</p>
             <br>
@@ -3834,7 +3896,7 @@ const fakeContent = {
     `,
     'fexplorer:wiki.creator':`
     <div class="home-page-content quick-links-content">
-            <img src="icons/studio-icon.png" class="app-logo">
+            <img src="icons/sandbox-icon.png" class="app-logo">
             <h1>Creator Hub</h1>
             <p>The Creator Hub (FStudio) explains how to create pages, upload to MyTube, and design interactive content.</p>
             <br>
@@ -3850,6 +3912,35 @@ const fakeContent = {
             <div class="home-page-buttons-container">
                 <button class="home-page-button" data-url="fexplorer:create.new">Open FStudio</button>
                 <button class="home-page-button" data-url="mytube.com">Visit MyTube</button>
+            </div>
+        </div>
+    `,
+    'fexplorer:wiki.account': `
+    <div class="home-page-content quick-links-content">
+            <img src="icons/fexplorer.png" class="app-logo">
+            <h1>Account Requirements</h1>
+            <p>In FExplorer, you are able to create accounts for more customization and features!</p>
+            <br>
+            <div class="quick-links-section">
+                <h2>Guests vs Verified Accounts</h2>
+                <h3>Guests</h3>
+                <ul style="color:#444; margin-left:0px;">
+                    <li>Guests can gain FPoints and Cookies by interacting with the browser.</li>
+                    <li>They won't get free FPoints for doing nothing.</li>
+                    <li>Everything they do is saved to their own web browser device. It doesn't save through online.</li>
+                </ul>
+                <h3>Verified Accounts</h3>
+                <ul style="color:#444; margin-left:0px;">
+                    <li>Accounts can gain 100 FPoints every 30 minutes!</li>
+                    <li>Accounts can upload videos to MyTube, post on FBlogs and have more customizability!</li>
+                    <li>Everything they do is saved on an account database. It's experimental. I'm not sure it'll work.</li>
+                </ul>
+            </div>
+            <br>
+            <div class="home-page-buttons-container">
+                <button class="home-page-button" data-url="fexplorer:wiki">Go back</button>
+                <button class="home-page-button" data-url="fexplorer:log-in">Log in/Sign up</button>
+                <button class="home-page-button" data-url="fexplorer:account">My Account</button>
             </div>
         </div>
     `,
@@ -3869,6 +3960,22 @@ const fakeContent = {
             <br>
             <button class="bonus-button home-page-button">Bonus</button>
         </div>
+    `,
+    // Minceraft page
+    'minceraft.com': `
+    <p style="font-family: Times New Roman">Server not found</p>
+    `,
+    // Headbook page
+    'headbook.com': `
+    <p style="font-family: Times New Roman">Server not found</p>
+    `,
+    // Instantgrams page
+    'instantgrams.com': `
+    <p style="font-family: Times New Roman">Server not found</p>
+    `,
+    // NoSpace page
+    'nospace.com': `
+    <p style="font-family: Times New Roman">Server not found</p>
     `,
     // Other pages
     // Cola Page
@@ -3933,6 +4040,41 @@ const fakeContent = {
                 </div>
         </div>
     `,
+    'fexplorer://misinfo.com': `
+    <div class="home-page-content quick-links-content">
+        <img src="icons/wiki-icon.png" class="app-logo">
+        <h1>MisInfo Wiki</h1>
+        <p class="tagline">The free encyclopedia that anyone can edit</p>
+        
+        <div class="wiki-content" style="text-align: left; padding: 20px; background: #fff; border-radius: 8px;">
+            <h2>Welcome to MisInfo Wiki</h2>
+            <p>MisInfo Wiki is a collaborative encyclopedia covering various topics. Feel free to browse and contribute!</p>
+            
+            <h3>Featured Articles</h3>
+            <ul style="list-style-type: disc; margin-left: 20px;">
+                <li><a href="#" style="color: #0645ad;">History of FExplorer</a></li>
+                <li><a href="#" style="color: #0645ad;">Popular Search Engines</a></li>
+                <li><a href="#" style="color: #0645ad;">Virtual Currency Guide</a></li>
+            </ul>
+
+            <h3>Categories</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                <div class="wiki-category" style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <h4>Technology</h4>
+                    <p>Articles: 150</p>
+                </div>
+                <div class="wiki-category" style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <h4>History</h4>
+                    <p>Articles: 89</p>
+                </div>
+                <div class="wiki-category" style="padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <h4>Science</h4>
+                    <p>Articles: 234</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    `,  
     'paranoid.com':`
         <div style="height: 450px; background-color: #4f0b0bff; color: #fff; font-family: Times New Roman;">
             <p>Does this website even exist?</p>
@@ -3942,10 +4084,9 @@ const fakeContent = {
     `,
     'paranoid.com/jx1dx1':`
         <div style="height: 450px; background-color: #000000; color: #7b0000ff; font-family: 'Consolas', monospace; button: cursor: pointer;">
-            <p>how.did.you.find.me.</p>
-            <p>i.thought.i.was.hidden.</p>
-            <p>now.you.have.to.leave.</p>
-            <p>before.it.is.too.late.</p>
+            <code>HOW.DID.YOU.FIND.ME.</code><br>
+            <code>I.THOUGHT.I.WAS.HIDDEN.</code><br>
+            <code>NOW.YOU.MUST.LEAVE.BEFORE.IT.IS.TOO.LATE.</code><br>
             <button class="button" data-url="fexplorer:home">Leave now</button>
             <button class="button" data-url="paranoid.com/error.html">Proceed on</button>
         </div>
@@ -4005,6 +4146,17 @@ const fakeContent = {
                 <a href="https://smrtc951.github.io/fexplorer/legacy/version_11" class="home-page-button" >Version 11</a>
                 <a href="https://fexplorer.on.websim.com/" class="home-page-button" >Demo 1</a>
             </div>
+        </div>
+    `,
+    // FExplorer Web Archives page
+    'fexplorer:legacy/archives':`
+        <div class="home-page-content">
+            <img src="icons/old-fexplorer.png" alt="FExplorer Logo" class="app-logo">
+            <h1>FExplorer Web Archives</h1>
+            <p class="tagline">Your window to the simulated web.</p>
+            <p>View older updates of FExplorer!</p>
+            <br>
+            <p>u/c</p>
         </div>
     `,
     // FExplorer Codes Page
@@ -4220,6 +4372,61 @@ const fakeContent = {
         <div class="account-page-container">
             <div id="accountContent"></div>
         </div>
+    `,
+    // FExplorer Mail page
+    'fexplorer:mail': `
+    <div class="home-page-content">
+        <div id="mailContent">
+            <style>
+                .mail-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+                .mail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+                .mail-list { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                .mail-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+                .mail-item:hover { background: #f5f5f5; }
+                .mail-item:last-child { border-bottom: none; }
+                .mail-sender { width: 200px; font-weight: 500; }
+                .mail-subject { flex: 1; }
+                .mail-date { width: 100px; color: #666; text-align: right; }
+                .compose-btn { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+                .compose-btn:hover { background: #45a049; }
+                .mail-empty { text-align: center; padding: 40px; color: #666; }
+                .unread { font-weight: bold; background: #f8f9fa; }
+            </style>
+
+            <div class="mail-container">
+                <div class="mail-header">
+                    <h1>📧 FExplorer Mail</h1>
+                    <button class="compose-btn">Compose</button>
+                </div>
+
+                <div class="mail-list">
+                    <div class="mail-item unread">
+                        <div class="mail-sender">FExplorer Team</div>
+                        <div class="mail-subject">Welcome to FExplorer Mail!</div>
+                        <div class="mail-date">Just now</div>
+                    </div>
+
+                    <div class="mail-item">
+                        <div class="mail-sender">System</div>
+                        <div class="mail-subject">Your account security report</div>
+                        <div class="mail-date">Yesterday</div>
+                    </div>
+
+                    <div class="mail-item">
+                        <div class="mail-sender">Notifications</div>
+                        <div class="mail-subject">New achievement unlocked!</div>
+                        <div class="mail-date">2 days ago</div>
+                    </div>
+
+                    <div class="mail-item">
+                        <div class="mail-sender">FPoints Team</div>
+                        <div class="mail-subject">Your weekly FPoints summary</div>
+                        <div class="mail-date">1 week ago</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     `,
 };
 // Cookie button
@@ -4500,6 +4707,8 @@ function attachDynamicEventListeners() {
     const signupBtn = browserContent.querySelector('.btn-secondary');
 
     if (loginForm && loginBtn && signupBtn) {
+        loginForm.addEventListener('submit', (e) => e.preventDefault());
+        
         loginBtn.addEventListener('click', (e) => {
             e.preventDefault();
             const username = usernameInput.value.trim();
@@ -4525,7 +4734,7 @@ function attachDynamicEventListeners() {
             localStorage.setItem('fexplorer_currentUser', username);
             alert(`Welcome back, ${username}!`);
             enableUsernameAdvantage();
-            navigate('fexplorer:home');
+            navigate('fexplorer:account');
         });
 
         signupBtn.addEventListener('click', (e) => {
@@ -4551,103 +4760,772 @@ function attachDynamicEventListeners() {
             const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
             
             if (users[username]) {
-                alert('Username already exists! Please choose another.');
+                alert(`${username} already exists! Please choose another username.`);
                 return;
             }
 
-            users[username] = { password, createdAt: Date.now() };
+            users[username] = { 
+                password, 
+                createdAt: Date.now(),
+                profileIcon: '👤',
+                description: '',
+                bannerGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                fontFamily: 'inherit',
+                privacy: 'public',
+                friends: []
+            };
             localStorage.setItem('fexplorer_users', JSON.stringify(users));
             localStorage.setItem('fexplorer_currentUser', username);
             
             alert(`Account created successfully! Welcome, ${username}!`);
             alert('You now have access to premium features and will receive 100 FPoints every 30 minutes!');
             enableUsernameAdvantage();
-            navigate('fexplorer:home');
+            navigate('fexplorer:account');
         });
     }
+    if (currentUrl === "fexplorer:account" || currentUrl.startsWith("fexplorer:account-")) {
+    let viewedUser;
     if (currentUrl === "fexplorer:account") {
-        const currentUser = localStorage.getItem('fexplorer_currentUser');
-        const container = browserContent.querySelector('#accountContent');
-        
-        if (!currentUser) {
-            container.innerHTML = `
-                <style>
-                    .error-container { min-height: 400px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
-                    .error-box { max-width: 500px; }
-                    .error-icon { font-size: 80px; margin-bottom: 20px; animation: shake 0.5s; }
-                    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
-                    .error-title { font-size: 32px; font-weight: 700; color: #dc3545; margin: 0 0 15px 0; }
-                    .error-message { font-size: 16px; color: #666; margin-bottom: 30px; }
-                </style>
-                <div class="error-container">
-                    <div class="error-box">
-                        <div class="error-icon">🔒</div>
-                        <h1 class="error-title">Access Denied</h1>
-                        <p class="error-message">You need to be logged in to view your account page. Please log in or create an account to continue.</p>
-                        <button class="home-page-button" data-url="fexplorer:log-in" style="margin-right: 10px;">Log In</button>
+        viewedUser = localStorage.getItem('fexplorer_currentUser');
+    } else {
+        viewedUser = currentUrl.replace('fexplorer:account-', '');
+    }
+    const container = browserContent.querySelector('#accountContent');
+    const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
+    
+    if (!viewedUser || !users[viewedUser]) {
+        container.innerHTML = `
+            <style>
+                .error-container { min-height: 400px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
+                .error-box { max-width: 500px; }
+                .error-icon { font-size: 80px; margin-bottom: 20px; animation: shake 0.5s; }
+                @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+                .error-title { font-size: 32px; font-weight: 700; color: #dc3545; margin: 0 0 15px 0; }
+                .error-message { font-size: 16px; color: #666; margin-bottom: 30px; }
+            </style>
+            <div class="error-container">
+                <div class="error-box">
+                    <div class="error-icon">🔒</div>
+                    <h1 class="error-title">User Not Found</h1>
+                    <p class="error-message">The requested user profile does not exist or is not accessible.</p>
+                    <div class="home-page-buttons-container">
                         <button class="home-page-button" data-url="fexplorer:home">Go Home</button>
                     </div>
                 </div>
-            `;
-        } else {
-            const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
-            const userData = users[currentUser] || {};
-            const joinDate = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'Unknown';
-            
+            </div>
+        `;
+    } else {
+        const userData = users[viewedUser] || {};
+        const joinDate = userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'Unknown';
+        const isOwnProfile = viewedUser === localStorage.getItem('fexplorer_currentUser');
+        const canViewProfile = userData.privacy === 'public' || isOwnProfile || 
+                             (userData.privacy === 'friends' && userData.friends?.includes(localStorage.getItem('fexplorer_currentUser')));
+
+        if (!canViewProfile) {
             container.innerHTML = `
-                <style>
-                    .account-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
-                    .account-avatar { width: 100px; height: 100px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-                    .account-username { font-size: 32px; font-weight: 700; margin: 0 0 10px 0; }
-                    .account-info { max-width: 800px; margin: -30px auto 0; padding: 0 20px 40px; }
-                    .info-card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-                    .info-card h2 { margin: 0 0 20px 0; font-size: 20px; color: #333; }
-                    .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
-                    .info-row:last-child { border-bottom: none; }
-                    .info-label { color: #666; font-weight: 500; }
-                    .info-value { color: #333; font-weight: 600; }
-                    .logout-btn { background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s; }
-                    .logout-btn:hover { background: #c82333; transform: translateY(-2px); }
-                </style>
-                <div class="account-header">
-                    <div class="account-avatar">👤</div>
-                    <h1 class="account-username">${currentUser}</h1>
-                    <p>Member since ${joinDate}</p>
-                </div>
-                <div class="account-info">
-                    <div class="info-card">
-                        <h2>📊 Account Statistics</h2>
-                        <div class="info-row"><span class="info-label">FPoints Balance</span><span class="info-value">${userFPoints.toLocaleString()}</span></div>
-                        <div class="info-row"><span class="info-label">Cookies</span><span class="info-value">${userCookies.toLocaleString()}</span></div>
-                        <div class="info-row"><span class="info-label">Luck Multiplier</span><span class="info-value">${userLuck.toFixed(1)}x</span></div>
-                        <div class="info-row"><span class="info-label">Pages Created</span><span class="info-value">${Object.keys(userCreatedPages).length}</span></div>
-                    </div>
-                    <div class="info-card">
-                        <h2>🎯 Achievements</h2>
-                        <div class="info-row"><span class="info-label">Unlocked</span><span class="info-value">${Object.keys(unlockedAchievements).length} / ${achievementItems.length}</span></div>
-                    </div>
-                    <div class="info-card">
-                        <h2>⚙️ Account Actions</h2>
-                        <button class="logout-btn" id="logoutBtn">Log Out</button>
+                <div class="error-container">
+                    <div class="error-box">
+                        <div class="error-icon">🔒</div>
+                        <h1 class="error-title">Private Profile</h1>
+                        <p class="error-message">This profile is private.</p>
                     </div>
                 </div>
             `;
-            
-            setTimeout(() => {
-                const logoutBtn = browserContent.querySelector('#logoutBtn');
-                if (logoutBtn) {
-                    logoutBtn.addEventListener('click', () => {
-                        if (confirm('Are you sure you want to log out?')) {
-                            localStorage.removeItem('fexplorer_currentUser');
-                            alert('You have been logged out successfully.');
-                            navigate('fexplorer:home');
-                        }
-                    });
+            return;
+        }
+
+        const showAccountOptions = currentUrl === "fexplorer:account";
+        
+        container.innerHTML = `
+    <style>
+        .account-header { 
+            background: ${userData.bannerGradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+            color: white; 
+            padding: 40px 20px; 
+            text-align: center;
+            font-family: ${userData.fontFamily || 'inherit'};
+        }
+        .account-avatar { width: 100px; height: 100px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; }
+        .account-username { font-size: 32px; font-weight: 700; margin: 0 0 10px 0; }
+        .account-description { font-size: 16px; color: rgba(255,255,255,0.9); margin: 10px 0; }
+        .account-info { max-width: 800px; margin: -30px auto 0; padding: 0 20px 40px; }
+        .info-card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .info-card h2 { margin: 0 0 20px 0; font-size: 20px; color: #333; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #666; font-weight: 500; }
+        .info-value { color: #333; font-weight: 600; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s; }
+        .logout-btn:hover { background: #c82333; transform: translateY(-2px); }
+        .settings-input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; margin-top: 5px; }
+        .settings-btn { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        .settings-btn:hover { background: #218838; }
+        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2196F3; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .color-picker { width: 50px; height: 30px; padding: 0; margin-left: 10px; }
+    </style>
+    <div class="account-header">
+        <div class="account-avatar" id="avatarDisplay">${userData.profileIcon || '👤'}</div>
+        <h1 class="account-username">${viewedUser}</h1>
+        <p class="account-description">${userData.description || 'No description set'}</p>
+        <p>Member since ${joinDate}</p>
+    </div>
+    <div class="account-info">
+        <div class="info-card">
+            <h2>📊 Account Statistics</h2>
+            <div class="info-row"><span class="info-label">FPoints Balance</span><span class="info-value">${userFPoints.toLocaleString()}</span></div>
+            <div class="info-row"><span class="info-label">Cookies</span><span class="info-value">${userCookies.toLocaleString()}</span></div>
+            <div class="info-row"><span class="info-label">Luck Multiplier</span><span class="info-value">${userLuck.toFixed(1)}x</span></div>
+            <div class="info-row"><span class="info-label">Pages Created</span><span class="info-value">${Object.keys(userCreatedPages).length}</span></div>
+        </div>
+        ${showAccountOptions ? `
+        <div class="info-card">
+            <h2>⚙️ Account Settings</h2>
+            <div class="info-row">
+                <span class="info-label">Profile Description</span>
+                <textarea class="settings-input" id="description" rows="3">${userData.description || ''}</textarea>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Profile Icon</span>
+                <select class="settings-input" id="profileIcon">
+                    <option value="👤">👤 Default</option>
+                    <option value="🚀">🚀 Rocket</option>
+                    <option value="🌟">🌟 Star</option>
+                    <option value="🎮">🎮 Gamer</option>
+                    <option value="🎨">🎨 Artist</option>
+                    <option value="💻">💻 Coder</option>
+                    <option value="🎯">🎯 Target</option>
+                </select>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Font Family</span>
+                <select class="settings-input" id="fontFamily">
+                    <option value="inherit">Default</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Impact">Impact</option>
+                </select>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Banner Colors</span>
+                <div style="display: flex; align-items: center;">
+                    <input type="color" id="bannerColor1" class="color-picker" value="#667eea">
+                    <input type="color" id="bannerColor2" class="color-picker" value="#764ba2">
+                </div>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email Notifications</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="emailNotifs">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Display Name</span>
+                <input type="text" class="settings-input" id="displayName" value="${viewedUser}">
+            </div>
+            <div class="info-row">
+                <span class="info-label">Profile Privacy</span>
+                <select class="settings-input" id="privacy">
+                    <option value="public">Public</option>
+                    <option value="friends">Friends Only</option>
+                    <option value="private">Private</option>
+                </select>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Change Username</span>
+                <button class="settings-btn" id="changeUsernameBtn">Update Username</button>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Change Password</span>
+                <button class="settings-btn" id="changePassBtn">Update Password</button>
+            </div>
+            <button class="settings-btn" id="saveSettings" style="width: 100%">Save Settings</button>
+        </div>
+        <div class="info-card">
+            <h2>⚙️ Account Actions</h2>
+            <button class="logout-btn" id="logoutBtn">Log Out</button>
+        </div>
+        ` : ''}
+    </div>
+`;
+
+if (showAccountOptions) {
+    setTimeout(() => {
+        const logoutBtn = browserContent.querySelector('#logoutBtn');
+        const saveSettingsBtn = browserContent.querySelector('#saveSettings');
+        const changePassBtn = browserContent.querySelector('#changePassBtn');
+        const changeUsernameBtn = browserContent.querySelector('#changeUsernameBtn');
+        const bannerColor1 = browserContent.querySelector('#bannerColor1');
+        const bannerColor2 = browserContent.querySelector('#bannerColor2');
+        const profileIcon = browserContent.querySelector('#profileIcon');
+        const description = browserContent.querySelector('#description');
+        const fontFamily = browserContent.querySelector('#fontFamily');
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to log out?')) {
+                    localStorage.removeItem('fexplorer_currentUser');
+                    alert('You have been logged out successfully.');
+                    navigate('fexplorer:home');
                 }
-            }, 100);
+            });
+        }
+
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', () => {
+                const displayName = document.getElementById('displayName').value;
+                const privacy = document.getElementById('privacy').value;
+                const emailNotifs = document.getElementById('emailNotifs').checked;
+                const newDescription = description.value;
+                const newIcon = profileIcon.value;
+                const newFont = fontFamily.value;
+                const newGradient = `linear-gradient(135deg, ${bannerColor1.value} 0%, ${bannerColor2.value} 100%)`;
+                
+                users[viewedUser].displayName = displayName;
+                users[viewedUser].privacy = privacy;
+                users[viewedUser].emailNotifs = emailNotifs;
+                users[viewedUser].description = newDescription;
+                users[viewedUser].profileIcon = newIcon;
+                users[viewedUser].fontFamily = newFont;
+                users[viewedUser].bannerGradient = newGradient;
+                
+                localStorage.setItem('fexplorer_users', JSON.stringify(users));
+                alert('Settings saved successfully!');
+                navigate('fexplorer:account');
+            });
+        }
+
+        if (changeUsernameBtn) {
+            changeUsernameBtn.addEventListener('click', () => {
+                const newDisplayName = prompt('Enter new username:');
+                if (!newDisplayName) return;
+                
+                const newUsername = newDisplayName.toLowerCase();
+                
+                if (newUsername.length < 3) {
+                    alert('Username must be at least 3 characters!');
+                    return;
+                }
+                
+                if (newUsername === viewedUser) {
+                    alert('This is already your username!');
+                    return;
+                }
+                
+                if (users[newUsername]) {
+                    alert('Username already taken! Please choose another.');
+                    return;
+                }
+                
+                users[newUsername] = { ...users[viewedUser], displayName: newDisplayName };
+                delete users[viewedUser];
+                
+                localStorage.setItem('fexplorer_users', JSON.stringify(users));
+                localStorage.setItem('fexplorer_currentUser', newUsername);
+                
+                alert('Username updated successfully!');
+                navigate('fexplorer:account');
+            });
+        }
+
+        if (changePassBtn) {
+            changePassBtn.addEventListener('click', () => {
+                const newPass = prompt('Enter new password:');
+                if (newPass && newPass.length >= 6) {
+                    users[viewedUser].password = newPass;
+                    localStorage.setItem('fexplorer_users', JSON.stringify(users));
+                    alert('Password updated successfully!');
+                } else {
+                    alert('Password must be at least 6 characters long');
+                }
+            });
+        }
+    }, 100);
+}
         }
     }
 
+    // Mail System
+if (currentUrl === "fexplorer:mail") {
+    const currentUser = localStorage.getItem('fexplorer_currentUser');
+    
+    if (!currentUser) {
+        browserContent.innerHTML = '<div style="text-align:center;padding:50px;"><h2>Please log in to access mail</h2><button class="home-page-button" data-url="fexplorer:log-in">Log In</button></div>';
+    } else {
+        const aiRecipients = ['FBot', 'SystemAdmin', 'SupportTeam', 'NewsBot', 'JX1DX1'];
+        const mailData = JSON.parse(localStorage.getItem('fexplorer_mail') || '{}');
+        const userMail = mailData[currentUser] || [];
+
+        browserContent.innerHTML = `
+            <div class="mail-interface">
+                <div class="mail-sidebar">
+                    <h2>📧 Mail - ${currentUser}</h2>
+                    <button id="composeMail" class="mail-button">Compose</button>
+                    <div id="mailList">
+                        ${userMail.map((m, i) => `
+                            <div class="mail-item ${m.read ? '' : 'unread'}" data-index="${i}">
+                                <div class="mail-sender">${m.from}</div>
+                                <div class="mail-subject">${m.subject}</div>
+                                <div class="mail-date">${new Date(m.date).toLocaleDateString()}</div>
+                            </div>
+                        `).join('') || '<p style="text-align:center;color:#666;">No mail yet</p>'}
+                    </div>
+                </div>
+
+                <div class="mail-content">
+                    <div id="composeForm" style="display:none;">
+                        <select id="mailTo" class="mail-input">
+                            <option value="">Select recipient...</option>
+                            ${aiRecipients.map(r => `<option value="${r}">${r}</option>`).join('')}
+                        </select>
+                        <input type="text" id="mailSubject" placeholder="Subject" class="mail-input">
+                        <textarea id="mailContent" placeholder="Message" class="mail-textarea"></textarea>
+                        <div class="mail-actions">
+                            <button id="sendMail" class="mail-button">Send</button>
+                            <button id="cancelMail" class="mail-button cancel">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div id="mailView" style="display:none;">
+                        <div class="mail-header">
+                            <h3 id="mailViewSubject"></h3>
+                            <div id="mailViewMeta"></div>
+                        </div>
+                        <div id="mailViewContent" class="mail-body"></div>
+                        <div class="mail-actions">
+                            <button id="replyMail" class="mail-button">Reply</button>
+                            <button id="deleteMail" class="mail-button cancel">Delete</button>
+                            <button id="markRead" class="mail-button">Mark as Read</button>
+                        </div>
+                        <div id="replyForm" style="display:none;">
+                            <textarea id="replyContent" class="mail-textarea" placeholder="Write your reply..."></textarea>
+                            <button id="sendReply" class="mail-button">Send Reply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .mail-interface { 
+                    display: grid;
+                    grid-template-columns: 300px 1fr;
+                    gap: 20px;
+                    max-width: 1200px; 
+                    margin: 20px auto; 
+                    padding: 20px;
+                    height: 80vh;
+                }
+                .mail-sidebar {
+                    border-right: 1px solid #ddd;
+                    padding-right: 20px;
+                    overflow-y: auto;
+                }
+                .mail-content {
+                    padding: 20px;
+                    background: #fff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                .mail-button { 
+                    padding: 8px 16px; 
+                    background: #4CAF50; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    margin: 5px; 
+                }
+                .mail-button.cancel { background: #dc3545; }
+                .mail-input, .mail-textarea { 
+                    width: 100%; 
+                    padding: 8px; 
+                    margin: 5px 0; 
+                    border: 1px solid #ddd; 
+                    border-radius: 4px; 
+                }
+                .mail-textarea { height: 150px; }
+                .mail-item { 
+                    padding: 15px;
+                    border: 1px solid #ddd;
+                    margin: 5px 0;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+                .mail-item:hover { background: #f5f5f5; }
+                .mail-item.unread { 
+                    background: #f0f8ff;
+                    font-weight: bold;
+                }
+                .mail-header {
+                    border-bottom: 1px solid #ddd;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
+                }
+                .mail-body {
+                    padding: 20px 0;
+                    min-height: 200px;
+                }
+                .mail-actions {
+                    padding: 10px 0;
+                    border-top: 1px solid #ddd;
+                    margin-top: 20px;
+                }
+            </style>
+        `;
+
+        // Random mail generation
+        setInterval(() => {
+            if (Math.random() < 0.1) { // 10% chance every minute
+                const sender = aiRecipients[Math.floor(Math.random() * aiRecipients.length)];
+                const randomSubjects = [
+                    'Important Update',
+                    'System Notification',
+                    'Security Alert',
+                    'Newsletter',
+                    'Special Offer'
+                ];
+                const randomContents = [
+                    'We have detected unusual activity on your account.',
+                    'Your daily report is ready for review.',
+                    'New features have been added to FExplorer!',
+                    'Your subscription will expire soon.',
+                    'Congratulations! You\'ve earned bonus FPoints!'
+                ];
+
+                const newMail = {
+                    from: sender,
+                    subject: randomSubjects[Math.floor(Math.random() * randomSubjects.length)],
+                    content: randomContents[Math.floor(Math.random() * randomContents.length)],
+                    date: Date.now(),
+                    read: false
+                };
+
+                if (!mailData[currentUser]) mailData[currentUser] = [];
+                mailData[currentUser].unshift(newMail);
+                localStorage.setItem('fexplorer_mail', JSON.stringify(mailData));
+                navigate('fexplorer:mail');
+            }
+        }, 60000);
+
+        let currentMailIndex = null;
+
+        const composeBtn = browserContent.querySelector('#composeMail');
+        const composeForm = browserContent.querySelector('#composeForm');
+        const mailView = browserContent.querySelector('#mailView');
+        const sendBtn = browserContent.querySelector('#sendMail');
+        const cancelBtn = browserContent.querySelector('#cancelMail');
+        const deleteBtn = browserContent.querySelector('#deleteMail');
+        const replyBtn = browserContent.querySelector('#replyMail');
+        const markReadBtn = browserContent.querySelector('#markRead');
+        const replyForm = browserContent.querySelector('#replyForm');
+        const sendReplyBtn = browserContent.querySelector('#sendReply');
+
+        composeBtn?.addEventListener('click', () => {
+            composeForm.style.display = 'block';
+            mailView.style.display = 'none';
+        });
+
+        cancelBtn?.addEventListener('click', () => {
+            composeForm.style.display = 'none';
+        });
+
+        deleteBtn?.addEventListener('click', () => {
+            if (currentMailIndex !== null) {
+                if (confirm('Delete this message?')) {
+                    mailData[currentUser].splice(currentMailIndex, 1);
+                    localStorage.setItem('fexplorer_mail', JSON.stringify(mailData));
+                    navigate('fexplorer:mail');
+                }
+            }
+        });
+
+        replyBtn?.addEventListener('click', () => {
+            replyForm.style.display = 'block';
+        });
+
+        markReadBtn?.addEventListener('click', () => {
+            if (currentMailIndex !== null) {
+                mailData[currentUser][currentMailIndex].read = true;
+                localStorage.setItem('fexplorer_mail', JSON.stringify(mailData));
+                browserContent.querySelector(`[data-index="${currentMailIndex}"]`)?.classList.remove('unread');
+            }
+        });
+
+        sendReplyBtn?.addEventListener('click', () => {
+    const replyContent = browserContent.querySelector('#replyContent').value;
+    if (!replyContent) return alert('Please write a reply');
+
+    const originalMail = mailData[currentUser][currentMailIndex];
+    let responseContent = '';
+
+    // Special responses based on recipient
+    switch(originalMail.from) {
+        case 'FBot':
+            responseContent = `Beep boop! Thanks for your message.\nI'm FBot, your friendly automated assistant.\n\nYour message: ${replyContent}\n\nI'll process this right away!`;
+            break;
+        case 'SystemAdmin':
+            responseContent = `Your support ticket has been received.\nTicket ID: #${Date.now().toString().slice(-6)}\n\nYour message: ${replyContent}\n\nA system administrator will review this shortly.`;
+            break;
+        case 'SupportTeam':
+            responseContent = `Thank you for contacting FExplorer Support!\nWe aim to respond within 24 hours.\n\nYour message: ${replyContent}\n\nPlease note your support reference: SUP-${Math.random().toString(36).slice(-8)}`;
+            break;
+        case 'NewsBot':
+            responseContent = `Thanks for your feedback on our newsletter!\n\nYour message: ${replyContent}\n\nYour comments have been added to our content suggestions.`;
+            break;
+        case 'JX1DX1':
+            responseContent = `[ENCRYPTED]\n${btoa(replyContent)}\n[END TRANSMISSION]`;
+            break;
+        default:
+            responseContent = `Thanks for your reply! We'll get back to you soon.\n\nYour message: ${replyContent}`;
+    }
+
+    const response = {
+        from: originalMail.from,
+        subject: `Re: ${originalMail.subject}`,
+        content: responseContent,
+        date: Date.now(),
+        read: false
+    };
+
+    mailData[currentUser].unshift(response);
+    localStorage.setItem('fexplorer_mail', JSON.stringify(mailData));
+    navigate('fexplorer:mail');
+});
+        browserContent.querySelectorAll('.mail-item').forEach(item => {
+            item.addEventListener('click', () => {
+                currentMailIndex = parseInt(item.dataset.index);
+                const mail = mailData[currentUser][currentMailIndex];
+                
+                composeForm.style.display = 'none';
+                mailView.style.display = 'block';
+                replyForm.style.display = 'none';
+                
+                browserContent.querySelector('#mailViewSubject').textContent = mail.subject;
+                browserContent.querySelector('#mailViewMeta').textContent = `From: ${mail.from} | ${new Date(mail.date).toLocaleString()}`;
+                browserContent.querySelector('#mailViewContent').textContent = mail.content;
+                
+                if (!mail.read) {
+                    mail.read = true;
+                    mailData[currentUser][currentMailIndex] = mail;
+                    localStorage.setItem('fexplorer_mail', JSON.stringify(mailData));
+                    item.classList.remove('unread');
+                }
+            });
+        });
+
+        sendBtn?.addEventListener('click', () => {
+            const to = browserContent.querySelector('#mailTo').value;
+            const subject = browserContent.querySelector('#mailSubject').value;
+            const content = browserContent.querySelector('#mailContent').value;
+
+            if (!to || !subject || !content) return alert('Fill all fields');
+
+            const response = {
+                from: to,
+                subject: `Re: ${subject}`,
+                content: `Thanks for your message! This is an automated response.\n\nYour message: ${content}`,
+                date: Date.now() + 1000,
+                read: false
+            };
+
+            if (!mailData[currentUser]) mailData[currentUser] = [];
+            mailData[currentUser].unshift(response);
+            localStorage.setItem('fexplorer_mail', JSON.stringify(mailData));
+            navigate('fexplorer:mail');
+        });
+    }
+}
+
+    // Experience System
+if (currentUrl === 'fexplorer:exp') {
+    const currentUser = localStorage.getItem('fexplorer_currentUser');
+    
+    if (!currentUser) {
+        browserContent.innerHTML = `
+            <div style="text-align:center;padding:50px;">
+                <h2>Please log in to view your experience</h2>
+                <button class="home-page-button" data-url="fexplorer:log-in">Log In</button>
+            </div>`;
+    } else {
+        // Get or initialize user exp data
+        const expData = JSON.parse(localStorage.getItem('fexplorer_exp') || '{}');
+        if (!expData[currentUser]) {
+            expData[currentUser] = {
+                level: 1,
+                exp: 0,
+                totalExp: 0,
+                completedObjectives: []
+            };
+            localStorage.setItem('fexplorer_exp', JSON.stringify(expData));
+        }
+
+        const userData = expData[currentUser];
+        const expToNextLevel = Math.floor(100 * Math.pow(1.2, userData.level - 1));
+        const progress = (userData.exp / expToNextLevel) * 100;
+
+        browserContent.innerHTML = `
+            <style>
+                .exp-container { max-width: 800px; margin: 20px auto; padding: 20px; }
+                .exp-header { background: linear-gradient(135deg, #6e8efb, #a777e3); color: white; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+                .level-display { font-size: 48px; font-weight: bold; margin: 10px 0; }
+                .exp-bar { background: #eee; height: 20px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+                .exp-progress { background: linear-gradient(90deg, #4CAF50, #8BC34A); height: 100%; width: ${progress}%; transition: width 0.3s; }
+                .exp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+                .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+                .objectives-list { margin: 20px 0; }
+                .objective-item { padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+                .objective-item.completed { background: #e8f5e9; }
+                .objective-item.available { background: white; }
+                .objective-exp { font-weight: bold; color: #4CAF50; }
+                .rewards-list { margin-top: 20px; }
+                .reward-item { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center; }
+                .reward-item.locked { background: #f5f5f5; color: #999; }
+                .reward-item.unlocked { background: #e8f5e9; }
+            </style>
+            <div class="exp-container">
+                <div class="exp-header">
+                    <h1>Experience System</h1>
+                    <div class="level-display">Level ${userData.level}</div>
+                    <div class="exp-bar">
+                        <div class="exp-progress"></div>
+                    </div>
+                    <div>${userData.exp}/${expToNextLevel} EXP to next level</div>
+                </div>
+                
+                <div class="exp-stats">
+                    <div class="stat-card">
+                        <h3>Total EXP</h3>
+                        <div>${userData.totalExp}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Objectives Completed</h3>
+                        <div>${userData.completedObjectives?.length || 0}</div>
+                    </div>
+                </div>
+
+                <div class="objectives-list">
+                    <h2>Daily Objectives</h2>
+                    ${generateObjectivesList(userData.completedObjectives)}
+                </div>
+
+                <div class="rewards-list">
+                    <h2>Level Rewards</h2>
+                    ${generateRewardsList(userData.level)}
+                </div>
+            </div>
+        `;
+
+        // Add event listeners for objectives
+        const objectives = browserContent.querySelectorAll('.objective-item.available');
+        objectives.forEach(objective => {
+            objective.addEventListener('click', () => {
+                const objectiveId = objective.getAttribute('data-id');
+                const objectiveData = getObjectiveData(objectiveId);
+                
+                if (checkObjectiveCompletion(objectiveId)) {
+                    userData.exp += objectiveData.exp;
+                    userData.totalExp += objectiveData.exp;
+                    userData.completedObjectives.push(objectiveId);
+
+                    // Check for level up
+                    while (userData.exp >= expToNextLevel) {
+                        userData.exp -= expToNextLevel;
+                        userData.level++;
+                        alert(`🎉 Congratulations! You've reached level ${userData.level}!`);
+                        
+                        const reward = getLevelReward(userData.level);
+                        if (reward) {
+                            userFPoints += reward.fpoints || 0;
+                            userCookies += reward.cookies || 0;
+                            userLuck += reward.luck || 0;
+                            saveAppState();
+                            alert(`🎁 Level ${userData.level} Reward: ${reward.description}`);
+                        }
+                    }
+
+                    expData[currentUser] = userData;
+                    localStorage.setItem('fexplorer_exp', JSON.stringify(expData));
+                    navigate('fexplorer:exp');
+                }
+            });
+        });
+    }
+}
+
+function generateObjectivesList(completedObjectives) {
+    const objectives = [
+        { id: 'visit_pages', description: 'Visit 5 different pages', exp: 20, check: () => Object.keys(userVisitedPages || {}).length >= 5 },
+        { id: 'create_page', description: 'Create a new page', exp: 30, check: () => Object.keys(userCreatedPages || {}).length > 0 },
+        { id: 'send_mail', description: 'Send a mail message', exp: 15, check: () => true },
+        { id: 'claim_bonus', description: 'Claim daily bonus', exp: 25, check: () => Date.now() - lastFinancialVisit >= DAILY_BONUS_COOLDOWN },
+        { id: 'change_settings', description: 'Update your profile settings', exp: 10, check: () => true }
+    ];
+
+    return objectives.map(obj => `
+        <div class="objective-item ${completedObjectives?.includes(obj.id) ? 'completed' : 'available'}" data-id="${obj.id}">
+            <span>${obj.description}</span>
+            <span class="objective-exp">+${obj.exp} EXP ${completedObjectives?.includes(obj.id) ? '✅' : ''}</span>
+        </div>
+    `).join('');
+}
+
+function getObjectiveData(objectiveId) {
+    const objectives = {
+        'visit_pages': { exp: 20 },
+        'create_page': { exp: 30 },
+        'send_mail': { exp: 15 },
+        'claim_bonus': { exp: 25 },
+        'change_settings': { exp: 10 }
+    };
+    return objectives[objectiveId];
+}
+
+function checkObjectiveCompletion(objectiveId) {
+    const objectives = {
+        'visit_pages': () => Object.keys(userVisitedPages || {}).length >= 5,
+        'create_page': () => Object.keys(userCreatedPages || {}).length > 0,
+        'send_mail': () => true,
+        'claim_bonus': () => Date.now() - lastFinancialVisit >= DAILY_BONUS_COOLDOWN,
+        'change_settings': () => true
+    };
+    return objectives[objectiveId]();
+}
+
+function generateRewardsList(currentLevel) {
+    const rewards = [
+        { level: 5, description: "500 FPoints", fpoints: 500 },
+        { level: 10, description: "1000 FPoints + 50 Cookies", fpoints: 1000, cookies: 50 },
+        { level: 15, description: "2000 FPoints + 0.1x Luck Boost", fpoints: 2000, luck: 0.1 },
+        { level: 20, description: "5000 FPoints + 100 Cookies", fpoints: 5000, cookies: 100 },
+        { level: 25, description: "10000 FPoints + 0.2x Luck Boost", fpoints: 10000, luck: 0.2 }
+    ];
+
+    return rewards.map(reward => `
+        <div class="reward-item ${currentLevel >= reward.level ? 'unlocked' : 'locked'}">
+            <span>Level ${reward.level}: ${reward.description}</span>
+            <span>${currentLevel >= reward.level ? '✅ Unlocked' : '🔒 Locked'}</span>
+        </div>
+    `).join('');
+}
+
+function getLevelReward(level) {
+    const rewards = [
+        { level: 5, description: "500 FPoints", fpoints: 500 },
+        { level: 10, description: "1000 FPoints + 50 Cookies", fpoints: 1000, cookies: 50 },
+        { level: 15, description: "2000 FPoints + 0.1x Luck Boost", fpoints: 2000, luck: 0.1 },
+        { level: 20, description: "5000 FPoints + 100 Cookies", fpoints: 5000, cookies: 100 },
+        { level: 25, description: "10000 FPoints + 0.2x Luck Boost", fpoints: 10000, luck: 0.2 }
+    ];
+    return rewards.find(r => r.level === level);
+}
     // Financial page buttons
     const claimDailyBonusButton = browserContent.querySelector('#claimDailyBonusButton');
     if (claimDailyBonusButton) {
@@ -4769,7 +5647,25 @@ function attachDynamicEventListeners() {
     const cookiesTradeButton = browserContent.querySelector('.cookies-button-primary');
     if (cookiesTradeButton) {
         cookiesTradeButton.addEventListener('click', () => {
-            alert('Coming soon! Cookie trading feature will be available in a future update.');
+            const amount = parseInt(prompt('How many cookies would you like to buy? (5 FPoints = 1 Cookie)'));
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid number greater than 0');
+                return;
+            }
+
+            const cost = amount * 5;
+
+            if (userFPoints >= cost) {
+                userFPoints -= cost;
+                userCookies += amount;
+                updateFPointsDisplay();
+                saveAppState();
+                alert(`Successfully traded ${cost} FPoints for ${amount} Cookies!`);
+                showFPointsNotification(-cost);
+            } else {
+                alert('Not enough FPoints for this trade!');
+            }
         });
     }
 
@@ -4889,6 +5785,279 @@ function attachDynamicEventListeners() {
 
     // Random Page button (its just a random page)
 
+    // Blogs System
+const fblogsContent = browserContent.querySelectorAll('.fblogs-content')
+fblogsContent.forEach(blog => {
+    blog.innerHTML = `
+        <div class="blog-container">
+            <div class="blog-header">
+                <h2>Latest Blog Posts</h2>
+                <button id="newBlogPost" class="blog-button">Create New Post</button>
+            </div>
+            <div class="create-post-form" style="display:none; margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                <input type="text" id="postTitle" placeholder="Enter post title..." style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                <textarea id="postContent" placeholder="Enter post content..." style="width: 100%; height: 100px; padding: 8px; margin-bottom: 10px;"></textarea>
+                <div>
+                    <button id="submitPost" class="blog-button">Submit Post</button>
+                    <button id="cancelPost" class="blog-button" style="background: #dc3545;">Cancel</button>
+                </div>
+            </div>
+            <div class="blog-posts">
+                <div class="blog-post">
+                    <h3>Welcome to FExplorer Blogs!</h3>
+                    <p class="blog-meta">Posted by Admin on ${new Date().toLocaleDateString()}</p>
+                    <p>Share your thoughts and experiences with the FExplorer community.</p>
+                    <div class="blog-actions">
+                        <button class="like-btn">👍 0</button>
+                        <button class="report-btn">⚠️ Report</button>
+                        <button class="comment-btn">💬 Comments (0)</button>
+                    </div>
+                    <div class="comments-section" style="display:none;">
+                        <input type="text" class="comment-input" placeholder="Add a comment...">
+                        <button class="post-comment-btn">Post</button>
+                        <div class="comments-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <style>
+            .blog-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .blog-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .blog-button {
+                padding: 8px 16px;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-right: 5px;
+            }
+            .blog-button:hover {
+                background: #0056b3;
+            }
+            .blog-posts {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            .blog-post {
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                background: white;
+            }
+            .blog-meta {
+                color: #666;
+                font-size: 0.9em;
+                margin: 5px 0;
+            }
+            .blog-actions {
+                margin-top: 10px;
+                display: flex;
+                gap: 10px;
+            }
+            .blog-actions button {
+                padding: 5px 10px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                background: #f0f0f0;
+            }
+            .blog-actions button:hover {
+                background: #e0e0e0;
+            }
+            .comments-section {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #eee;
+            }
+            .comment-input {
+                width: 80%;
+                padding: 5px;
+                margin-right: 5px;
+            }
+            .comments-list {
+                margin-top: 10px;
+            }
+            .comment {
+                padding: 5px;
+                margin: 5px 0;
+                border-left: 2px solid #ddd;
+            }
+        </style>
+    `;
+
+    const randomUsers = ['CoolUser123', 'WebExplorer', 'PixelPioneer', 'CodeNinja', 'TechGuru', 'DigitalDreamer'];
+    const randomTopics = ['Just discovered a cool feature!', 'My FExplorer experience', 'Tips and tricks', 'Bug report', 'Feature request'];
+    const randomContents = [
+        'This browser is amazing! Love the features.',
+        'Has anyone else noticed how smooth the navigation is?',
+        'I think we should add more games to play.',
+        'The blog system needs more emoji support 😊',
+        'Just earned 1000 Cookies from trading!'
+    ];
+    const randomComments = [
+        'Great post!', 
+        'Interesting thoughts',
+        'I agree with this',
+        'Thanks for sharing',
+        'Cool feature!'
+    ];
+    
+    // AI User Simulation
+    setInterval(() => {
+        if(Math.random() < 0.3) { // 30% chance every interval
+            const randomUser = randomUsers[Math.floor(Math.random() * randomUsers.length)];
+            const action = Math.random();
+            
+            if(action < 0.4) { // 40% chance to create post
+                createAIPost(randomUser);
+            } else if(action < 0.7) { // 30% chance to add comment
+                addAIComment(randomUser);
+            } else { // 30% chance to like posts
+                addAILike();
+            }
+        }
+    }, 5000); // Every 5 seconds
+
+    function createAIPost(username) {
+        const title = randomTopics[Math.floor(Math.random() * randomTopics.length)];
+        const content = randomContents[Math.floor(Math.random() * randomContents.length)];
+        createNewPost(title, content, username);
+    }
+
+    function addAIComment(username) {
+        const posts = blog.querySelectorAll('.blog-post');
+        if(posts.length) {
+            const randomPost = posts[Math.floor(Math.random() * posts.length)];
+            const commentsList = randomPost.querySelector('.comments-list');
+            const commentText = randomComments[Math.floor(Math.random() * randomComments.length)];
+            
+            const commentElement = document.createElement('div');
+            commentElement.className = 'comment';
+            commentElement.innerHTML = `<strong>${username}:</strong> ${commentText}`;
+            commentsList.appendChild(commentElement);
+            
+            const commentBtn = randomPost.querySelector('.comment-btn');
+            const commentCount = commentsList.children.length;
+            commentBtn.textContent = `💬 Comments (${commentCount})`;
+        }
+    }
+
+    function addAILike() {
+        const posts = blog.querySelectorAll('.blog-post');
+        if(posts.length) {
+            const randomPost = posts[Math.floor(Math.random() * posts.length)];
+            const likeBtn = randomPost.querySelector('.like-btn');
+            const currentLikes = parseInt(likeBtn.textContent.split(' ')[1]);
+            likeBtn.textContent = `👍 ${currentLikes + 1}`;
+        }
+    }
+
+    function createNewPost(title, content, username) {
+        const postElement = document.createElement('div');
+        postElement.className = 'blog-post';
+        const linkedContent = content.replace(/(data:\/\/\S+)/g, '<button data-url="$1" style="color:#007bff;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;">$1</button>');
+        
+        postElement.innerHTML = `
+            <h3>${title}</h3>
+            <p class="blog-meta">Posted by ${username} on ${new Date().toLocaleDateString()}</p>
+            <p>${linkedContent}</p>
+            <div class="blog-actions">
+                <button class="like-btn">👍 0</button>
+                <button class="report-btn">⚠️ Report</button>
+                <button class="comment-btn">💬 Comments (0)</button>
+            </div>
+            <div class="comments-section" style="display:none;">
+                <input type="text" class="comment-input" placeholder="Add a comment...">
+                <button class="post-comment-btn">Post</button>
+                <div class="comments-list"></div>
+            </div>
+        `;
+        
+        blog.querySelector('.blog-posts').prepend(postElement);
+        setupPostInteractions(postElement);
+    }
+
+    function setupPostInteractions(postElement) {
+        const likeBtn = postElement.querySelector('.like-btn');
+        const reportBtn = postElement.querySelector('.report-btn');
+        const commentBtn = postElement.querySelector('.comment-btn');
+        const commentsSection = postElement.querySelector('.comments-section');
+        const commentInput = postElement.querySelector('.comment-input');
+        const postCommentBtn = postElement.querySelector('.post-comment-btn');
+        const commentsList = postElement.querySelector('.comments-list');
+        
+        let likes = 0;
+        likeBtn.addEventListener('click', () => {
+            likes++;
+            likeBtn.textContent = `👍 ${likes}`;
+        });
+
+        reportBtn.addEventListener('click', () => {
+            reportBtn.textContent = '⚠️ Reported';
+            reportBtn.disabled = true;
+        });
+
+        commentBtn.addEventListener('click', () => {
+            commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+        });
+
+        postCommentBtn.addEventListener('click', () => {
+            const commentText = commentInput.value.trim();
+            if (commentText) {
+                const username = localStorage.getItem('fexplorer_currentUser') || 'Guest';
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment';
+                commentElement.innerHTML = `<strong>${username}:</strong> ${commentText}`;
+                commentsList.appendChild(commentElement);
+                commentInput.value = '';
+                const commentCount = commentsList.children.length;
+                commentBtn.textContent = `💬 Comments (${commentCount})`;
+            }
+        });
+    }
+
+    const newBlogButton = blog.querySelector('#newBlogPost');
+    const createPostForm = blog.querySelector('.create-post-form');
+    const submitPostButton = blog.querySelector('#submitPost');
+    const cancelPostButton = blog.querySelector('#cancelPost');
+
+    if (newBlogButton) {
+        newBlogButton.addEventListener('click', () => {
+            createPostForm.style.display = 'block';
+        });
+
+        cancelPostButton.addEventListener('click', () => {
+            createPostForm.style.display = 'none';
+            blog.querySelector('#postTitle').value = '';
+            blog.querySelector('#postContent').value = '';
+        });
+
+        submitPostButton.addEventListener('click', () => {
+            const title = blog.querySelector('#postTitle').value.trim();
+            const content = blog.querySelector('#postContent').value.trim();
+            
+            if (title && content) {
+                const username = localStorage.getItem('fexplorer_currentUser') || 'Guest';
+                createNewPost(title, content, username);
+                createPostForm.style.display = 'none';
+                blog.querySelector('#postTitle').value = '';
+                blog.querySelector('#postContent').value = '';
+            }
+        });
+    }
+});
+
     // Sandbox Demo button
 const startSandboxDemoButton = browserContent.querySelector('#startSandboxDemoButton');
 if (startSandboxDemoButton) {
@@ -4927,9 +6096,15 @@ if (startSandboxDemoButton) {
       Grass: '#6cc070',
       Stone: '#999999',
       Wood: '#b88a56',
-      Iron: '#ffffffff'
+      Planks: '#725534ff',
+      Leaf: '#bbf1beff',
+      Iron: '#ffffffff',
+      Gold: '#ffd700',
+      Diamond: '#00ffff',
+      Ruby: '#e0115f',
+      Emerald: '#50c878'
     };
-    let currentMaterial = 'Sand';
+    let currentMaterial = 'Wood';
     let deleteMode = false;
 
     const sandboxGrid = document.getElementById('sandboxGrid');
@@ -4982,8 +6157,6 @@ if (startSandboxDemoButton) {
     });
   });
 }
-
-// (Survial game initialization handled later where the full game is mounted)
 
 // Solitaire button
 const startSolitaireDemoButton = browserContent.querySelector('#startSolitaireDemoButton');
@@ -5208,27 +6381,77 @@ if (startSolitaireDemoButton) {
 
 
     // Get Visual Scripts Editor button
-    const getVSEButton = browserContent.querySelector('.get-vse-button');
-    if (getVSEButton) {
-        getVSEButton.addEventListener('click', () => {
-            if (getVSEButton.textContent === 'Open Visual Scripts Editor') {
-                alert('Opening Visual Scripts Editor...');
-                alert('Visual Scripts Editor is not implemented yet. Coming soon!');
-            } else if (userFPoints >= 100)  {
-                if (userFPoints >= 100) {
-                    userFPoints -= 100;
-                    updateFPointsDisplay();
-                    saveAppState();
-                    alert('You have purchased the Visual Scripts Editor for 100 FPoints!');
-                    getVSEButton.textContent = 'Open Visual Scripts Editor';
-                    showFPointsNotification(-100);
-                }
-            } else {
-                alert('Not enough FPoints to purchase the Visual Scripts Editor!');
-            }
-        });
-    }
+const getVSEButton = browserContent.querySelector('.get-vse-button');
+if (getVSEButton) {
+    getVSEButton.addEventListener('click', () => {
+        if (getVSEButton.textContent === 'Open Visual Scripts Editor') {
+            const editorContainer = document.createElement('div');
+            editorContainer.style.position = 'fixed';
+            editorContainer.style.top = '50%';
+            editorContainer.style.left = '50%';
+            editorContainer.style.transform = 'translate(-50%, -50%)';
+            editorContainer.style.backgroundColor = '#fff';
+            editorContainer.style.padding = '20px';
+            editorContainer.style.borderRadius = '8px';
+            editorContainer.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+            editorContainer.style.zIndex = '1000';
 
+            editorContainer.innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <h3 style="margin:0">Visual Scripts Editor</h3>
+                    <textarea id="codeEditor" style="width:500px;height:300px;font-family:monospace;padding:10px;"></textarea>
+                    <div style="display:flex;gap:10px;">
+                        <button id="runCode" class="button">Run Code</button>
+                        <button id="closeEditor" class="button">Close Editor</button>
+                    </div>
+                    <div id="outputArea" style="border:1px solid #ccc;padding:10px;min-height:100px;"></div>
+                </div>
+            `;
+
+            document.body.appendChild(editorContainer);
+
+            const runButton = editorContainer.querySelector('#runCode');
+            const closeButton = editorContainer.querySelector('#closeEditor');
+            const outputArea = editorContainer.querySelector('#outputArea');
+
+            runButton.addEventListener('click', () => {
+                const code = editorContainer.querySelector('#codeEditor').value;
+                outputArea.innerHTML = '';
+                try {
+                    const sandboxedConsole = {
+                        log: (...args) => {
+                            outputArea.innerHTML += args.join(' ') + '<br>';
+                        }
+                    };
+                    const sandboxedCode = `
+                        (function(console) {
+                            ${code}
+                        })(sandboxedConsole);
+                    `;
+                    eval(sandboxedCode);
+                } catch (error) {
+                    outputArea.innerHTML = `<span style="color:red">Error: ${error.message}</span>`;
+                }
+            });
+
+            closeButton.addEventListener('click', () => {
+                document.body.removeChild(editorContainer);
+            });
+
+        } else if (userFPoints >= 100)  {
+            if (userFPoints >= 100) {
+                userFPoints -= 100;
+                updateFPointsDisplay();
+                saveAppState();
+                alert('You have purchased the Visual Scripts Editor for 100 FPoints!');
+                getVSEButton.textContent = 'Open Visual Scripts Editor';
+                showFPointsNotification(-100);
+            }
+        } else {
+            alert('Not enough FPoints to purchase the Visual Scripts Editor!');
+        }
+    });
+}
     // Tic Tac Toe Start button
     const startTicTacToeButton = browserContent.querySelector('#startTicTacToeButton');
     if (startTicTacToeButton) {
@@ -8470,6 +9693,7 @@ function buildSearchResults(query, host) {
         "create page": { url: "fexplorer:create", title: "Page Creator" },
         "creator hub": { url: "fexplorer:create.hub", title: "Creator Hub" },
         "settings": { url: "fexplorer:settings", title: "Settings" },
+        "log in": {url: "fexplorer:log-in", title: "Log in to FExplorer!"},
         "games": { url: "fexplorer:games", title: "Games" },
         "program": { url: "fexplorer:programs", title: "Programs" },
         "cookie": { url: "fexplorer:cookies", title: "Cookies" },
@@ -8479,6 +9703,7 @@ function buildSearchResults(query, host) {
         "paranoid": {url: "paranoid.com", title: "Was this page always here, or are you just hullucinating?"},
         "random": {url: "fexplorer:100-default/welcome", title: "Click me!"},
         "black market": {url: "black-market.net", title: "Totally legal substances"},
+        "mytube": {url: "mytube.com", title: "MyTube - $19 Fortnite Card. Who wants it?"},
     };
 
     // Build result items
@@ -8602,10 +9827,20 @@ function generateStupidAISummary(query) {
             `Every time you play a game, somewhere a unicorn gets its wings. Or was that bells? Whatever.`
         ],
         paranoid: [
-            `This message isn't actually here. Or is it? Who's asking? Are you watching me?`,
-            `The paranoid page was created by itself when no one was looking.`,
-            `ERROR: This summary has been redacted for your protection. Or has it?`,
+            `Content Deleted`,
+            `...`,
+            `I was always here.`,
             `YOU.DO.NOT.KNOW.THAT.I.AM.HERE.`
+        ],
+        fnaf: [
+            'FIVE NIGHTS AT FREDDY',
+            `har har har har har har har har har haaaar`,
+            `NIGHT GUARD!! I'M GONNA KICK YOUR ASS!!`,
+        ],
+        burgersoft: [
+            'Burgersoft is actually an evil company,',
+            'Burgersoft steals your information, and then sells them onto the black market.',
+            'Burgersoft was created to actually detain a psycopath, but it ran away.'
         ]
     };
 
@@ -8632,6 +9867,7 @@ function generateStupidAISummary(query) {
         `Doctors recommend smoking ${Math.floor(Math.random() * 20)} cigarettes per day during ${query}.`,
         `Sometimes, ${query} is legal to do in ${Math.floor(Math.random() * 50)} states until 1989.`,
         `I like cheese. I'm sure ${query} do too.`,
+        `9 in ${Math.random} people love watching corn.`
     ];
 
     // Check for keyword matches first
@@ -8667,16 +9903,17 @@ function getFunFacts(query, isPing) {
         facts.push('Modern browsers allow only limited localStorage by domain.');
         facts.push('Collecting cookies in FExplorer grants FPoints in some events.');
     } else if (q.includes('fpoints') || q.includes('fpoint')) {
-        facts.push('FPoints are the primary in-game currency in FExplorer.');
+        facts.push('FPoints is the main in-game currency in FExplorer.');
         facts.push('You can earn FPoints by searching with Goog or Ping.');
         facts.push('Rare items in the shop may require thousands of FPoints.');
     } else if (q.includes('music') || q.includes('song')) {
         facts.push('FExplorer supports background music tracks like obby7 and orbspire.');
         facts.push('You can toggle music and adjust volume in Settings.');
         facts.push('Looping music stays persistent across page navigation.');
+        facts.push('The music is probably from other sources. I might make my own music soon!');
     } else if (q.includes('roblox') || q.includes('dynablocks')) {
-        facts.push('Dynablocks is a playful nod to Roblox in FExplorer themes.');
-        facts.push('Collectibles and cosmetics reference classic game culture.');
+        facts.push(`ROBLOX! IT'S FREEEEEEEEEEEEEEEEEEEEEEEEEE!!`);
+        facts.push('Roblox is the best game ever, maybe.');
         facts.push(`ROBLOXIA'S AS GOOD AS MINE!!`);
     } else if (q.includes('science') || q.includes('space')) {
         facts.push('Space is mostly a vacuum but filled with low-density particles.');
@@ -8690,7 +9927,7 @@ function getFunFacts(query, isPing) {
         facts.push('Goog is the search engine you are currently using.');
         facts.push('This search engine is fun! Unlike others...');
         facts.push('Goog was created in 1995 to compete against Burgersoft.');
-    } else if (q.includes('bugersoft')) {
+    } else if (q ==='bugersoft') {
         facts.push(`We don't talk about Burgersoft here.`);
         facts.push('Burgersoft was a major tech company in the early 2000s.');
         facts.push('Burgersoft created the Ping search engine as a competitor to Goog, but it failed.');
@@ -8704,6 +9941,14 @@ function getFunFacts(query, isPing) {
         facts.push('Are you sure this is the right page?');
         facts.push(`This isn't the correct time to search for this.`);
         facts.push(`To be seen, to be lost.`);
+    } else if (q.includes('mytube')) {
+        facts.push('MyTube is the video sharing website!');
+        facts.push('MyTube does not share videos, but has slideshows as them instead!');
+        facts.push('har har har har har');
+    } else if (q.includes('burger')) {
+        facts.push(`When you eat burgers, apparently you survive for ${Math.floor(Math.random()*125)} days.`);
+        facts.push(`Did you know? Burgers have 3% fat.`);
+        facts.push(`This is not related to Burgersoft.`);
     } else {
         // generic facts pool
         const pool = [
@@ -8717,6 +9962,7 @@ function getFunFacts(query, isPing) {
             `The concept of ${query} dates back to ancient civilizations.`,
             `Because of the asteroid, ${query} is now an endangered species, only peaking at ${Math.floor(Math.random())} individuals worldwide.`,
             `Experts recommend spending at least ${Math.floor(Math.random()*5)+1} hours a day.`,
+            `${Math.floor(Math.random)} people died this year. Isn't that concerning?`,
         ];
         // pick 2-3 facts
         const count = Math.min(3, Math.max(2, Math.floor(Math.random() * 3) + 1));
@@ -8739,16 +9985,21 @@ function generateSearchArticle(title, domain, snippet, query) {
         content: []
     };
 
-    // Build a few content paragraphs based on the snippet and query
-    article.content.push(`${article.title} — ${article.snippet}`);
-    article.content.push(`This article is an autogenerated variant created from your search for "${query}". It provides a brief, informative take and some context.`);
-    article.content.push(`Background: The domain ${article.domain} is a placeholder used for demonstration pages inside FExplorer.`);
     // Add an extra paragraph depending on keyword
     if ((query || '').toLowerCase().includes('cookie')) {
+        article.content.push(`${article.title} — ${article.snippet}`);
+        article.content.push(`This article is an autogenerated variant created from your search for "${query}". It provides a brief, informative take and some context.`);
+        article.content.push(`Background: The domain ${article.domain} is a placeholder used for demonstration pages inside FExplorer.`);
         article.content.push('Cookies are small pieces of data stored on your device to remember preferences and sessions.');
     } else if ((query || '').toLowerCase().includes('music')) {
+        article.content.push(`${article.title} — ${article.snippet}`);
+        article.content.push(`This article is an autogenerated variant created from your search for "${query}". It provides a brief, informative take and some context.`);
+        article.content.push(`Background: The domain ${article.domain} is a placeholder used for demonstration pages inside FExplorer.`);
         article.content.push('Music in FExplorer is persistent and can be toggled in settings.');
     } else {
+        article.content.push(`${article.title} — ${article.snippet}`);
+        article.content.push(`This article is an autogenerated variant created from your search for "${query}". It provides a brief, informative take and some context.`);
+        article.content.push(`Background: The domain ${article.domain} is a placeholder used for demonstration pages inside FExplorer.`);
         article.content.push('For more depth, try searching related terms or visit the Creator Hub to create content like this.');
     }
 
@@ -9474,6 +10725,7 @@ if (isRateLimited && now < storedLimit) {
         !sanitizedUrl.startsWith("fexplorer:shop?category=") &&
         !sanitizedUrl.startsWith("fexplorer:shop?q=") &&
         !sanitizedUrl.startsWith("goog.com/search?q=") &&
+        !sanitizedUrl.startsWith("fexplorer:account-") &&
         !sanitizedUrl.startsWith("fexplorer:user-page-") &&
         !sanitizedUrl.startsWith("fexplorer:create") &&
         !sanitizedUrl.startsWith("fexplorer:create.hub") &&
@@ -9629,7 +10881,67 @@ if (isRateLimited && now < storedLimit) {
         }
 
         /* =====================================================
-           5. STATIC PAGES (fakeContent)
+           5. ACCOUNT PAGE
+        ====================================================== */
+        else if (sanitizedUrl.startsWith("fexplorer:account")) {
+            contentHtml = '<div id="accountContent"></div>';
+            browserContent.innerHTML = contentHtml;
+            
+            setTimeout(() => {
+                const accountContent = document.getElementById('accountContent');
+                if (!accountContent) return;
+
+                let targetUsername;
+                if (sanitizedUrl === 'fexplorer:account') {
+                    targetUsername = currentUser;
+                } else if (sanitizedUrl.startsWith('fexplorer:account-')) {
+                    targetUsername = sanitizedUrl.substring('fexplorer:account-'.length);
+                }
+
+                const users = JSON.parse(localStorage.getItem('fexplorer_users') || '{}');
+                const userData = users[targetUsername];
+
+                if (!userData) {
+                    accountContent.innerHTML = `<div style="text-align:center;padding:40px;"><h1>User Not Found</h1><p>The user "${escapeHtml(targetUsername)}" does not exist.</p></div>`;
+                    return;
+                }
+
+                const isOwnProfile = targetUsername === currentUser;
+                const isFriend = userData.friends?.includes(currentUser);
+                const canView = isOwnProfile || userData.privacy === 'public' || (userData.privacy === 'friends' && isFriend);
+
+                if (!canView) {
+                    accountContent.innerHTML = `<div style="text-align:center;padding:40px;"><h1>Private Profile</h1><p>This profile is private.</p></div>`;
+                    return;
+                }
+
+                const profileIcon = userData.profileIcon || '👤';
+                const description = userData.description || 'No description set.';
+                const bannerGradient = userData.bannerGradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                const fontFamily = userData.fontFamily || 'Arial, sans-serif';
+                const friendsList = userData.friends || [];
+
+                accountContent.innerHTML = `
+                    <div style="font-family: ${fontFamily};">
+                        <div style="background: ${bannerGradient}; height: 150px; display: flex; align-items: center; justify-content: center; color: white; font-size: 80px;">
+                            ${profileIcon}
+                        </div>
+                        <div style="padding: 20px;">
+                            <h1>${escapeHtml(targetUsername)}</h1>
+                            <p><strong>Description:</strong> ${escapeHtml(description)}</p>
+                            <p><strong>Privacy:</strong> ${userData.privacy || 'public'}</p>
+                            <p><strong>Friends (${friendsList.length}):</strong> ${friendsList.length > 0 ? friendsList.map(f => escapeHtml(f)).join(', ') : 'None'}</p>
+                            ${isOwnProfile ? `<p><strong>FPoints:</strong> ${userFPoints}</p><p><strong>Luck:</strong> ${userLuck}</p><p><strong>Cookies:</strong> ${userCookies}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }, 0);
+            
+            pageFound = true;
+        }
+
+        /* =====================================================
+           6. STATIC PAGES (fakeContent)
         ====================================================== */
         else if (fakeContent[sanitizedUrl]) { //
             // Handled by getPageContentFromUrl, contentHtml is already set
@@ -9637,7 +10949,7 @@ if (isRateLimited && now < storedLimit) {
         }
 
         /* =====================================================
-           6. SEARCH / EXTERNAL SITES
+           7. SEARCH / EXTERNAL SITES
         ====================================================== */
         else {
             contentHtml = handleExternalOrSearchPages(sanitizedUrl); //
@@ -9647,7 +10959,7 @@ if (isRateLimited && now < storedLimit) {
         }
 
         /* =====================================================
-           7. 404 PAGE
+           8. 404 PAGE
         ====================================================== */
         if (!pageFound && !contentHtml) {
             contentHtml = `
@@ -9659,7 +10971,7 @@ if (isRateLimited && now < storedLimit) {
         }
 
         /* =====================================================
-           8. WRITE TO DOM (Static pages only)
+           9. WRITE TO DOM (Static pages only)
            (Code pages and Random pages already wrote to DOM)
         ====================================================== */
         const isCodePage = sanitizedUrl.startsWith("fexplorer:user-page-") &&
@@ -9671,7 +10983,7 @@ if (isRateLimited && now < storedLimit) {
         }
 
         /* =====================================================
-           9. AWARD FPOINTS
+           10. AWARD FPOINTS
         ====================================================== */
         if (pageFound && shouldAwardFPoints) {
             const earned = Math.round(5 * (userLuck || 1));
@@ -9681,7 +10993,7 @@ if (isRateLimited && now < storedLimit) {
         }
 
         /* =====================================================
-           10. TRACK ACHIEVEMENT PROGRESS
+           11. TRACK ACHIEVEMENT PROGRESS
         ====================================================== */
         // Track unique page visits
         if (pageFound && !isBackNavigation) {
@@ -9762,10 +11074,10 @@ function information() {
     if ('home-page-content') {
         informationStatus = 'Safe';
     };
-    if (currentUrl === 'fxplorer.chatroom.com' || currentUrl === 'fxplorer.chatroom.com/chatroom' || currentUrl && currentUrl.startsWith('fexplorer:user-page-')) {
+    if (currentUrl === 'fxplorer.chatroom.com' || currentUrl === 'fxplorer.chatroom.com/chatroom' || currentUrl.includes('suspicious/')) {
         informationStatus = 'Caution';
     };
-    if (currentUrl === 'paranoid.com') {
+    if (currentUrl === 'paranoid.com' || currentUrl.includes('danger/virus')) {
         informationStatus = 'Dangerous';
     };
     if (currentUrl === 'paranoid.com/jx1dx1' || currentUrl === 'paranoid.com/code.html' || currentUrl === 'paranoid.com/error.html') {
@@ -9779,6 +11091,10 @@ function information() {
             alert(' ');
         } else if (currentUrl === 'fexplorer:settings') {
             alert('This page is safe. Go and change your settings if you want to!');
+        } else if (currentUrl === 'fexplorer:account') {
+            alert('This page is your account page. Go and customize it!');
+        } else if (currentUrl.startsWith('fexplorer:account-')) {
+            alert('This page is a profile page.');
         } else {
             alert('This page is safe.');
         }
@@ -9788,12 +11104,14 @@ function information() {
         alert('This page is dangerous. You should leave the page.');
     } else if (informationStatus === 'File') {
         if (currentUrl === 'file:terminal') {
-            alert('This page is a file.');
+            alert('This page is a terminal file. Quite cool, right?');
         } else {
             alert('This page is a file.');
         };
     } else if (informationStatus === 'JX1DX1') {
-        alert('this.page.is.safe.');
+        alert('ALERT("THIS.PAGE.IS.SAFE.").');
+    } else {
+        alert('This is an unknown page.');
     };
 };
 

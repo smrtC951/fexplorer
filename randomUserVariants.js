@@ -477,7 +477,19 @@ const RANDOM_USER_VARIANTS = {
           <button class="paranoia-button2">No</button>
         </div>
       `
-    }
+    },
+    house: {
+      id: "paranoia.house",
+      html: `
+      <div class="random-user-page" style="font-family: Times New Roman;">
+          <img src="icons/house.png" style="max-width:200px;">
+          <h2>What is a house?</h2>
+          <p>
+            A house is a physical building or structure designed for human habitation. It primarily serves as a dwelling providing shelter, privacy, and security for one or more individuals or a family unit.
+          </p>
+        </div>
+      `
+    },
   },
   /* ====================== TASK ====================== */
   task: {
@@ -509,6 +521,32 @@ const RANDOM_USER_VARIANTS = {
           <h2>Code Task</h2>
           <p>Complete this Javascript code for me! It's VERY impossible, I tell you.</p>
           <button class="task-button">View Code</button>
+        </div>
+      `
+    },
+    freddy: {
+      id: "task.freddy",
+      html: `
+        <div class="random-user-page">
+          <h2>Your Task at Freddy's</h2>
+          <p>Try to survive at Freddy's</p>
+          <button class="task-button">Survive.</button>
+        </div>
+      `
+    },
+    createpage: {
+      id: "task.createpage",
+      html: `
+      <div class="random-user-page">
+          <h2>Totally legal page creator!</h2>
+          <p>Hey, do you wanna create a page? C'mon, I know you wanna do it!</p>
+          <button class="task-button">Create page</button>
+          <div class="crate-page" style="display: none;">
+            <h3>Create Page</h3>
+            <p>Enter the URL of the page you want to create:</p>
+            <input type="text" id="pageUrl" placeholder="fexplorer:home">
+            <button>Create</button>
+          </div>
         </div>
       `
     },
@@ -561,7 +599,16 @@ const RANDOM_USER_VARIANTS = {
           <p>If you fail to follow the rules, we will contact the authorities.</p>
         </div>
       `
-    }
+    },
+    chiikawa: {
+      id: "misc.chiikawa",
+      html: `
+        <div class="random-user-page">
+          <h2>Chiikawa</h2>
+          <p>Something small and cute.</p>
+        </div>
+      `
+    },
   }
 
 }; // END RANDOM_USER_VARIANTS
